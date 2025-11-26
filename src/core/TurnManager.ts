@@ -1,0 +1,101 @@
+import * as ex from 'excalibur';
+import { Actor } from '../actors/Actor';
+import { PriorityQueue } from './PriorityQueue';
+import { Logger } from './Logger';
+
+export class TurnManager {
+    private static _instance: TurnManager;
+    private actors: PriorityQueue<Actor> = new PriorityQueue<Actor>();
+    
+    // Time System
+    public static now: number = 0;
+
+    private constructor() {}
+
+    public static get instance(): TurnManager {
+        if (!this._instance) {
+            this._instance = new TurnManager();
+        }
+        return this._instance;
+    }
+
+    public registerActor(actor: Actor) {
+        // We can't easily check existence in heap without O(N) scan, 
+        // but register is rare.
+        // For now, just push. If we need strict uniqueness, we can maintain a Set alongside.
+        actor.time = TurnManager.now;
+        this.actors.push(actor);
+    }
+
+    public unregisterActor(actor: Actor) {
+        this.actors.remove(actor);
+    }
+
+    public async processTurns() {
+        Logger.debug("[TurnManager] processTurns starting, actors count:", this.actors.length);
+        let processing = true;
+        
+        // Safety break to prevent infinite loops in a single frame
+        let loops = 0;
+        const MAX_LOOPS = 100; 
+
+        while (processing && loops < MAX_LOOPS) {
+            if (this.actors.length === 0) {
+                Logger.debug("[TurnManager] No actors, breaking");
+                break;
+            }
+
+            // Peek at the next actor
+            const currentActor = this.actors.peek();
+            if (!currentActor) {
+                Logger.debug("[TurnManager] No current actor, breaking");
+                break;
+            }
+            
+            Logger.debug("[TurnManager] Processing actor:", currentActor.name, "isPlayer:", currentActor.isPlayer, "time:", currentActor.time);
+            
+            // Advance game time
+            if (currentActor.time > TurnManager.now) {
+                TurnManager.now = currentActor.time;
+            }
+
+            // Act
+            // If act() returns false, it means the actor is waiting (e.g. Player input)
+            // and we should stop processing until they are ready.
+            const didAct = await currentActor.act();
+            Logger.debug("[TurnManager] Actor", currentActor.name, "didAct:", didAct);
+            
+            if (!didAct) {
+                Logger.debug("[TurnManager] Actor waiting for input, stopping processing");
+                processing = false;
+            } else {
+                // Actor acted, they should have updated their time.
+                // We need to re-insert them into the priority queue to update their position
+                // Pop and Push is the cleanest way since their key (time) changed
+                this.actors.pop(); 
+                this.actors.push(currentActor);
+                
+                loops++;
+            }
+        }
+        Logger.debug("[TurnManager] processTurns finished");
+    }
+    
+    // Helper for Actor.ts to access time
+    public static getTime(): number {
+        return this.now;
+    }
+    
+    public get isPlayerTurnActive(): boolean {
+        if (this.actors.length === 0) return false;
+        const current = this.actors.peek();
+        // Player's turn is active when they are the next to act (lowest time)
+        return !!(current && current.isPlayer);
+    }
+    
+    // Called by Player when they perform an action
+    public async playerActionComplete() {
+        // Resume processing
+        await this.processTurns();
+    }
+}

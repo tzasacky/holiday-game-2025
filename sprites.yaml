@@ -1,0 +1,406 @@
+- file: characters/hero.png
+  output: public/assets/characters/hero.png
+  generate: false
+  spec:
+    cols: 8
+    rows: 5
+  expectedTotal: 36
+  prompt: |
+    CHARACTER SPRITESHEET, SOLID COLOR BACKGROUND WITH NO GRIDLINES OR TEXT
+
+    STYLE: Pixel art. Dungeon crawler style. Cute but adventurous. 32x32
+
+    SUBJECT: A brave adventurer wearing a red Santa hat and a cozy green scarf. They are holding a small lantern.
+
+    LAYOUT: 8 frames across (columns) x 5 rows. Total of 40 frames arranged as follows:
+
+    ROW 1 - IDLE ANIMATIONS (2 frames per direction):
+    - Frames 1-2: Character facing DOWN, idle breathing animation
+    - Frames 3-4: Character facing LEFT, idle breathing animation
+    - Frames 5-6: Character facing RIGHT, idle breathing animation
+    - Frames 7-8: Character facing UP, idle breathing animation
+
+    ROW 2 - WALK ANIMATIONS (2 frames per direction):
+    - Frames 9-10: Character walking DOWN, walk cycle
+    - Frames 11-12: Character walking LEFT, walk cycle
+    - Frames 13-14: Character walking RIGHT, walk cycle
+    - Frames 15-16: Character walking UP, walk cycle
+
+    ROW 3 - MELEE ATTACK ANIMATIONS (2 frames per direction):
+    - Frames 17-18: Character attacking DOWN, attack motion
+    - Frames 19-20: Character attacking LEFT, attack motion
+    - Frames 21-22: Character attacking RIGHT, attack motion
+    - Frames 23-24: Character attacking UP, attack motion
+
+    ROW 4 - HURT ANIMATIONS (2 frames per direction):
+    - Frames 25-26: Character hurt/recoiling while facing DOWN
+    - Frames 27-28: Character hurt/recoiling while facing LEFT
+    - Frames 29-30: Character hurt/recoiling while facing RIGHT
+    - Frames 31-32: Character hurt/recoiling while facing UP
+
+    ROW 5 - DEATH ANIMATION (direction-neutral):
+    - Frames 33-36: Character death sequence (4 frames total), animation collapse from upright to grave
+
+- file: enemies/snowman.png
+  output: public/assets/enemies/snowman.png
+  generate: false
+  spec:
+    cols: 8
+    rows: 5
+  expectedTotal: 36
+  prompt: |
+    CHARACTER SPRITESHEET, SOLID COLOR BACKGROUND WITH NO GRIDLINES OR TEXT
+
+    STYLE: Pixel art. Dungeon crawler style. Cute but mischevious. 32x32
+
+    SUBJECT: An animated snowman with stick arms, a carrot nose, and an angry expression.
+
+    LAYOUT: 8 frames across (columns) x 5 rows. Total of 40 frames arranged as follows:
+
+    ROW 1 - IDLE ANIMATIONS (2 frames per direction):
+    - Frames 1-2: Character facing DOWN, idle breathing animation
+    - Frames 3-4: Character facing LEFT, idle breathing animation
+    - Frames 5-6: Character facing RIGHT, idle breathing animation
+    - Frames 7-8: Character facing UP, idle breathing animation
+
+    ROW 2 - WALK ANIMATIONS (2 frames per direction):
+    - Frames 9-10: Character walking DOWN, walk cycle
+    - Frames 11-12: Character walking LEFT, walk cycle
+    - Frames 13-14: Character walking RIGHT, walk cycle
+    - Frames 15-16: Character walking UP, walk cycle
+
+    ROW 3 - MELEE ATTACK ANIMATIONS (2 frames per direction):
+    - Frames 17-18: Character attacking DOWN, attack motion
+    - Frames 19-20: Character attacking LEFT, attack motion
+    - Frames 21-22: Character attacking RIGHT, attack motion
+    - Frames 23-24: Character attacking UP, attack motion
+
+    ROW 4 - HURT ANIMATIONS (2 frames per direction):
+    - Frames 25-26: Character hurt/recoiling while facing DOWN
+    - Frames 27-28: Character hurt/recoiling while facing LEFT
+    - Frames 29-30: Character hurt/recoiling while facing RIGHT
+    - Frames 31-32: Character hurt/recoiling while facing UP
+
+    ROW 5 - DEATH ANIMATION (direction-neutral):
+    - Frames 33-36: Character death sequence (4 frames total), animation collapse from upright to grave
+
+- file: enemies/snow_sprite.png
+  output: public/assets/enemies/snow_sprite.png
+  generate: false
+  spec:
+    cols: 8
+    rows: 5
+  expectedTotal: 36
+  prompt: |
+    CHARACTER SPRITESHEET, SOLID COLOR BACKGROUND WITH NO GRIDLINES OR TEXT
+
+    STYLE: Pixel art. Dungeon crawler style. Cute but mischievous. 32x32
+
+    SUBJECT: A small, floating ball of snow and ice with glowing blue eyes.
+
+    LAYOUT: 8 frames across (columns) x 5 rows. Total of 40 frames arranged as follows:
+
+    ROW 1 - IDLE ANIMATIONS (2 frames per direction):
+    - Frames 1-2: Character facing DOWN, idle breathing animation
+    - Frames 3-4: Character facing LEFT, idle breathing animation
+    - Frames 5-6: Character facing RIGHT, idle breathing animation
+    - Frames 7-8: Character facing UP, idle breathing animation
+
+    ROW 2 - WALK ANIMATIONS (2 frames per direction):
+    - Frames 9-10: Character walking DOWN, walk cycle
+    - Frames 11-12: Character walking LEFT, walk cycle
+    - Frames 13-14: Character walking RIGHT, walk cycle
+    - Frames 15-16: Character walking UP, walk cycle
+
+    ROW 3 - MELEE ATTACK ANIMATIONS (2 frames per direction):
+    - Frames 17-18: Character attacking DOWN, attack motion
+    - Frames 19-20: Character attacking LEFT, attack motion
+    - Frames 21-22: Character attacking RIGHT, attack motion
+    - Frames 23-24: Character attacking UP, attack motion
+
+    ROW 4 - HURT ANIMATIONS (2 frames per direction):
+    - Frames 25-26: Character hurt/recoiling while facing DOWN
+    - Frames 27-28: Character hurt/recoiling while facing LEFT
+    - Frames 29-30: Character hurt/recoiling while facing RIGHT
+    - Frames 31-32: Character hurt/recoiling while facing UP
+
+    ROW 5 - DEATH ANIMATION (direction-neutral):
+    - Frames 33-36: Character death sequence (4 frames total), animation collapse from upright to grave
+
+- file: enemies/krampus.png
+  output: public/assets/enemies/krampus.png
+  generate: false
+  spec:
+    cols: 8
+    rows: 5
+  expectedTotal: 36
+  prompt: |
+    CHARACTER SPRITESHEET, SOLID COLOR BACKGROUND WITH NO GRIDLINES OR TEXT
+
+    STYLE: Pixel art. Dungeon crawler style. Cute but mischievous. 32x32
+
+    SUBJECT: A krampus wearing a santa suit. He carries a bundle of birch branches and a sack.
+
+    LAYOUT: 8 frames across (columns) x 5 rows. Total of 40 frames arranged as follows:
+
+    ROW 1 - IDLE ANIMATIONS (2 frames per direction):
+    - Frames 1-2: Character facing DOWN, idle breathing animation
+    - Frames 3-4: Character facing LEFT, idle breathing animation
+    - Frames 5-6: Character facing RIGHT, idle breathing animation
+    - Frames 7-8: Character facing UP, idle breathing animation
+
+    ROW 2 - WALK ANIMATIONS (2 frames per direction):
+    - Frames 9-10: Character walking DOWN, walk cycle
+    - Frames 11-12: Character walking LEFT, walk cycle
+    - Frames 13-14: Character walking RIGHT, walk cycle
+    - Frames 15-16: Character walking UP, walk cycle
+
+    ROW 3 - MELEE ATTACK ANIMATIONS (2 frames per direction):
+    - Frames 17-18: Character attacking DOWN, attack motion
+    - Frames 19-20: Character attacking LEFT, attack motion
+    - Frames 21-22: Character attacking RIGHT, attack motion
+    - Frames 23-24: Character attacking UP, attack motion
+
+    ROW 4 - HURT ANIMATIONS (2 frames per direction):
+    - Frames 25-26: Character hurt/recoiling while facing DOWN
+    - Frames 27-28: Character hurt/recoiling while facing LEFT
+    - Frames 29-30: Character hurt/recoiling while facing RIGHT
+    - Frames 31-32: Character hurt/recoiling while facing UP
+
+    ROW 5 - DEATH ANIMATION (direction-neutral):
+    - Frames 33-36: Character death sequence (4 frames total), animation collapse from upright to grave
+
+- file: tilesets/snowy_village_tiles.png
+  output: public/assets/tilesets/snowy_village_tiles.png
+  generate: false
+  spec:
+    cols: 8
+    rows: 3
+  expectedTotal: 24
+  prompt: |
+    **I. Core Image Parameters & Constraints (CRITICAL)**
+
+    * **Output:** Single **TILESET SPRITESHEET** only.
+    * **Content:** Only **FLOOR and WALL** tiles.
+    * **Background:** Solid, contrasting color (e.g., pure white or black). **NO GRIDLINES, NO TEXT, NO OTHER OBJECTS.**
+    * **Style:** **PERFECT PIXEL ART.** **Dungeon Crawler** aesthetic. **Top-Down Perspective.**
+    * **Theme:** **Winter Wonderland / Christmas.**
+    * **Size/Resolution:** Optimize for clear, distinct tiles suitable for a low-resolution pixel art game (e.g., 16x16 or 32x32 per tile).
+
+    ### **II. Layout Definition (ABSOLUTE CRITICALITY)**
+
+    The spritesheet must be a perfectly arranged **3x8 grid of tiles** (3 rows, 8 columns).
+
+    * **Tile Specification:** Every tile must be a **PERFECTLY SQUARE,** full-filled sprite.
+    * **Seamlessness:** **ALL** tiles must be designed to **tile perfectly** with identical copies of themselves and their neighbors in the final sheet. There must be **NO GAPS, NO BORDERS, NO SEPARATORS, and NO ANTI-ALIASING** between the sprites.
+    * **Arrangement:** The sheet must be arranged exactly as specified below:
+
+    | Row | Col 0 | Col 1 | Col 2 | Col 3 | Col 4 | Col 5 | Col 6 | Col 7 |
+    | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+    | **ROW 1: Winter Floors** | Clean Snow (Seamless) | Deep Snow (Seamless) | Packed Ice (Seamless) | Slushy Ice (Seamless) | Lake Tile (Seamless, No Shore) | Flowing Water (Frame 1) | Flowing Water (Frame 2) | Flowing Water (Frame 3) |
+    | **ROW 2: Indoor Floors** | Wood Planks (Light, Seamless) | Wood Planks (Dark, Seamless) | Red Christmas Carpet (Seamless) | Green/White Striped Carpet (Seamless) | Wood Floor Variation (Seamless) | Abstract Carpet Pattern (Seamless) | Red/Green Checkerboard (Seamless) | Frozen Wood Planks (Seamless) |
+    | **ROW 3: Walls** | Log Cabin Wall (Seamless) | Clear Ice Wall (Seamless) | Red Brick Wall (Seamless) | Stone Dungeon Wall (Seamless) | Bookshelf Wall (Seamless) | Fireplace Wall (Static, Seamless) | Window Wall (Lit Interior, Seamless) | Window Wall (Dark Exterior, Seamless) |
+
+    ### **III. Negative Prompts (Strict Exclusions)**
+
+    * **Avoid:** Grids, text, labels, labels on tiles, separation lines, borders, anti-aliasing, non-square tiles, complex perspectives, isometric views, single large image, blurry textures, gradients, non-pixel-art elements, characters, items, furniture, environment clutter.
+
+- file: tilesets/snowy_village_decor.png
+  output: public/assets/tilesets/snowy_village_decor.png
+  generate: false
+  spec:
+    cols: 8
+    rows: 5
+  expectedTotal: 40
+  prompt: |
+    **I. Core Image Parameters & Constraints (CRITICAL)**
+
+    * **Output:** Single **DECORATIVE SPRITESHEET** only.
+    * **Content:** Only **FURNITURE, PROPS, AND OBJECTS**.
+    * **Background:** Solid, contrasting color (e.g., pure white or black). **NO GRIDLINES, NO TEXT, NO OTHER OBJECTS.**
+    * **Style:** **PERFECT PIXEL ART.** **Dungeon Crawler** aesthetic. **Top-Down Perspective.**
+    * **Theme:** **Winter Wonderland / Christmas.**
+    * **Size/Resolution:** Optimize for clear, distinct sprites suitable for a low-resolution pixel art game (e.g., 32x32 per sprite).
+
+    ### **II. Layout Definition (ABSOLUTE CRITICALITY)**
+
+    The spritesheet must be a perfectly arranged **5x8 grid of sprites** (5 rows, 8 columns).
+
+    * **Sprite Specification:** Every sprite must be a **PERFECTLY SQUARE,** distinct object.
+    * **Seamlessness:** These are **individual objects**, NOT seamless tiles. However, they must be centered and clearly separated.
+    * **Arrangement:** The sheet must be arranged exactly as specified below:
+
+    | Row | Col 0 | Col 1 | Col 2 | Col 3 | Col 4 | Col 5 | Col 6 | Col 7 |
+    | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+    | **ROW 1: Rugs** | Red Rug Center | Red Rug Edge (Top) | Red Rug Corner (Top-Left) | Green Rug Center | Green Rug Edge (Top) | Green Rug Corner (Top-Left) | Rug Pattern 1 | Rug Pattern 2 |
+    | **ROW 2: Furniture** | Window (Lit) | Window (Dark) | Door (Closed) | Door (Open) | Fireplace (Lit) | Bookshelf | Table | Chair |
+    | **ROW 3: Animations** | Fireplace Frame 1 | Fireplace Frame 2 | Fireplace Frame 3 | Fireplace Frame 4 | Torch Wall Frame 1 | Torch Wall Frame 2 | Torch Wall Frame 3 | Torch Wall Frame 4 |
+    | **ROW 4: Nature** | Snowy Rock | Frozen Bush | Pine Tree (Small) | Dead Tree (Small) | Snowman Prop (Static) | Signpost | Fence (Horizontal) | Fence (Vertical) |
+    | **ROW 5: Interactables** | Campfire (Unlit) | Campfire (Lit Frame 1) | Campfire (Lit Frame 2) | Campfire (Lit Frame 3) | Lever (Left) | Lever (Right) | Pressure Plate (Up) | Pressure Plate (Down) |
+
+    ### **III. Negative Prompts (Strict Exclusions)**
+
+    * **Avoid:** Grids, text, labels, labels on tiles, separation lines, borders, anti-aliasing, non-square tiles, complex perspectives, isometric views, single large image, blurry textures, gradients, non-pixel-art elements.
+
+- file: tilesets/common_tiles.png
+  output: public/assets/tilesets/common_tiles.png
+  generate: false
+  spec:
+    cols: 8
+    rows: 3
+  expectedTotal: 24
+  prompt: |
+    **I. Core Image Parameters & Constraints (CRITICAL)**
+
+    * **Output:** Single **TILESET SPRITESHEET** only.
+    * **Content:** Only **TERRAIN AND HAZARD** tiles.
+    * **Background:** Solid, contrasting color (e.g., pure white or black). **NO GRIDLINES, NO TEXT, NO OTHER OBJECTS.**
+    * **Style:** **PERFECT PIXEL ART.** **Dungeon Crawler** aesthetic. **Top-Down Perspective.**
+    * **Size/Resolution:** Optimize for clear, distinct tiles suitable for a low-resolution pixel art game (e.g., 32x32 per tile).
+
+    ### **II. Layout Definition (ABSOLUTE CRITICALITY)**
+
+    The spritesheet must be a perfectly arranged **3x8 grid of tiles** (3 rows, 8 columns).
+
+    * **Tile Specification:** Every tile must be a **PERFECTLY SQUARE,** full-filled sprite.
+    * **Seamlessness:** **Hazard fluid tiles** (lava, water, etc.) must completely fill the 32x32 square area with seamless textures. They must tile perfectly with neighbors. No gaps or borders.
+    * **Arrangement:** The sheet must be arranged exactly as specified below:
+
+    | Row | Col 0 | Col 1 | Col 2 | Col 3 | Col 4 | Col 5 | Col 6 | Col 7 |
+    | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+    | **ROW 1: Doors & Portals** | Wooden Door (Closed) | Wooden Door (Open) | Iron Door (Closed) | Iron Door (Open) | Boss Door (Closed) | Boss Door (Open) | Archway/Passage | Barred Gate |
+    | **ROW 2: Stairs & Traps** | Stairs Up (Stone) | Stairs Down (Stone) | Stairs Up (Wood) | Stairs Down (Wood) | Bridge (Vertical) | Bridge (Horizontal) | Ladder Up | Ladder Down |
+    | **ROW 3: Hazards** | Spikes (Retracted) | Spikes (Extended) | Bear Trap (Open) | Bear Trap (Closed) | Lava/Fire Pit (Seamless) | Poison/Slime (Seamless) | Water (Seamless) | Void/Abyss (Seamless) |
+
+    ### **III. Negative Prompts (Strict Exclusions)**
+
+    * **Avoid:** Grids, text, labels, labels on tiles, separation lines, borders, anti-aliasing, non-square tiles, complex perspectives, isometric views, single large image, blurry textures, gradients, non-pixel-art elements, characters, items, furniture, environment clutter.
+
+- file: tilesets/common_decor.png
+  output: public/assets/tilesets/common_decor.png
+  generate: false
+  spec:
+    cols: 8
+    rows: 5
+  expectedTotal: 40
+  prompt: |
+    **I. Core Image Parameters & Constraints (CRITICAL)**
+
+    * **Output:** Single **DECORATIVE SPRITESHEET** only.
+    * **Content:** Only **CONTAINERS, FURNITURE, AND OBJECTS**.
+    * **Background:** Solid, contrasting color (e.g., pure white or black). **NO GRIDLINES, NO TEXT, NO OTHER OBJECTS.**
+    * **Style:** **PERFECT PIXEL ART.** **Dungeon Crawler** aesthetic. **Top-Down Perspective.**
+    * **Size/Resolution:** Optimize for clear, distinct sprites suitable for a low-resolution pixel art game (e.g., 32x32 per sprite).
+
+    ### **II. Layout Definition (ABSOLUTE CRITICALITY)**
+
+    The spritesheet must be a perfectly arranged **5x8 grid of sprites** (5 rows, 8 columns).
+
+    * **Sprite Specification:** Every sprite must be a **PERFECTLY SQUARE,** distinct object.
+    * **Seamlessness:** These are **individual objects**, NOT seamless tiles. However, they must be centered and clearly separated.
+    * **Arrangement:** The sheet must be arranged exactly as specified below:
+
+    | Row | Col 0 | Col 1 | Col 2 | Col 3 | Col 4 | Col 5 | Col 6 | Col 7 |
+    | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+    | **ROW 1: Containers** | Chest (Wood, Closed) | Chest (Wood, Open) | Chest (Gold, Closed) | Chest (Gold, Open) | Crate | Barrel | Sack | Pot/Vase |
+    | **ROW 2: Furniture** | Bed (Head) | Bed (Foot) | Table (Round) | Table (Rectangular) | Chair (Front) | Chair (Back) | Bookshelf | Cabinet |
+    | **ROW 3: Lights** | Torch (Wall) | Torch (Stand) | Candle (Lit) | Candle (Unlit) | Lantern (Hanging) | Lantern (Ground) | Chandelier | Fireplace (Lit) |
+    | **ROW 4: Holiday Decor** | Christmas Tree | Snowman Prop | Wreath | Stocking | Gift Box (Red) | Gift Box (Green) | Garland | Mistletoe |
+    | **ROW 5: Generic Items** | Key (Gold) | Key (Silver) | Potion (Red) | Potion (Blue) | Coin | Gem | Scroll | Meat/Food |
+
+    ### **III. Negative Prompts (Strict Exclusions)**
+
+    * **Avoid:** Grids, text, labels, labels on tiles, separation lines, borders, anti-aliasing, non-square tiles, complex perspectives, isometric views, single large image, blurry textures, gradients, non-pixel-art elements.
+
+- file: items/items.png
+  output: public/assets/items/items.png
+  generate: false
+  spec:
+    cols: 8
+    rows: 8
+  expectedTotal: 64
+  prompt: |
+    ITEM ICONS SPRITESHEET, SOLID COLOR BACKGROUND WITH NO GRIDLINES OR TEXT
+    STYLE: Pixel art. Vibrant and detailed. Christmas and holiday themed.
+
+    LAYOUT: Strict 8x8 Grid of 32x32 icons.
+
+    ROW 1 (Weapons - Daggers & Hammers):
+    - Col 0: Candy Cane Spear (red/white striped)
+    - Col 1: Melting Icicle Dagger (dripping ice)
+    - Col 2: Sharp Icicle Dagger (crystal clear)
+    - Col 3: Perfect Icicle Dagger (glowing blue)
+    - Col 4: Broken Toy Hammer (cracked wood)
+    - Col 5: Wooden Toy Hammer (classic brown)
+    - Col 6: Steel Toy Hammer (metallic gray)
+    - Col 7: Nutcracker Hammer (ornate gold)
+
+    ROW 2 (Weapons - Whips & Wands):
+    - Col 0: Tangled Christmas Lights (messy colored)
+    - Col 1: LED Christmas Lights (bright multicolor)
+    - Col 2: Magical Christmas Lights (glowing aura)
+    - Col 3: Sparkler Wand (tiny sparks)
+    - Col 4: Candlestick Wand (golden flame)
+    - Col 5: Holly Wand (green with red berries)
+    - Col 6: Fireworks Wand (explosive colors)
+    - Col 7: Grand Finale Wand (spectacular glow)
+
+    ROW 3 (Armor - Santa Suits):
+    - Col 0: Torn Santa Suit (raggedy red)
+    - Col 1: Classic Santa Suit (traditional red)
+    - Col 2: Luxury Santa Suit (rich velvet)
+    - Col 3: Magnificent Santa Suit (golden trim)
+    - Col 4: Cozy Sweater (green knit)
+    - Col 5: Melting Ice Plate (dripping blue)
+    - Col 6: Thick Ice Plate (solid crystal)
+    - Col 7: Eternal Ice Plate (magical shimmer)
+
+    ROW 4 (Cloaks & Rings):
+    - Col 0: Elf Cloak (green with hood)
+    - Col 1: Master Elf Cloak (ornate green)
+    - Col 2: Reindeer Hide Cloak (brown fur)
+    - Col 3: Ring of Frost (icy blue ring)
+    - Col 4: Ring of Haste (golden speed ring)
+    - Col 5: Ring of Warmth (red glowing ring)
+    - Col 6: Ring of Christmas Spirit (festive colors)
+    - Col 7: Ring of Elven Grace (elegant silver)
+
+    ROW 5 (Artifacts & Special Items):
+    - Col 0: Snow Globe (glass with swirling snow)
+    - Col 1: Reindeer Bell (golden with ribbon)
+    - Col 2: Naughty List (dark scroll)
+    - Col 3: Christmas Candle (eternal flame)
+    - Col 4: New Year's Clock (ornate timepiece)
+    - Col 5: Champagne Flute (crystal glass)
+    - Col 6: Countdown Calendar (numbered pages)
+    - Col 7: Christmas Wish Bone (turkey wishbone)
+
+    ROW 6 (Consumables - Projectiles):
+    - Col 0: Snowball (white round)
+    - Col 1: Iceball (crystal sphere)
+    - Col 2: Yellow Snowball (suspicious yellow)
+    - Col 3: Coal Snowball (black chunks)
+    - Col 4: Glass Ornament Grenade (shiny bauble)
+    - Col 5: Gold Ornament Grenade (luxurious gold)
+    - Col 6: Hot Cocoa (steaming mug)
+    - Col 7: Fruitcake (dense brown cake)
+
+    ROW 7 (Scrolls & Potions):
+    - Col 0: Santa's Route Map (magical map)
+    - Col 1: Christmas Carol Sheet (musical notes)
+    - Col 2: Jack Frost's Decree (frozen scroll)
+    - Col 3: Scroll of Santa's Blessing (holy parchment)
+    - Col 4: Unlabeled Potion (mystery bottle)
+    - Col 5: Star Cookie (golden star shape)
+    - Col 6: Liquid Courage (red potion)
+    - Col 7: Wrapped Gift (colorful present)
+
+    ROW 8 (Misc & Keys):
+    - Col 0: Gold Coins (shiny pile)
+    - Col 1: Christmas Key (festive design)
+    - Col 2: Silver Key (elegant silver)
+    - Col 3: Gold Key (ornate gold)
+    - Col 4: Bone Key (spooky white)
+    - Col 5: WeakSword (basic blade)
+    - Col 6: Magic Stocking (Santa's stocking)
+    - Col 7: Frozen Heart (icy crystal heart)

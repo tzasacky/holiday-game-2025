@@ -13,6 +13,7 @@ import { EnhancedEquipment } from '../mechanics/EquipmentSystem';
 import { IdentificationSystem } from '../mechanics/IdentificationSystem';
 import { ItemEntity } from '../items/ItemEntity';
 import { Pathfinding } from '../core/Pathfinding';
+import { InteractionManager } from '../mechanics/InteractionManager';
 
 export class Hero extends Actor {
     private inputManager!: InputManager;
@@ -46,7 +47,7 @@ export class Hero extends Actor {
 
     // Implement abstract method from Actor
     public async act(): Promise<boolean> {
-        Logger.debug("[Hero] act() called - checking for input");
+        Logger.debug("[Hero] act() called - checking for input - time:", this.time);
         
         // Continue following existing path first
         if (this.hasPath()) {
@@ -117,32 +118,90 @@ export class Hero extends Actor {
     private tryMove(dx: number, dy: number): boolean {
         const targetGridPos = this.gridPos.add(ex.vec(dx, dy));
         
-        if (this.scene && (this.scene as GameScene).level) {
-            const level = (this.scene as GameScene).level!;
-            
-            // Check bounds
-            if (targetGridPos.x < 0 || targetGridPos.x >= level.width || 
-                targetGridPos.y < 0 || targetGridPos.y >= level.height) {
-                return false;
-            }
-            
-            // Check for walls/obstacles  
-            const tile = level.objectMap.getTile(targetGridPos.x, targetGridPos.y);
-            if (tile && tile.solid) {
-                return false;
-            }
-            
-            // Perform movement
-            this.gridPos = targetGridPos;
-            this.pos = targetGridPos.scale(32).add(ex.vec(16, 16));
+        if (!this.scene || !(this.scene as GameScene).level) {
+            return false;
+        }
+        
+        const level = (this.scene as GameScene).level!;
+        
+        // Check bounds
+        if (targetGridPos.x < 0 || targetGridPos.x >= level.width || 
+            targetGridPos.y < 0 || targetGridPos.y >= level.height) {
+            return false;
+        }
+        
+        // Check for interaction first
+        if (this.handleInteraction(targetGridPos.x, targetGridPos.y)) {
             this.spend(1.0);
-            
-            Logger.debug("[Hero] Moved to:", this.gridPos, "time:", this.time);
+            Logger.debug("[Hero] Interaction handled at:", targetGridPos, "time:", this.time);
             return true;
         }
         
-        return false;
+        // Check for walls/obstacles  
+        const tile = level.objectMap.getTile(targetGridPos.x, targetGridPos.y);
+        if (tile && tile.solid) {
+            Logger.debug("[Hero] Movement blocked by solid tile at:", targetGridPos);
+            return false; // Don't spend time on failed movement
+        }
+        
+        // Get terrain info for movement cost and effects
+        const targetTerrain = level.getTile(targetGridPos.x, targetGridPos.y);
+        const terrainDef = TerrainDefinitions[targetTerrain];
+        
+        // Check if terrain is passable (redundant with tile check but more explicit)
+        if (terrainDef && terrainDef.isSolid) {
+            Logger.debug("[Hero] Movement blocked by solid terrain:", targetTerrain);
+            return false;
+        }
+        
+        // Update position instantly for game logic
+        this.gridPos = targetGridPos;
+        
+        // Trigger animation (non-blocking)
+        this.animateMovement(targetGridPos);
+        
+        // Apply terrain effects using existing system
+        this.applyTerrainEffects(targetTerrain, terrainDef);
+        
+        // Spend time based on terrain cost (default to 1.0 if no definition)
+        const cost = terrainDef ? terrainDef.cost : 1.0;
+        this.spend(cost);
+        
+        Logger.debug("[Hero] Moved to:", this.gridPos, "terrain:", targetTerrain, "cost:", cost, "time:", this.time);
+        return true;
     }
+    
+    private applyTerrainEffects(terrainType: TerrainType, terrainDef: any): void {
+        // Apply existing terrain effects
+        
+        if (!terrainDef) return;
+        
+        // Ice sliding effect - integrate with existing Effect system
+        if (terrainDef.isSlippery && terrainType === TerrainType.Ice) {
+            Logger.debug("[Hero] Stepping on ice - slippery!");
+            // Could add a slippery status effect here using existing Effect system
+        }
+        
+        // Warmth effects 
+        if (terrainDef.isWarmthSource) {
+            Logger.debug("[Hero] Near warmth source - gaining warmth");
+            // Integrate with existing WarmthSystem
+            this.warmth = Math.min(this.maxWarmth, this.warmth + 10);
+        }
+        
+        // Deep snow slowing
+        if (terrainType === TerrainType.DeepSnow) {
+            Logger.debug("[Hero] Moving through deep snow");
+            // Movement cost is already handled above
+        }
+        
+        // Water effects
+        if (terrainType === TerrainType.Water) {
+            Logger.debug("[Hero] Wading through water");
+            // Could add wet status effect
+        }
+    }
+    
     
     private executeAction(action: GameActionType): boolean {
         Logger.debug("[Hero] Executing action:", action, "current time:", this.time);
@@ -152,10 +211,10 @@ export class Hero extends Actor {
         let dy = 0;
         
         switch (action) {
-            case GameActionType.MoveNorth: dy = -1; this.graphics.use('up-walk'); break;
-            case GameActionType.MoveSouth: dy = 1; this.graphics.use('down-walk'); break;
-            case GameActionType.MoveWest: dx = -1; this.graphics.use('left-walk'); break;
-            case GameActionType.MoveEast: dx = 1; this.graphics.use('right-walk'); break;
+            case GameActionType.MoveNorth: dy = -1; break;
+            case GameActionType.MoveSouth: dy = 1; break;
+            case GameActionType.MoveWest: dx = -1; break;
+            case GameActionType.MoveEast: dx = 1; break;
             case GameActionType.Wait: 
                 Logger.debug("[Hero] Wait action - spending time");
                 this.spend(1.0);
@@ -209,174 +268,6 @@ export class Hero extends Actor {
         return false;
     }
 
-    onPreUpdate(engine: ex.Engine, elapsedMs: number): void {
-        super.onPreUpdate(engine, elapsedMs);
-        
-        // CRITICAL DEBUG - This should always log if onPreUpdate is being called
-        console.log("[Hero] onPreUpdate CALLED!");
-        
-        if (this.moving) {
-            Logger.debug("[Hero] onPreUpdate - skipping, currently moving");
-            return;
-        }
-        
-        // Debug logging
-        Logger.debug("[Hero] onPreUpdate - isPlayerTurnActive:", TurnManager.instance.isPlayerTurnActive);
-        Logger.debug("[Hero] onPreUpdate - TurnManager actors count:", TurnManager.instance.getActorCount());
-        
-        // Only allow input if it's our turn and UI isn't blocking
-        if (!TurnManager.instance.isPlayerTurnActive) {
-            Logger.debug("[Hero] onPreUpdate - not player turn, skipping input");
-            return;
-        }
-        
-        Logger.debug("[Hero] Processing input...");
-        
-        // Update input manager UI state
-        this.inputManager.updateUIState();
-        
-        // Don't process game input if UI is active
-        if (this.inputManager.isUIBlocking()) {
-            return;
-        }
-
-        // Check for mouse clicks first
-        const clickTarget = this.inputManager.getClickTarget();
-        if (clickTarget) {
-            // clickTarget is already in tile coordinates from InputManager
-            this.findPathTo(clickTarget.x, clickTarget.y);
-            if (this.currentPath.length > 0) {
-                // Path is set by findPathTo
-                // Don't return, let the path logic below handle the first step immediately
-            }
-        }
-
-        let dx = 0;
-        let dy = 0;
-        let actionTaken = false;
-
-        // Check for keyboard input
-        const action = this.inputManager.getAction();
-        if (action) {
-            this.clearPath(); // Input interrupts path
-            switch (action) {
-                case GameActionType.MoveNorth: dy = -1; this.graphics.use('up-walk'); break;
-                case GameActionType.MoveSouth: dy = 1; this.graphics.use('down-walk'); break;
-                case GameActionType.MoveWest: dx = -1; this.graphics.use('left-walk'); break;
-                case GameActionType.MoveEast: dx = 1; this.graphics.use('right-walk'); break;
-                case GameActionType.Wait: 
-                    this.spend(1.0);
-                    TurnManager.instance.playerActionComplete(); 
-                    return;
-            }
-        } else if (this.hasPath()) {
-            // Continue with current path
-            const nextStep = this.getNextPathStep();
-            if (nextStep) {
-                const diff = nextStep.sub(this.gridPos);
-                dx = Math.round(diff.x);
-                dy = Math.round(diff.y);
-                
-                // Update facing
-                if (dx > 0) this.graphics.use('right-walk');
-                else if (dx < 0) this.graphics.use('left-walk');
-                else if (dy > 0) this.graphics.use('down-walk');
-                else if (dy < 0) this.graphics.use('up-walk');
-            }
-        }
-
-        if (dx !== 0 || dy !== 0) {
-            const targetGridPos = this.gridPos.add(ex.vec(dx, dy));
-            
-            // Check for interactions first
-            if (this.scene && (this.scene as GameScene).level) {
-                const level = (this.scene as GameScene).level!;
-                
-                if (this.handleInteraction(targetGridPos.x, targetGridPos.y)) {
-                    this.clearPath(); // Interaction ends current path
-                    this.spend(1.0);
-                    TurnManager.instance.playerActionComplete();
-                    return;
-                }
-                
-                // Check for walls/obstacles
-                const tile = level.objectMap.getTile(targetGridPos.x, targetGridPos.y);
-                if (tile && tile.solid) {
-                    // Blocked
-                    this.clearPath();
-                    return; 
-                }
-                
-                // Move
-                this.moving = true;
-                
-                // Determine Movement Cost
-                let cost = 1.0;
-                const targetTerrainType = level.terrainData[targetGridPos.x][targetGridPos.y] as TerrainType;
-                const targetTerrainDef = TerrainDefinitions[targetTerrainType];
-                
-                if (targetTerrainDef && targetTerrainDef.cost > 1) {
-                    cost = targetTerrainDef.cost;
-                }
-
-                // Speed: 300px/sec for smooth fast movement
-                const moveSpeed = 300; 
-
-                this.actions.moveTo(targetGridPos.scale(32).add(ex.vec(16, 16)), moveSpeed).callMethod(() => {
-                    this.gridPos = targetGridPos;
-                    
-                    // Update path progress
-                    if (this.hasPath()) {
-                        this.advancePath();
-                    }
-                    
-                    // Slide Logic
-                    if (targetTerrainType === TerrainType.Ice) {
-                        console.log("Sliding on Ice!");
-                        this.attemptSlide(dx, dy, level);
-                    } else {
-                        this.moving = false;
-                        this.spend(cost);
-                        TurnManager.instance.playerActionComplete();
-                    }
-                });
-            }
-        }
-    }
-
-    private attemptSlide(dx: number, dy: number, level: Level) {
-        const nextGridPos = this.gridPos.add(ex.vec(dx, dy));
-        
-        // Check bounds/walls for slide
-        if (nextGridPos.x < 0 || nextGridPos.x >= level.width || nextGridPos.y < 0 || nextGridPos.y >= level.height) {
-             this.moving = false;
-             this.spend(1.0); // Spent time sliding
-             TurnManager.instance.playerActionComplete();
-             return;
-        }
-
-        const tile = level.objectMap.getTile(nextGridPos.x, nextGridPos.y);
-        if (tile && tile.solid) {
-             // Hit a wall while sliding
-             this.moving = false;
-             this.spend(1.0);
-             TurnManager.instance.playerActionComplete();
-             return;
-        }
-        
-        // Continue Slide (Fast)
-        this.actions.moveTo(nextGridPos.scale(32).add(ex.vec(16, 16)), 400).callMethod(() => { 
-            this.gridPos = nextGridPos;
-            const terrain = level.terrainData[nextGridPos.x][nextGridPos.y];
-            if (terrain === TerrainType.Ice) {
-                this.attemptSlide(dx, dy, level);
-            } else {
-                this.moving = false;
-                this.spend(1.0);
-                TurnManager.instance.playerActionComplete();
-            }
-        });
-    }
 
     // ============================================================================================
     // RPG Mechanics (Moved from Actor)
@@ -478,20 +369,25 @@ export class Hero extends Actor {
         }
         
         const level = (this.scene as GameScene).level!;
+        const targetPos = ex.vec(targetX, targetY);
+        
+        // Try existing InteractionManager first
+        const interactionManager = new InteractionManager(level);
+        if (interactionManager.tryInteract(this, targetPos)) {
+            Logger.debug(`[Hero] Interaction handled by InteractionManager at`, targetX, targetY);
+            return true;
+        }
+        
+        // Fall back to custom interactions
         const interaction = Pathfinding.getInteractionAt(level, targetX, targetY);
         
         if (!interaction) {
             return false;
         }
         
-        Logger.debug(`[Hero] handling interaction:`, interaction, "at", targetX, targetY);
+        Logger.debug(`[Hero] handling custom interaction:`, interaction, "at", targetX, targetY);
         
         switch (interaction) {
-            case 'door_open':
-                return this.openDoor(targetX, targetY);
-            case 'door_locked':
-                Logger.debug(`[Hero] tried to open locked door`);
-                return true; // Consumed turn trying
             case 'item_pickup':
                 return this.pickupItem(targetX, targetY);
             case 'mob_attack':
@@ -501,30 +397,6 @@ export class Hero extends Actor {
         }
     }
     
-    private openDoor(x: number, y: number): boolean {
-        if (!this.scene || !(this.scene as GameScene).level) {
-            return false;
-        }
-        
-        const level = (this.scene as GameScene).level!;
-        const terrain = level.getTile(x, y);
-        
-        if (terrain === TerrainType.DoorClosed) {
-            Logger.debug(`[Hero] opening door at`, x, y);
-            level.terrainData[x][y] = TerrainType.DoorOpen;
-            
-            const tile = level.objectMap.getTile(x, y);
-            if (tile) {
-                tile.solid = false;
-                tile.clearGraphics();
-                tile.addGraphic(level.theme.tiles[TerrainType.DoorOpen]);
-            }
-            
-            return true;
-        }
-        
-        return false;
-    }
     
     private pickupItem(x: number, y: number): boolean {
         if (!this.scene || !(this.scene as GameScene).level) {

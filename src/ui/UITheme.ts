@@ -254,6 +254,15 @@ export class UITheme {
                 .scaleTo(ex.vec(1, 1), ex.vec(duration / 2, duration / 2));
         }
     };
+    // Z-Index Hierarchy
+    static readonly ZIndex = {
+        World: 1,
+        HUD: 90,
+        Hotbar: 90,
+        GameJournal: 95,
+        Inventory: 100,
+        Tooltip: 200
+    };
 }
 
 // Export commonly used values for convenience

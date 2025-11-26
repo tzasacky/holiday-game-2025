@@ -6,6 +6,7 @@ import { Hero } from '../actors/Hero';
 
 export class Hotbar extends ex.ScreenElement {
     private hero: Hero;
+    private engine!: ex.Engine;
     private slots: ItemSlot[] = [];
     
     // Layout constants
@@ -28,7 +29,12 @@ export class Hotbar extends ex.ScreenElement {
     private onInventoryToggle?: () => void;
     
     constructor(hero: Hero, onInventoryToggle?: () => void) {
-        super({ z: 95 }); // Below inventory screen, above HUD
+        super({ 
+            z: UITheme.ZIndex.Hotbar,
+            width: 300, // Estimated width
+            height: 60,
+            anchor: ex.vec(0, 0)
+        }); 
         console.log("[Hotbar] Constructor called");
         this.hero = hero;
         this.onInventoryToggle = onInventoryToggle;
@@ -37,6 +43,12 @@ export class Hotbar extends ex.ScreenElement {
         this.initializeVisuals();
         console.log("[Hotbar] Setting up slots...");
         this.setupSlots();
+        
+        // Use onPostDraw for custom rendering
+        this.graphics.onPostDraw = (ctx: ex.ExcaliburGraphicsContext, delta: number) => {
+             this.customDraw(ctx, delta);
+        };
+        
         console.log("[Hotbar] Constructor complete");
     }
     
@@ -86,37 +98,23 @@ export class Hotbar extends ex.ScreenElement {
         }
     }
     
-    onInitialize(engine: ex.Engine) {
-        console.log("[Hotbar] onInitialize called");
-        
-        // Position at bottom center of screen
+    onPostUpdate(engine: ex.Engine, delta: number) {
+        // Dynamic positioning: Bottom Center
+        // Update every frame to handle window resizing
         const totalWidth = this.background.width;
         this.pos = ex.vec(
             (engine.drawWidth - totalWidth) / 2,
             engine.drawHeight - this.background.height - UITheme.Layout.padding.large
         );
-        console.log("[Hotbar] Positioned at:", this.pos);
+    }
+
+    onInitialize(engine: ex.Engine) {
+        this.engine = engine;
+        console.log("[Hotbar] onInitialize called");
         
-        // Hotkey input temporarily disabled to avoid conflicts  
-        /*
-        engine.input.keyboard.on('press', (evt) => {
-            let slotIndex = -1;
-            switch (evt.key) {
-                case ex.Keys.Digit1: slotIndex = 0; break;
-                case ex.Keys.Digit2: slotIndex = 1; break;
-                case ex.Keys.Digit3: slotIndex = 2; break;
-                case ex.Keys.Digit4: slotIndex = 3; break;
-                case ex.Keys.Digit5: slotIndex = 4; break;
-                case ex.Keys.I: 
-                    this.onInventoryToggle?.();
-                    break;
-            }
-            
-            if (slotIndex >= 0 && slotIndex < this.SLOT_COUNT) {
-                this.useSlot(slotIndex);
-            }
-        });
-        */
+        // Initial positioning
+        this.onPostUpdate(engine, 0);
+        console.log("[Hotbar] Positioned at:", this.pos);
         
         // Mouse handling
         engine.input.pointers.primary.on('down', (evt) => {
@@ -246,7 +244,7 @@ export class Hotbar extends ex.ScreenElement {
         return this.hero.inventory.getItem(slotIndex);
     }
     
-    public update() {
+    public updateState() {
         // Update hotbar slots with current inventory state
         for (let i = 0; i < this.SLOT_COUNT; i++) {
             const item = this.getHotbarItem(i);
@@ -254,10 +252,10 @@ export class Hotbar extends ex.ScreenElement {
         }
     }
     
-    public draw(ctx: ex.ExcaliburGraphicsContext, delta: number) {
+    private customDraw(ctx: ex.ExcaliburGraphicsContext, delta: number) {
         // Debug: Only log once per second to avoid spam
         if (Date.now() % 1000 < 16) {
-            console.log("[Hotbar] draw() called");
+            console.log("[Hotbar] customDraw called");
         }
         
         const x = 0;
@@ -314,10 +312,14 @@ export class Hotbar extends ex.ScreenElement {
         const height = lines.length * lineHeight + padding * 2;
         
         // Adjust position to keep tooltip on screen
-        if (tooltipX + maxWidth > this.background.width) {
+        // Check if tooltip goes off the right side of the screen
+        if (this.pos.x + tooltipX + maxWidth > this.engine.drawWidth) {
             tooltipX = mouseLocalPos.x - maxWidth - 15;
         }
-        if (tooltipY < 0) {
+        
+        // Check if tooltip goes off the top of the screen
+        // We WANT it to be above the hotbar (negative Y), so only flip if it goes off screen
+        if (this.pos.y + tooltipY < 0) {
             tooltipY = mouseLocalPos.y + 30; // Below cursor if no room above
         }
         

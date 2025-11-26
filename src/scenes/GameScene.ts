@@ -45,7 +45,7 @@ export class GameScene extends ex.Scene {
         this.add(this.inventoryScreen);
         console.log("[GameScene] InventoryScreen added to scene");
         
-        console.log("[GameScene] UI initialization complete");
+        console.log("[GameScene] UI initialization complete (Excalibur Mode)");
         // Note: Inventory toggle is handled by individual UI components to avoid conflicts
     }
     
@@ -146,8 +146,8 @@ export class GameScene extends ex.Scene {
                 
                 // Update UI components
                 UIManager.instance.update(hero);
-                this.hotbar?.update();
-                this.inventoryScreen?.update();
+                this.hotbar?.updateState();
+                this.inventoryScreen?.updateState();
             }
         }
     }

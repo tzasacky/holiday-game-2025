@@ -169,11 +169,12 @@ export class Mob extends Actor {
             return false;
         }
 
-        // Move
-        this.moving = true;
-        await this.actions.moveTo(targetPos.scale(32).add(ex.vec(16, 16)), 200).toPromise();
+        // Update position instantly for game logic
         this.gridPos = targetPos;
-        this.moving = false;
+        
+        // Trigger animation (non-blocking) - uses shared Actor animation system
+        this.animateMovement(targetPos);
+        
         return true;
     }
 

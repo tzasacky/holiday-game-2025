@@ -324,6 +324,78 @@ export abstract class Actor extends GameEntity {
             Logger.debug(`[Actor] ${this.name} advanced path, index now:`, this.currentPathIndex, "of", this.currentPath.length);
         }
     }
+    
+    protected animateMovement(targetGridPos: ex.Vector): void {
+        // Set moving state to prevent visual glitches
+        this.moving = true;
+        
+        // Update sprite facing and animation based on movement direction  
+        const diff = targetGridPos.sub(this.gridPos);
+        const direction = this.getDirectionFromDiff(diff);
+        
+        // Use appropriate walk animation from ActorRegistry
+        this.graphics.use(`${direction}-walk`);
+        
+        // Animate movement - purely visual, doesn't affect game state
+        const moveSpeed = 300; // 300px/sec for smooth movement
+        const targetWorldPos = targetGridPos.scale(32).add(ex.vec(16, 16));
+        
+        this.actions.moveTo(targetWorldPos, moveSpeed).callMethod(() => {
+            this.moving = false;
+            // Return to idle animation after movement
+            this.graphics.use(`idle-${direction}`);
+            // Sync visual position with game state (in case of any drift)
+            this.pos = this.gridPos.scale(32).add(ex.vec(16, 16));
+        });
+    }
+    
+    protected animateAttack(direction?: string): void {
+        const attackDirection = direction || this.getFacingDirection();
+        this.graphics.use(`attack-${attackDirection}`);
+        
+        // Return to idle after attack animation
+        setTimeout(() => {
+            if (!this.moving) {
+                this.graphics.use(`idle-${attackDirection}`);
+            }
+        }, 400); // Attack animation duration
+    }
+    
+    protected animateHurt(direction?: string): void {
+        const hurtDirection = direction || this.getFacingDirection();
+        this.graphics.use(`hurt-${hurtDirection}`);
+        
+        // Return to idle after hurt animation
+        setTimeout(() => {
+            if (!this.moving) {
+                this.graphics.use(`idle-${hurtDirection}`);
+            }
+        }, 400); // Hurt animation duration
+    }
+    
+    protected animateDeath(): void {
+        this.graphics.use('death');
+        // Death animation doesn't return to idle
+    }
+    
+    protected animateIdle(direction?: string): void {
+        const idleDirection = direction || this.getFacingDirection();
+        this.graphics.use(`idle-${idleDirection}`);
+    }
+    
+    private getDirectionFromDiff(diff: ex.Vector): string {
+        if (Math.abs(diff.x) > Math.abs(diff.y)) {
+            return diff.x > 0 ? 'right' : 'left';
+        } else {
+            return diff.y > 0 ? 'down' : 'up';
+        }
+    }
+    
+    private getFacingDirection(): string {
+        // Default to down if no specific direction is stored
+        // Could be enhanced to track actual facing direction
+        return 'down';
+    }
 
     public immuneTo: string[] = [];
 
@@ -332,6 +404,13 @@ export abstract class Actor extends GameEntity {
         const now = Date.now();
         if (now - this.lastAttackTime < 500) return; // 500ms cooldown
         this.lastAttackTime = now;
+
+        // Calculate attack direction towards target
+        const diff = target.gridPos.sub(this.gridPos);
+        const attackDirection = this.getDirectionFromDiff(diff);
+        
+        // Play attack animation
+        this.animateAttack(attackDirection);
 
         // Calculate damage
         let damage = this.totalDamage;
@@ -398,6 +477,15 @@ export abstract class Actor extends GameEntity {
         this.hp -= finalDamage;
         console.log(`${this.name} took ${finalDamage} damage. HP: ${this.hp}/${this.maxHp}`);
 
+        // Play hurt animation
+        if (source) {
+            const diff = this.gridPos.sub(source.gridPos);
+            const hurtDirection = this.getDirectionFromDiff(diff);
+            this.animateHurt(hurtDirection);
+        } else {
+            this.animateHurt();
+        }
+
         // Visual feedback (floating text)
         const damageLabel = new ex.Label({
             text: `-${Math.floor(finalDamage)}`,
@@ -419,9 +507,16 @@ export abstract class Actor extends GameEntity {
 
     public die(): void {
         console.log(`${this.name} has died!`);
-        // Drop loot?
-        // Remove from level?
-        this.kill(); // Excalibur kill
+        
+        // Play death animation
+        this.animateDeath();
+        
+        // Delay removal to let death animation play
+        setTimeout(() => {
+            // Drop loot?
+            // Remove from level?
+            this.kill(); // Excalibur kill
+        }, 800); // Death animation duration
     }
 
     // Lifecycle

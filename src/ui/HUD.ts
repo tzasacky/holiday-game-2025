@@ -24,7 +24,12 @@ export class HUD extends ex.ScreenElement {
     private readonly CORNER_RADIUS = 8;
 
     constructor(hero: Hero) {
-        super({ z: 100 });
+        super({ 
+            z: UITheme.ZIndex.HUD,
+            width: 200,
+            height: 100,
+            anchor: ex.vec(0, 0)
+        });
         this.hero = hero;
         
         // Initialize fonts using theme
@@ -32,6 +37,11 @@ export class HUD extends ex.ScreenElement {
         this.statFont = UITheme.createFont('ui');
         
         this.initializeElements();
+        
+        // Use onPostDraw for custom rendering
+        this.graphics.onPostDraw = (ctx: ex.ExcaliburGraphicsContext, delta: number) => {
+             this.customDraw(ctx, delta);
+        };
     }
     
     private initializeElements() {
@@ -83,10 +93,11 @@ export class HUD extends ex.ScreenElement {
         });
     }
     
-    
     onInitialize(engine: ex.Engine) {
+        console.log("[HUD] onInitialize called");
         // Position in top-left with padding
         this.pos = ex.vec(this.PADDING + 10, this.PADDING + 10);
+        console.log("[HUD] Position set to:", this.pos);
     }
 
     onPostUpdate(engine: ex.Engine, elapsed: number) {
@@ -105,7 +116,11 @@ export class HUD extends ex.ScreenElement {
         this.warmthText.text = `${Math.floor(this.hero.warmth)}/${this.hero.maxWarmth}`;
     }
     
-    public draw(ctx: ex.ExcaliburGraphicsContext, delta: number) {
+    private customDraw(ctx: ex.ExcaliburGraphicsContext, delta: number) {
+        // Debug log once per second
+        if (Date.now() % 1000 < 16) {
+            console.log("[HUD] customDraw called at", this.pos);
+        }
         const x = 0;
         let y = 0;
         

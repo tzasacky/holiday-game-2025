@@ -55,13 +55,23 @@ export class GameJournal extends ex.ScreenElement {
     private filterFont: ex.Font;
     
     constructor() {
-        super({ z: 95 }); // Below inventory, above HUD
+        super({ 
+            z: 95,
+            width: 400,
+            height: 200,
+            anchor: ex.vec(0, 0)
+        }); // Below inventory, above HUD
         
         this.titleFont = UITheme.createFont('heading');
         this.entryFont = UITheme.createFont('small');
         this.filterFont = UITheme.createFont('small');
         
         this.initializeElements();
+        
+        // Use onPostDraw for custom rendering
+        this.graphics.onPostDraw = (ctx: ex.ExcaliburGraphicsContext, delta: number) => {
+             this.customDraw(ctx, delta);
+        };
     }
     
     private initializeElements() {
@@ -113,22 +123,9 @@ export class GameJournal extends ex.ScreenElement {
     onInitialize(engine: ex.Engine) {
         this.engine = engine;
         // Position in bottom-right corner
-        const x = engine.drawWidth - this.WIDTH - UITheme.Layout.padding.large;
-        const y = engine.drawHeight - this.getHeight() - UITheme.Layout.padding.large;
-        this.pos = ex.vec(x, y);
+        this.updatePosition();
         
-        // Input handling for journal - temporarily disabled to avoid conflicts
-        // TODO: Re-enable after core game input is working
-        /*
-        engine.input.keyboard.on('press', (evt) => {
-            if (evt.key === ex.Keys.J) {
-                this.toggle();
-            }
-            if (evt.key === ex.Keys.Esc && !this.isCollapsed) {
-                this.collapse();
-            }
-        });
-        */
+        console.log("[GameJournal] Position set to:", this.pos);
         
         // Mouse wheel scrolling
         engine.input.pointers.primary.on('wheel', (evt) => {
@@ -145,6 +142,18 @@ export class GameJournal extends ex.ScreenElement {
                 evt.cancel();
             }
         });
+    }
+    
+    private updatePosition() {
+        if (!this.engine) return;
+        
+        const x = this.engine.drawWidth - this.WIDTH - UITheme.Layout.padding.large;
+        // If collapsed, position at bottom. If expanded, position upwards from bottom.
+        // Actually, standard behavior is anchor bottom-right.
+        // So Y should always be: screenHeight - currentHeight - padding
+        const y = this.engine.drawHeight - this.getHeight() - UITheme.Layout.padding.large;
+        
+        this.pos = ex.vec(x, y);
     }
     
     private isPointInBounds(screenPos: ex.Vector): boolean {
@@ -241,19 +250,22 @@ export class GameJournal extends ex.ScreenElement {
         this.scrollOffset = this.maxScrollOffset;
     }
     
+    onPostUpdate(engine: ex.Engine, delta: number) {
+        this.updatePosition();
+    }
+
     private toggle() {
         this.isCollapsed = !this.isCollapsed;
         this.toggleButton.text = this.isCollapsed ? '+' : '−';
         this.background.height = this.getHeight();
-        
-        // Trigger resize animation
-        UITheme.Animations.pulse(this, 1.05, 200);
+        this.updatePosition();
     }
     
     private collapse() {
         this.isCollapsed = true;
         this.toggleButton.text = '+';
         this.background.height = this.getHeight();
+        this.updatePosition();
     }
     
     private toggleFilter(category: LogCategory) {
@@ -292,8 +304,11 @@ export class GameJournal extends ex.ScreenElement {
         return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
     }
     
-    public draw(ctx: ex.ExcaliburGraphicsContext, delta: number) {
-        if (!this.pos) return;
+    private customDraw(ctx: ex.ExcaliburGraphicsContext, delta: number) {
+        // Debug log once per second
+        if (Date.now() % 1000 < 16) {
+            console.log("[GameJournal] customDraw called at", this.pos);
+        }
         
         const x = 0;
         let y = 0;

@@ -107,9 +107,4 @@ export class TurnManager {
         return !!(current && current.isPlayer);
     }
     
-    // Called by Player when they perform an action
-    public async playerActionComplete() {
-        // Resume processing
-        await this.processTurns();
-    }
 }

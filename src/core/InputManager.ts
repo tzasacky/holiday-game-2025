@@ -39,10 +39,14 @@ export class InputManager {
         
         // Setup pointer listeners
         this.engine.input.pointers.on('down', (evt) => {
+            Logger.debug("[InputManager] Mouse click detected at world pos:", evt.worldPos, "button:", evt.button);
+            
             // Check if UI should handle this click first
             this.isUIInteractionActive = this.gameScene?.isInventoryOpen() || false;
+            Logger.debug("[InputManager] UI active check:", this.isUIInteractionActive);
             
-            // Only set click target for game world if UI isn't handling it
+            // Only set click target for game world if UI isn't handling it  
+            Logger.debug("[InputManager] Checking click conditions - UI active:", this.isUIInteractionActive, "button:", evt.button, "PointerButton.Left:", ex.PointerButton.Left);
             if (!this.isUIInteractionActive && evt.button === ex.PointerButton.Left) {
                 // Convert world coordinates to tile coordinates (32px per tile)
                 const tileX = Math.floor(evt.worldPos.x / 32);
@@ -53,6 +57,8 @@ export class InputManager {
                 // Wake up TurnManager to process the click during Hero's turn
                 Logger.debug("[InputManager] Waking up TurnManager for click processing");
                 TurnManager.instance.processTurns();
+            } else {
+                Logger.debug("[InputManager] Click blocked - UI active:", this.isUIInteractionActive, "button:", evt.button);
             }
         });
 
@@ -117,53 +123,32 @@ export class InputManager {
         }
     }
 
-    getAction(): GameActionType | null {
-        if (!this.engine) return null;
-        
-        Logger.debug("[InputManager] getAction called - UI blocking:", this.isUIInteractionActive);
-        
-        // Don't process game actions if UI is active
-        if (this.isUIInteractionActive) {
-            return null;
-        }
-        
-        const k = this.engine.input.keyboard;
-        
-        // Debug: Log all current key states
-        Logger.debug("[InputManager] Checking keyboard input...");
-
-        // Movement keys
-        if (k.wasPressed(ex.Keys.ArrowUp) || k.wasPressed(ex.Keys.W)) { Logger.debug("[Input] Key pressed: MoveNorth"); return GameActionType.MoveNorth; }
-        if (k.wasPressed(ex.Keys.ArrowDown) || k.wasPressed(ex.Keys.S)) { Logger.debug("[Input] Key pressed: MoveSouth"); return GameActionType.MoveSouth; }
-        if (k.wasPressed(ex.Keys.ArrowLeft) || k.wasPressed(ex.Keys.A)) { Logger.debug("[Input] Key pressed: MoveWest"); return GameActionType.MoveWest; }
-        if (k.wasPressed(ex.Keys.ArrowRight) || k.wasPressed(ex.Keys.D)) { Logger.debug("[Input] Key pressed: MoveEast"); return GameActionType.MoveEast; }
-        if (k.wasPressed(ex.Keys.Space) || k.wasPressed(ex.Keys.Numpad5)) { Logger.debug("[Input] Key pressed: Wait"); return GameActionType.Wait; }
-        if (k.wasPressed(ex.Keys.E)) { Logger.debug("[Input] Key pressed: Interact"); return GameActionType.Interact; }
-
-        Logger.debug("[InputManager] No keys pressed");
-        return null;
-    }
-    
     // Helper to get mouse position for movement logic in Hero
     // Consumes the click
     getClickTarget(): ex.Vector | null {
+        Logger.debug("[InputManager] getClickTarget called - UI active:", this.isUIInteractionActive, "lastClickTarget:", this.lastClickTarget);
+        
         // Don't allow game world clicks if UI is active
         if (this.isUIInteractionActive) {
+            Logger.debug("[InputManager] Blocking click due to UI interaction");
             return null;
         }
         
         if (this.lastClickTarget) {
             const target = this.lastClickTarget;
             this.lastClickTarget = null; // Consume
+            Logger.debug("[InputManager] Returning and consuming click target:", target);
             return target;
         }
+        Logger.debug("[InputManager] No click target available");
         return null;
     }
     
-    // Update UI interaction state
+    // Update UI interaction state  
     public updateUIState() {
         // Simplified - no UI blocking for now to get core game working
-        this.isUIInteractionActive = false; // this.gameScene?.isInventoryOpen() || false;
+        this.isUIInteractionActive = this.gameScene?.isInventoryOpen() || false;
+        Logger.debug("[InputManager] updateUIState - gameScene exists:", !!this.gameScene, "inventory open:", this.gameScene?.isInventoryOpen(), "UI active:", this.isUIInteractionActive);
     }
     
     // Check if UI should block game input

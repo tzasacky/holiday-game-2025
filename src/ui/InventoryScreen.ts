@@ -41,11 +41,21 @@ export class InventoryScreen extends ex.ScreenElement {
     private sortButtonBounds!: { x: number, y: number, width: number, height: number };
     
     constructor(hero: Hero) {
-        super({ z: 110 }); // Above HUD and Journal
+        super({ 
+            z: 110,
+            width: 600,
+            height: 400,
+            anchor: ex.vec(0, 0)
+        }); // Above HUD and Journal
         this.hero = hero;
         
         this.initializeComponents();
         this.initializeVisuals();
+        
+        // Use onPostDraw for custom rendering
+        this.graphics.onPostDraw = (ctx: ex.ExcaliburGraphicsContext, delta: number) => {
+             this.customDraw(ctx, delta);
+        };
     }
     
     private initializeComponents() {
@@ -124,25 +134,19 @@ export class InventoryScreen extends ex.ScreenElement {
         };
     }
     
-    onInitialize(engine: ex.Engine) {
+    onPostUpdate(engine: ex.Engine, delta: number) {
         // Center on screen
         this.pos = ex.vec(
             (engine.drawWidth - this.SCREEN_WIDTH) / 2,
             (engine.drawHeight - this.SCREEN_HEIGHT) / 2
         );
-        
-        // Input handling
-        // Keyboard input temporarily disabled to avoid conflicts
-        /*
-        engine.input.keyboard.on('press', (evt) => {
-            if (evt.key === ex.Keys.I && this.visible) {
-                this.hide();
-            }
-            if (evt.key === ex.Keys.Esc && this.visible) {
-                this.hide();
-            }
-        });
-        */
+    }
+
+    onInitialize(engine: ex.Engine) {
+        console.log("[InventoryScreen] onInitialize called");
+        // Center on screen
+        this.onPostUpdate(engine, 0);
+        console.log("[InventoryScreen] Position set to:", this.pos);
         
         // Mouse handling - only when visible and within bounds
         engine.input.pointers.primary.on('down', (evt) => {
@@ -384,15 +388,20 @@ export class InventoryScreen extends ex.ScreenElement {
         return this.visible;
     }
     
-    public update() {
+    public updateState() {
         if (this.visible) {
             this.equipmentPanel.update(this.hero);
             this.inventoryGrid.update(this.hero.inventory);
         }
     }
     
-    public draw(ctx: ex.ExcaliburGraphicsContext, delta: number) {
+    private customDraw(ctx: ex.ExcaliburGraphicsContext, delta: number) {
         if (!this.visible) return;
+        
+        // Debug log once per second
+        if (Date.now() % 1000 < 16) {
+            console.log("[InventoryScreen] customDraw called at", this.pos);
+        }
         
         const x = 0;
         let y = 0;

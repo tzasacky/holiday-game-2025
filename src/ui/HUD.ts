@@ -117,66 +117,80 @@ export class HUD extends ex.ScreenElement {
     }
     
     private customDraw(ctx: ex.ExcaliburGraphicsContext, delta: number) {
-        // Debug log once per second
-        if (Date.now() % 1000 < 16) {
-            console.log("[HUD] customDraw called at", this.pos);
-        }
         const x = 0;
         let y = 0;
         
-        // Draw background panel
+        // LAYER 1: Background panel (drawn FIRST, behind everything)
         const panelWidth = this.BAR_WIDTH + 20;
         const panelHeight = 100;
-        
-        // Semi-transparent background panel
         ctx.drawRectangle(
-            ex.vec(x - 10, y - 10), 
-            panelWidth, 
+            ex.vec(x - 10, y - 10),
+            panelWidth,
             panelHeight,
-            UITheme.Colors.background
-        );
-        
-        // Panel border
-        ctx.drawRectangle(
-            ex.vec(x - 10, y - 10), 
-            panelWidth, 
-            panelHeight,
-            ex.Color.Transparent,
+            UITheme.Colors.background,
             UITheme.Colors.border,
             UITheme.Layout.borderWidth.thin
         );
         
-        // Health section
+        // LAYER 2: Health section
         const healthLabel = UITheme.createText('❤️ Health', 'heading');
         healthLabel.draw(ctx, x, y);
-        
         y += 20;
         
         // Health bar background
-        this.healthBarBg.draw(ctx, x, y);
+        ctx.drawRectangle(
+            ex.vec(x, y),
+            this.BAR_WIDTH,
+            this.BAR_HEIGHT,
+            UITheme.Colors.panel,
+            UITheme.Colors.border,
+            UITheme.Layout.borderWidth.medium
+        );
         
-        // Health bar fill
-        this.healthBarFill.draw(ctx, x + 2, y + 2);
+        // Health bar fill (on top of background)
+        const healthPercent = Math.max(0, this.hero.hp / this.hero.maxHp);
+        const healthFillWidth = (this.BAR_WIDTH - 4) * healthPercent;
+        ctx.drawRectangle(
+            ex.vec(x + 2, y + 2),
+            healthFillWidth,
+            this.BAR_HEIGHT - 4,
+            UITheme.getHealthColor(healthPercent)
+        );
         
-        // Health text (centered on bar)
+        // Health text (on top of bars)
+        this.hpText.text = `${Math.ceil(this.hero.hp)}/${this.hero.maxHp}`;
         const hpTextWidth = this.hpText.width || 0;
         this.hpText.draw(ctx, x + (this.BAR_WIDTH - hpTextWidth) / 2, y + 6);
         
         y += 35;
         
-        // Warmth section
+        // LAYER 3: Warmth section  
         const warmthLabel = UITheme.createText('🔥 Warmth', 'heading');
         warmthLabel.draw(ctx, x, y);
-        
         y += 20;
         
         // Warmth bar background
-        this.warmthBarBg.draw(ctx, x, y);
+        ctx.drawRectangle(
+            ex.vec(x, y),
+            this.BAR_WIDTH,
+            this.BAR_HEIGHT,
+            UITheme.Colors.panel,
+            UITheme.Colors.border,
+            UITheme.Layout.borderWidth.medium
+        );
         
-        // Warmth bar fill
-        this.warmthBarFill.draw(ctx, x + 2, y + 2);
+        // Warmth bar fill (on top of background)
+        const warmthPercent = Math.max(0, this.hero.warmth / this.hero.maxWarmth);
+        const warmthFillWidth = (this.BAR_WIDTH - 4) * warmthPercent;
+        ctx.drawRectangle(
+            ex.vec(x + 2, y + 2),
+            warmthFillWidth,
+            this.BAR_HEIGHT - 4,
+            UITheme.getWarmthColor(warmthPercent)
+        );
         
-        // Warmth text (centered on bar)
+        // Warmth text (on top of bars)
+        this.warmthText.text = `${Math.floor(this.hero.warmth)}/${this.hero.maxWarmth}`;
         const warmthTextWidth = this.warmthText.width || 0;
         this.warmthText.draw(ctx, x + (this.BAR_WIDTH - warmthTextWidth) / 2, y + 6);
     }

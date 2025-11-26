@@ -14,6 +14,7 @@ export class Hotbar extends ex.ScreenElement {
     private readonly SLOT_SIZE = UITheme.Layout.sizes.hotbarSlotSize;
     private readonly PADDING = UITheme.Layout.padding.medium;
     private readonly ICON_SIZE = 24;
+    private totalWidth: number = 0;
     
     // Visual elements
     private background!: ex.Rectangle;
@@ -53,12 +54,12 @@ export class Hotbar extends ex.ScreenElement {
     }
     
     private initializeVisuals() {
-        const totalWidth = this.SLOT_COUNT * this.SLOT_SIZE + (this.SLOT_COUNT - 1) * this.PADDING + 
+        this.totalWidth = this.SLOT_COUNT * this.SLOT_SIZE + (this.SLOT_COUNT - 1) * this.PADDING + 
                           this.PADDING * 2 + this.ICON_SIZE + this.PADDING; // Extra space for inventory button
         
         // Background
         this.background = UITheme.createRectangle(
-            totalWidth,
+            this.totalWidth,
             this.SLOT_SIZE + this.PADDING * 2,
             {
                 fillColor: UITheme.Colors.background,
@@ -100,12 +101,22 @@ export class Hotbar extends ex.ScreenElement {
     
     onPostUpdate(engine: ex.Engine, delta: number) {
         // Dynamic positioning: Bottom Center
-        // Update every frame to handle window resizing
-        const totalWidth = this.background.width;
-        this.pos = ex.vec(
-            (engine.drawWidth - totalWidth) / 2,
-            engine.drawHeight - this.background.height - UITheme.Layout.padding.large
-        );
+        // ScreenElements use viewport (CSS pixel) coordinates, not draw coordinates
+        const viewportWidth = engine.screen.viewport.width;
+        const viewportHeight = engine.screen.viewport.height;
+        
+        const barHeight = this.SLOT_SIZE + this.PADDING * 2;
+        const yPos = viewportHeight - barHeight - UITheme.Layout.padding.large;
+        
+        const newX = (viewportWidth - this.totalWidth) / 2;
+        const newY = Math.max(0, yPos);
+        
+        // Debug log once per second
+        if (Date.now() % 1000 < 16) {
+            console.log(`[Hotbar] Positioning: viewport=${viewportWidth}x${viewportHeight}, barHeight=${barHeight}, totalWidth=${this.totalWidth}, pos=(${newX}, ${newY})`);
+        }
+        
+        this.pos = ex.vec(newX, newY);
     }
 
     onInitialize(engine: ex.Engine) {
@@ -133,17 +144,18 @@ export class Hotbar extends ex.ScreenElement {
     }
     
     private isPointInBounds(screenPos: ex.Vector): boolean {
+        const barHeight = this.SLOT_SIZE + this.PADDING * 2;
         return screenPos.x >= this.pos.x && 
-               screenPos.x <= this.pos.x + this.background.width &&
+               screenPos.x <= this.pos.x + this.totalWidth &&
                screenPos.y >= this.pos.y && 
-               screenPos.y <= this.pos.y + this.background.height;
+               screenPos.y <= this.pos.y + barHeight;
     }
     
     private handleClick(screenPos: ex.Vector) {
         const localPos = screenPos.sub(this.pos);
         
         // Check inventory button
-        const inventoryButtonX = this.background.width - this.ICON_SIZE - this.PADDING;
+        const inventoryButtonX = this.totalWidth - this.ICON_SIZE - this.PADDING;
         const inventoryButtonY = this.PADDING;
         
         if (localPos.x >= inventoryButtonX && 
@@ -258,6 +270,7 @@ export class Hotbar extends ex.ScreenElement {
             console.log("[Hotbar] customDraw called");
         }
         
+        // Draw at (0, 0) - onPostDraw context is already positioned at this.pos
         const x = 0;
         const y = 0;
         
@@ -271,7 +284,7 @@ export class Hotbar extends ex.ScreenElement {
         }
         
         // Draw inventory button
-        const inventoryButtonX = x + this.background.width - this.ICON_SIZE - this.PADDING;
+        const inventoryButtonX = x + this.totalWidth - this.ICON_SIZE - this.PADDING;
         const inventoryButtonY = y + this.PADDING;
         
         this.inventoryButtonBackground.draw(ctx, inventoryButtonX, inventoryButtonY);
@@ -290,6 +303,7 @@ export class Hotbar extends ex.ScreenElement {
     private drawTooltip(ctx: ex.ExcaliburGraphicsContext) {
         if (!this.hoveredTooltipItem) return;
         
+        // Calculate tooltip position in LOCAL coordinates (relative to hotbar)
         const mouseLocalPos = this.mousePos.sub(this.pos);
         let tooltipX = mouseLocalPos.x + 15;
         let tooltipY = mouseLocalPos.y - 80; // Above the hotbar
@@ -305,42 +319,59 @@ export class Hotbar extends ex.ScreenElement {
             tooltipText = (this.hoveredTooltipItem as any).getTooltipText();
         }
         
-        const lines = tooltipText.split('\n');
+        const rawLines = tooltipText.split('\n');
         const lineHeight = 16;
         const padding = UITheme.Layout.padding.medium;
         const maxWidth = 200;
+        const maxCharsPerLine = 25; // Approximate characters that fit in maxWidth
+        
+        // Wrap text to stay within bounds
+        const lines: string[] = [];
+        rawLines.forEach(line => {
+            if (line.length <= maxCharsPerLine) {
+                lines.push(line);
+            } else {
+                // Simple word wrapping
+                const words = line.split(' ');
+                let currentLine = '';
+                words.forEach(word => {
+                    if ((currentLine + word).length <= maxCharsPerLine) {
+                        currentLine += (currentLine ? ' ' : '') + word;
+                    } else {
+                        if (currentLine) lines.push(currentLine);
+                        currentLine = word;
+                    }
+                });
+                if (currentLine) lines.push(currentLine);
+            }
+        });
+        
         const height = lines.length * lineHeight + padding * 2;
         
-        // Adjust position to keep tooltip on screen
-        // Check if tooltip goes off the right side of the screen
-        if (this.pos.x + tooltipX + maxWidth > this.engine.drawWidth) {
+        // Edge detection using viewport coordinates
+        const viewportWidth = this.engine.screen.viewport.width;
+        
+        // Check if tooltip goes off the right side (tooltip position is relative to element)
+        if (tooltipX + maxWidth > viewportWidth - this.pos.x) {
             tooltipX = mouseLocalPos.x - maxWidth - 15;
         }
         
-        // Check if tooltip goes off the top of the screen
-        // We WANT it to be above the hotbar (negative Y), so only flip if it goes off screen
-        if (this.pos.y + tooltipY < 0) {
+        // Check if tooltip goes off the top
+        if (tooltipY < -this.pos.y) {
             tooltipY = mouseLocalPos.y + 30; // Below cursor if no room above
         }
         
-        // Draw background
+        // LAYER 1: Draw tooltip background FIRST
         ctx.drawRectangle(
             ex.vec(tooltipX, tooltipY),
             maxWidth,
             height,
-            UITheme.Colors.backgroundDark
-        );
-        
-        ctx.drawRectangle(
-            ex.vec(tooltipX, tooltipY),
-            maxWidth,
-            height,
-            ex.Color.Transparent,
+            UITheme.Colors.backgroundDark,
             UITheme.Colors.borderLight,
             1
         );
         
-        // Draw text lines
+        // LAYER 2: Draw text lines ON TOP OF background
         lines.forEach((line, index) => {
             const lineText = UITheme.createText(line, 'small');
             lineText.draw(

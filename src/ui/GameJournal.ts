@@ -147,11 +147,22 @@ export class GameJournal extends ex.ScreenElement {
     private updatePosition() {
         if (!this.engine) return;
         
-        const x = this.engine.drawWidth - this.WIDTH - UITheme.Layout.padding.large;
-        // If collapsed, position at bottom. If expanded, position upwards from bottom.
-        // Actually, standard behavior is anchor bottom-right.
-        // So Y should always be: screenHeight - currentHeight - padding
-        const y = this.engine.drawHeight - this.getHeight() - UITheme.Layout.padding.large;
+        // ScreenElements use viewport (CSS pixel) coordinates
+        const viewportWidth = this.engine.screen.viewport.width;
+        const viewportHeight = this.engine.screen.viewport.height;
+        
+        const currentHeight = this.getHeight();
+        const xPos = viewportWidth - this.WIDTH - UITheme.Layout.padding.large;
+        const yPos = viewportHeight - currentHeight - UITheme.Layout.padding.large;
+        
+        // Clamp to screen bounds to prevent bleeding off edges
+        const x = Math.max(0, Math.min(xPos, viewportWidth - this.WIDTH));
+        const y = Math.max(0, Math.min(yPos, viewportHeight - currentHeight));
+        
+        // Debug log once per second
+        if (Date.now() % 1000 < 16) {
+            console.log(`[GameJournal] Positioning: viewport=${viewportWidth}x${viewportHeight}, WIDTH=${this.WIDTH}, currentHeight=${currentHeight}, pos=(${x}, ${y})`);
+        }
         
         this.pos = ex.vec(x, y);
     }
@@ -310,6 +321,7 @@ export class GameJournal extends ex.ScreenElement {
             console.log("[GameJournal] customDraw called at", this.pos);
         }
         
+        // Draw at (0, 0) - onPostDraw context is already positioned at this.pos
         const x = 0;
         let y = 0;
         

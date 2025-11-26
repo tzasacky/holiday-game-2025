@@ -135,10 +135,13 @@ export class InventoryScreen extends ex.ScreenElement {
     }
     
     onPostUpdate(engine: ex.Engine, delta: number) {
-        // Center on screen
+        // Center on screen - ScreenElements use viewport coordinates
+        const viewportWidth = engine.screen.viewport.width;
+        const viewportHeight = engine.screen.viewport.height;
+        
         this.pos = ex.vec(
-            (engine.drawWidth - this.SCREEN_WIDTH) / 2,
-            (engine.drawHeight - this.SCREEN_HEIGHT) / 2
+            (viewportWidth - this.SCREEN_WIDTH) / 2,
+            (viewportHeight - this.SCREEN_HEIGHT) / 2
         );
     }
 
@@ -198,8 +201,8 @@ export class InventoryScreen extends ex.ScreenElement {
         
         // Check equipment panel
         const equipmentBounds = {
-            x: this.PADDING,
-            y: 40
+            x: this.pos.x + this.PADDING,
+            y: this.pos.y + 40
         };
         
         if (this.equipmentPanel.handleDragStart(screenPos, equipmentBounds)) {
@@ -208,8 +211,8 @@ export class InventoryScreen extends ex.ScreenElement {
         
         // Check inventory grid
         const inventoryBounds = {
-            x: this.EQUIPMENT_PANEL_WIDTH + this.PADDING * 2,
-            y: 40
+            x: this.pos.x + this.EQUIPMENT_PANEL_WIDTH + this.PADDING * 2,
+            y: this.pos.y + 40
         };
         
         if (this.inventoryGrid.handleDragStart(screenPos, inventoryBounds)) {
@@ -236,8 +239,8 @@ export class InventoryScreen extends ex.ScreenElement {
         
         if (!this.draggedItem) {
             const inventoryBounds = { 
-                x: this.EQUIPMENT_PANEL_WIDTH + this.PADDING * 2, 
-                y: 40 
+                x: this.pos.x + this.EQUIPMENT_PANEL_WIDTH + this.PADDING * 2, 
+                y: this.pos.y + 40 
             };
             
             this.inventoryGrid.handleMouseMove(screenPos, inventoryBounds);
@@ -343,7 +346,7 @@ export class InventoryScreen extends ex.ScreenElement {
     }
     
     private updateTooltip(screenPos: ex.Vector) {
-        const equipmentBounds = { x: this.PADDING, y: 40 };
+        const equipmentBounds = { x: this.pos.x + this.PADDING, y: this.pos.y + 40 };
         const hoveredEquipment = this.equipmentPanel.getHoveredSlot(screenPos, equipmentBounds);
         if (hoveredEquipment?.item) {
             this.hoveredTooltipItem = hoveredEquipment.item;
@@ -403,6 +406,7 @@ export class InventoryScreen extends ex.ScreenElement {
             console.log("[InventoryScreen] customDraw called at", this.pos);
         }
         
+        // Draw at (0, 0) - onPostDraw context is already positioned at this.pos
         const x = 0;
         let y = 0;
         
@@ -479,28 +483,46 @@ export class InventoryScreen extends ex.ScreenElement {
             tooltipText = (this.hoveredTooltipItem as any).getTooltipText();
         }
         
-        const lines = tooltipText.split('\n');
+        const rawLines = tooltipText.split('\n');
         const lineHeight = 16;
         const padding = UITheme.Layout.padding.medium;
         const maxWidth = 250;
+        const maxCharsPerLine = 30; // Approximate characters that fit in maxWidth
+        
+        // Wrap text to stay within bounds
+        const lines: string[] = [];
+        rawLines.forEach(line => {
+            if (line.length <= maxCharsPerLine) {
+                lines.push(line);
+            } else {
+                // Simple word wrapping
+                const words = line.split(' ');
+                let currentLine = '';
+                words.forEach(word => {
+                    if ((currentLine + word).length <= maxCharsPerLine) {
+                        currentLine += (currentLine ? ' ' : '') + word;
+                    } else {
+                        if (currentLine) lines.push(currentLine);
+                        currentLine = word;
+                    }
+                });
+                if (currentLine) lines.push(currentLine);
+            }
+        });
+        
         const height = lines.length * lineHeight + padding * 2;
         
+        // Draw tooltip background FIRST (with fill and stroke combined)
         ctx.drawRectangle(
             ex.vec(tooltipX, tooltipY),
             maxWidth,
             height,
-            UITheme.Colors.backgroundDark
-        );
-        
-        ctx.drawRectangle(
-            ex.vec(tooltipX, tooltipY),
-            maxWidth,
-            height,
-            ex.Color.Transparent,
+            UITheme.Colors.backgroundDark,
             UITheme.Colors.borderLight,
             1
         );
         
+        // Draw text lines ON TOP OF background
         lines.forEach((line, index) => {
             const lineText = UITheme.createText(line, 'small');
             lineText.draw(

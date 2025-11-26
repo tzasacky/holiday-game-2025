@@ -1,0 +1,6 @@
+.DS_Store
+.cluade
+dist
+debug_sprites
+generated
+node_modules

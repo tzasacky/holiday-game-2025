@@ -1,0 +1,50 @@
+- file: items/items_weapons.png
+  output: public/assets/items/items_weapons.png
+  generate: false
+  spec:
+    cols: 8
+    rows: 4
+  expectedTotal: 24
+  prompt: |
+    ITEM ICONS SPRITESHEET - WEAPONS
+    SOLID COLOR BACKGROUND WITH NO GRIDLINES OR TEXT
+    STYLE: Pixel art. Vibrant and detailed. Christmas and holiday themed. 32x32.
+
+    LAYOUT: 8x8 Grid.
+
+    ROW 1 (Melee - Daggers & Spears):
+    - Col 0: Candy Cane Spear (red/white striped)
+    - Col 1: Melting Icicle Dagger (dripping ice)
+    - Col 2: Sharp Icicle Dagger (crystal clear)
+    - Col 3: Perfect Icicle Dagger (glowing blue)
+    - Col 4: Frosty Icicle Dagger (well-formed ice)
+    - Col 5: Weak Sword (rusty blade)
+    - Col 6: [Empty]
+    - Col 7: [Empty]
+
+    ROW 2 (Melee - Hammers):
+    - Col 0: Broken Toy Hammer (cracked wood)
+    - Col 1: Wooden Toy Hammer (classic brown)
+    - Col 2: Steel Toy Hammer (metallic gray)
+    - Col 3: Enchanted Toy Hammer (glowing aura)
+    - Col 4: Nutcracker Hammer (ornate gold)
+    - Col 5: [Empty]
+    - Col 6: [Empty]
+    - Col 7: [Empty]
+
+    ROW 3 (Magic - Wands 1):
+    - Col 0: Sparkler Wand (tiny sparks)
+    - Col 1: Candlestick Wand (golden flame)
+    - Col 2: Holly Wand (green with red berries)
+    - Col 3: Mistletoe Wand (festive magic)
+    - Col 4: Christmas Tree Staff (miniature tree)
+    - Col 5: Star Topper Wand (bright star)
+    - Col 6: Jingle Bell Wand (silver bells)
+    - Col 7: Gingerbread Wand (cookie texture)
+
+    ROW 4 (Magic - Wands 2 & Whips):
+    - Col 0: Fireworks Wand (explosive colors)
+    - Col 1: Grand Finale Wand (spectacular glow)
+    - Col 2: Tangled Christmas Lights (messy colored whip)
+    - Col 3: LED Christmas Lights (bright multicolor whip)
+    - Col 4: Magical Christmas Lights (glowing aura whip)

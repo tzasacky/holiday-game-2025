@@ -1,0 +1,31 @@
+{
+  "name": "sample-tiled-vite",
+  "version": "1.0.0",
+  "description": "Sample Excalibur Tiled Plugin with Vite",
+  "scripts": {
+    "start": "vite",
+    "start:debug": "vite -d",
+    "build": "vite build",
+    "preview": "vite preview",
+    "fix-sprites": "node tools/process_sprites.js",
+    "fix-tilesets": "node tools/process_tilesets.js"
+  },
+  "author": {
+    "name": "Excalibur.js Team",
+    "email": "excaliburjs@gmail.com",
+    "url": "http://excaliburjs.com"
+  },
+  "license": "BSD-2-Clause",
+  "dependencies": {
+    "@excaliburjs/plugin-pathfinding": "^0.31.0",
+    "@excaliburjs/plugin-tiled": "^0.31.0",
+    "excalibur": "^0.31.0"
+  },
+  "devDependencies": {
+    "glob": "^13.0.0",
+    "jimp": "^1.6.0",
+    "js-yaml": "^4.1.1",
+    "typescript": "5.7.2",
+    "vite": "6.0.6"
+  }
+}

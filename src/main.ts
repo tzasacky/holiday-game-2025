@@ -26,7 +26,7 @@ export const AppConfig = {
 };
 
 // Set log level (change to LogLevel.DEBUG for verbose logging)  
-Logger.setLevel(LogLevel.INFO);
+Logger.setLevel(LogLevel.DEBUG);
 
 Logger.info("AppConfig:", AppConfig);
 Logger.info("Initializing Game Engine...");
@@ -58,8 +58,6 @@ game.start(loader).then(() => {
 
     // Scene Setup
     const gameScene = new GameScene();
-    game.add('game', gameScene);
-    game.goToScene('game');
 
     // Generation
     const generator = new AdvancedLevelGenerator();
@@ -157,4 +155,8 @@ game.start(loader).then(() => {
 
     // Input handling for TurnManager (if needed globally)
     // TurnManager is singleton, Hero calls it.
+
+    // Start Game
+    game.add('game', gameScene);
+    game.goToScene('game');
 });

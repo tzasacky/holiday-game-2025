@@ -88,10 +88,8 @@ export class GameScene extends ex.Scene {
                 this.add(actor);
                 
                 // Set Z-level for actors to be well above tilemaps
-                actor.z = 100;
-                
-                // Force visibility for all actors
-                actor.visible = true;
+                actor.z = 1;
+                console.log("[GameScene] Set actor", actor.name, "z-level to:", actor.z);
                 
                 // Force initialization if needed
                 if (!actor.isInitialized) {
@@ -105,7 +103,7 @@ export class GameScene extends ex.Scene {
             // Add all mobs to scene
             this.level.mobs.forEach((mob: any) => {
                 console.log("[GameScene] Adding mob to scene:", mob.name);
-                mob.z = 100; // Well above tilemaps
+                mob.z = 1; // Well above tilemaps
                 this.add(mob);
             });
             

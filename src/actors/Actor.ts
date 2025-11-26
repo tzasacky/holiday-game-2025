@@ -8,12 +8,13 @@ import { EnhancedEquipment } from '../mechanics/EquipmentSystem';
 import { Item } from '../items/Item';
 import { IdentificationSystem } from '../mechanics/IdentificationSystem';
 import { DamageType } from '../mechanics/DamageType';
-import { ExcaliburAStar } from '@excaliburjs/plugin-pathfinding';
+import { Logger } from '../core/Logger';
 import { Level } from '../dungeon/Level';
 import { TerrainType, TerrainDefinitions } from '../dungeon/Terrain';
 import { GameScene } from '../scenes/GameScene';
 import { TurnManager } from '../core/TurnManager';
 import { ItemEntity } from '../items/ItemEntity';
+import { Pathfinding, PathfindingOptions } from '../core/Pathfinding';
 
 
 
@@ -274,34 +275,27 @@ export abstract class Actor extends GameEntity {
         this.time += time;
     }
 
-    // Pathfinding
-    public findPathTo(targetX: number, targetY: number): void {
-        if (!this.currentLevel) return;
-        
-        // Simple A* pathfinding
-        // Note: In a real implementation, we'd use the Level's pathfinder
-        // For now, let's assume we can move directly if line of sight, or use a simple heuristic
-        
-        // Check bounds
-        if (targetX < 0 || targetX >= this.currentLevel.width || 
-            targetY < 0 || targetY >= this.currentLevel.height) {
+    public findPathTo(targetX: number, targetY: number, options?: PathfindingOptions): void {
+        if (!this.scene || !(this.scene as GameScene).level) {
+            Logger.debug("[Actor] No scene/level for pathfinding");
             return;
         }
-
-        // Basic greedy movement for now if no pathfinder
-        // TODO: Integrate proper A* from Level
-        const start = ex.vec(this.x, this.y);
+        
+        const level = (this.scene as GameScene).level!;
+        const start = ex.vec(this.gridPos.x, this.gridPos.y);
         const end = ex.vec(targetX, targetY);
         
-        // This is a placeholder. Real pathfinding should go here.
-        // For the MVP, we might just move one step towards target
-        const direction = end.sub(start).normalize();
+        Logger.debug(`[Actor] ${this.name} finding path from`, start, "to", end);
         
-        // If we are adjacent, we don't need a path
-        if (start.distance(end) <= 1.5) {
-            this.clearPath();
-            return;
-        }
+        // Use default options for mobs (avoid interactables)
+        const pathOptions: PathfindingOptions = options || {
+            avoidInteractables: true,
+            allowItems: false,
+            allowMobs: false
+        };
+        
+        const path = Pathfinding.findPath(level, start, end, pathOptions);
+        this.setPath(path);
     }
 
     public setPath(path: ex.Vector[]): void {
@@ -322,10 +316,12 @@ export abstract class Actor extends GameEntity {
         if (!this.hasPath()) return null;
         return this.currentPath[this.currentPathIndex];
     }
+    
 
     public advancePath(): void {
         if (this.hasPath()) {
             this.currentPathIndex++;
+            Logger.debug(`[Actor] ${this.name} advanced path, index now:`, this.currentPathIndex, "of", this.currentPath.length);
         }
     }
 

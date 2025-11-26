@@ -2,6 +2,7 @@ import * as ex from 'excalibur';
 import { UIManager } from '../ui/UIManager';
 import { GameScene } from '../scenes/GameScene';
 import { Logger } from './Logger';
+import { TurnManager } from './TurnManager';
 
 export enum GameActionType {
     MoveNorth = 'move_north',
@@ -48,6 +49,37 @@ export class InputManager {
                 const tileY = Math.floor(evt.worldPos.y / 32);
                 this.lastClickTarget = ex.vec(tileX, tileY);
                 Logger.debug("[Input] Game World Click at tile:", this.lastClickTarget);
+                
+                // Wake up TurnManager to process the click during Hero's turn
+                Logger.debug("[InputManager] Waking up TurnManager for click processing");
+                TurnManager.instance.processTurns();
+            }
+        });
+
+        // Setup keyboard listeners for turn-based input
+        this.engine.input.keyboard.on('press', (evt) => {
+            if (this.isUIInteractionActive) return;
+            
+            // Handle UI keys first (these don't cost turns)
+            if (evt.key === ex.Keys.I) {
+                Logger.debug("[InputManager] Inventory key pressed");
+                this.toggleInventory();
+                return;
+            }
+            
+            // Process movement keys immediately for turn-based gameplay
+            let action: GameActionType | null = null;
+            
+            if (evt.key === ex.Keys.ArrowUp || evt.key === ex.Keys.W) action = GameActionType.MoveNorth;
+            else if (evt.key === ex.Keys.ArrowDown || evt.key === ex.Keys.S) action = GameActionType.MoveSouth;
+            else if (evt.key === ex.Keys.ArrowLeft || evt.key === ex.Keys.A) action = GameActionType.MoveWest;
+            else if (evt.key === ex.Keys.ArrowRight || evt.key === ex.Keys.D) action = GameActionType.MoveEast;
+            else if (evt.key === ex.Keys.Space || evt.key === ex.Keys.Numpad5) action = GameActionType.Wait;
+            else if (evt.key === ex.Keys.E) action = GameActionType.Interact;
+            
+            if (action) {
+                Logger.debug("[InputManager] Keyboard action:", action);
+                this.queueGameAction(action);
             }
         });
 
@@ -57,6 +89,32 @@ export class InputManager {
     
     public setGameScene(gameScene: GameScene) {
         this.gameScene = gameScene;
+    }
+    
+    private queueGameAction(action: GameActionType) {
+        if (!this.gameScene) return;
+        
+        const hero = this.gameScene.getHero();
+        if (!hero) return;
+        
+        Logger.debug("[InputManager] Queuing action for hero:", action);
+        
+        // Queue the action - let TurnManager process it naturally
+        hero.queueAction(action);
+        
+        // Wake up TurnManager to process the queued action
+        Logger.debug("[InputManager] Waking up TurnManager to process action");
+        TurnManager.instance.processTurns();
+    }
+    
+    private toggleInventory() {
+        if (!this.gameScene) return;
+        
+        Logger.debug("[InputManager] Toggling inventory");
+        // Access the scene's inventory toggle method
+        if ((this.gameScene as any).toggleInventory) {
+            (this.gameScene as any).toggleInventory();
+        }
     }
 
     getAction(): GameActionType | null {
@@ -70,6 +128,9 @@ export class InputManager {
         }
         
         const k = this.engine.input.keyboard;
+        
+        // Debug: Log all current key states
+        Logger.debug("[InputManager] Checking keyboard input...");
 
         // Movement keys
         if (k.wasPressed(ex.Keys.ArrowUp) || k.wasPressed(ex.Keys.W)) { Logger.debug("[Input] Key pressed: MoveNorth"); return GameActionType.MoveNorth; }
@@ -79,6 +140,7 @@ export class InputManager {
         if (k.wasPressed(ex.Keys.Space) || k.wasPressed(ex.Keys.Numpad5)) { Logger.debug("[Input] Key pressed: Wait"); return GameActionType.Wait; }
         if (k.wasPressed(ex.Keys.E)) { Logger.debug("[Input] Key pressed: Interact"); return GameActionType.Interact; }
 
+        Logger.debug("[InputManager] No keys pressed");
         return null;
     }
     

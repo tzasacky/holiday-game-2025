@@ -7,15 +7,16 @@ import { Level } from '../dungeon/Level';
 import { TurnManager } from '../core/TurnManager';
 import { InputManager, GameActionType } from '../core/InputManager';
 import { Logger } from '../core/Logger';
-import { Config } from '../config';
 import { TerrainType, TerrainDefinitions } from '../dungeon/Terrain';
 import { Inventory } from '../items/Inventory';
 import { EnhancedEquipment } from '../mechanics/EquipmentSystem';
 import { IdentificationSystem } from '../mechanics/IdentificationSystem';
 import { ItemEntity } from '../items/ItemEntity';
+import { Pathfinding } from '../core/Pathfinding';
 
 export class Hero extends Actor {
     private inputManager!: InputManager;
+    private actionQueue: GameActionType[] = [];
 
     constructor(gridPos: ex.Vector) {
         super(gridPos, 100, { // 100 HP
@@ -33,48 +34,199 @@ export class Hero extends Actor {
         Logger.info("[Hero] onInitialize called at position:", this.gridPos, "world pos:", this.pos);
         this.inputManager = InputManager.instance;
 
-        // Set Z-level to be well above tilemaps
-        this.z = 100;
-        
-        // Graphics setup via Registry
+        // Use ActorRegistry for consistent rendering
         ActorRegistry.getInstance().configureActor(this);
-        
-        // Debug graphics state
-        Logger.info("[Hero] Graphics configured, has graphics:", this.graphics ? 'yes' : 'no', "z-level:", this.z);
-        Logger.info("[Hero] Graphics current:", this.graphics.current?.constructor.name || 'none');
-        Logger.info("[Hero] Graphics visible:", this.graphics.visible);
-        Logger.info("[Hero] Actor visible:", this.visible);
-        Logger.info("[Hero] Actor opacity:", this.graphics.opacity);
-        
-        // Force visibility - this was the bug!
-        this.visible = true;
-        this.graphics.visible = true;
-        this.graphics.opacity = 1.0;
-        
-        Logger.info("[Hero] After forcing visibility - Actor visible:", this.visible);
+    }
+
+    // Called by InputManager to queue an action
+    public queueAction(action: GameActionType) {
+        Logger.debug("[Hero] Action queued:", action);
+        this.actionQueue.push(action);
     }
 
     // Implement abstract method from Actor
     public async act(): Promise<boolean> {
-        // Hero actions are driven by Input in onPreUpdate.
-        // We return false here to tell TurnManager we are waiting for input.
-        // When input is received in onPreUpdate, we'll execute and call playerActionComplete.
+        Logger.debug("[Hero] act() called - checking for input");
         
-        // Exception: If we have a path (auto-running), we can act immediately?
-        // No, let onPreUpdate handle it to ensure consistent flow.
+        // Continue following existing path first
+        if (this.hasPath()) {
+            Logger.debug("[Hero] Continuing path, steps remaining:", this.currentPath.length - this.currentPathIndex);
+            const nextStep = this.getNextPathStep();
+            if (nextStep) {
+                const diff = nextStep.sub(this.gridPos);
+                const dx = Math.round(diff.x);
+                const dy = Math.round(diff.y);
+                
+                Logger.debug("[Hero] Moving along path:", dx, dy);
+                if (this.tryMove(dx, dy)) {
+                    this.advancePath();
+                    return true; // Keep processing turns to continue path
+                } else {
+                    Logger.debug("[Hero] Path blocked, clearing path");
+                    this.clearPath();
+                    return true; // Still consumed the turn
+                }
+            } else {
+                Logger.debug("[Hero] Path complete");
+                this.clearPath();
+                return false; // Path finished, wait for new input
+            }
+        }
+        
+        // Check for new mouse clicks
+        const clickTarget = this.inputManager.getClickTarget();
+        Logger.debug("[Hero] getClickTarget returned:", clickTarget);
+        if (clickTarget) {
+            Logger.debug("[Hero] Processing click target:", clickTarget);
+            this.findPathTo(clickTarget.x, clickTarget.y);
+            if (this.hasPath()) {
+                Logger.debug("[Hero] New path created, starting movement");
+                // Start the path on this turn
+                const nextStep = this.getNextPathStep();
+                if (nextStep) {
+                    const diff = nextStep.sub(this.gridPos);
+                    const dx = Math.round(diff.x);
+                    const dy = Math.round(diff.y);
+                    
+                    Logger.debug("[Hero] Starting path movement:", dx, dy);
+                    if (this.tryMove(dx, dy)) {
+                        this.advancePath();
+                        return true; // Keep processing turns for the path
+                    } else {
+                        this.clearPath();
+                        return true; // Still consumed the turn
+                    }
+                }
+            } else {
+                Logger.debug("[Hero] No path found to target");
+                return true; // Click consumed the turn even if no path
+            }
+        }
+        
+        // Process queued actions
+        if (this.actionQueue.length > 0) {
+            const action = this.actionQueue.shift()!;
+            Logger.debug("[Hero] Processing queued action:", action);
+            return this.executeAction(action);
+        }
+        
+        Logger.debug("[Hero] No queued actions, waiting for input");
+        return false;
+    }
+    
+    private tryMove(dx: number, dy: number): boolean {
+        const targetGridPos = this.gridPos.add(ex.vec(dx, dy));
+        
+        if (this.scene && (this.scene as GameScene).level) {
+            const level = (this.scene as GameScene).level!;
+            
+            // Check bounds
+            if (targetGridPos.x < 0 || targetGridPos.x >= level.width || 
+                targetGridPos.y < 0 || targetGridPos.y >= level.height) {
+                return false;
+            }
+            
+            // Check for walls/obstacles  
+            const tile = level.objectMap.getTile(targetGridPos.x, targetGridPos.y);
+            if (tile && tile.solid) {
+                return false;
+            }
+            
+            // Perform movement
+            this.gridPos = targetGridPos;
+            this.pos = targetGridPos.scale(32).add(ex.vec(16, 16));
+            this.spend(1.0);
+            
+            Logger.debug("[Hero] Moved to:", this.gridPos, "time:", this.time);
+            return true;
+        }
+        
+        return false;
+    }
+    
+    private executeAction(action: GameActionType): boolean {
+        Logger.debug("[Hero] Executing action:", action, "current time:", this.time);
+        
+        // Use existing movement logic from onPreUpdate
+        let dx = 0;
+        let dy = 0;
+        
+        switch (action) {
+            case GameActionType.MoveNorth: dy = -1; this.graphics.use('up-walk'); break;
+            case GameActionType.MoveSouth: dy = 1; this.graphics.use('down-walk'); break;
+            case GameActionType.MoveWest: dx = -1; this.graphics.use('left-walk'); break;
+            case GameActionType.MoveEast: dx = 1; this.graphics.use('right-walk'); break;
+            case GameActionType.Wait: 
+                Logger.debug("[Hero] Wait action - spending time");
+                this.spend(1.0);
+                Logger.debug("[Hero] After wait - time:", this.time);
+                return true;
+        }
+
+        if (dx !== 0 || dy !== 0) {
+            const targetGridPos = this.gridPos.add(ex.vec(dx, dy));
+            Logger.debug("[Hero] Attempting move from", this.gridPos, "to", targetGridPos);
+            
+            // Use existing collision/movement logic
+            if (this.scene && (this.scene as GameScene).level) {
+                const level = (this.scene as GameScene).level!;
+                
+                // Check bounds
+                if (targetGridPos.x < 0 || targetGridPos.x >= level.width || 
+                    targetGridPos.y < 0 || targetGridPos.y >= level.height) {
+                    Logger.debug("[Hero] Movement blocked - out of bounds");
+                    return false; // Don't spend time on failed movement
+                }
+                
+                // Check for interaction first
+                if (this.handleInteraction(targetGridPos.x, targetGridPos.y)) {
+                    this.spend(1.0);
+                    Logger.debug("[Hero] Interaction handled in executeAction at:", targetGridPos, "time:", this.time);
+                    return true;
+                }
+                
+                // Check for walls/obstacles  
+                const tile = level.objectMap.getTile(targetGridPos.x, targetGridPos.y);
+                if (tile && tile.solid) {
+                    Logger.debug("[Hero] Movement blocked by solid tile at", targetGridPos);
+                    return false; // Don't spend time on failed movement
+                }
+                
+                // Perform movement
+                Logger.debug("[Hero] Movement successful - updating position and time");
+                this.gridPos = targetGridPos;
+                this.pos = targetGridPos.scale(32).add(ex.vec(16, 16));
+                this.spend(1.0);
+                
+                Logger.debug("[Hero] Moved to:", this.gridPos, "world pos:", this.pos, "time:", this.time);
+                return true; // Action successful
+            } else {
+                Logger.debug("[Hero] No scene or level - cannot move");
+            }
+        }
+        
+        Logger.debug("[Hero] Action not handled:", action);
         return false;
     }
 
     onPreUpdate(engine: ex.Engine, elapsedMs: number): void {
+        super.onPreUpdate(engine, elapsedMs);
+        
+        // CRITICAL DEBUG - This should always log if onPreUpdate is being called
+        console.log("[Hero] onPreUpdate CALLED!");
+        
         if (this.moving) {
+            Logger.debug("[Hero] onPreUpdate - skipping, currently moving");
             return;
         }
         
         // Debug logging
         Logger.debug("[Hero] onPreUpdate - isPlayerTurnActive:", TurnManager.instance.isPlayerTurnActive);
+        Logger.debug("[Hero] onPreUpdate - TurnManager actors count:", TurnManager.instance.getActorCount());
         
         // Only allow input if it's our turn and UI isn't blocking
         if (!TurnManager.instance.isPlayerTurnActive) {
+            Logger.debug("[Hero] onPreUpdate - not player turn, skipping input");
             return;
         }
         
@@ -136,39 +288,20 @@ export class Hero extends Actor {
         if (dx !== 0 || dy !== 0) {
             const targetGridPos = this.gridPos.add(ex.vec(dx, dy));
             
-            // Check for Mobs
+            // Check for interactions first
             if (this.scene && (this.scene as GameScene).level) {
                 const level = (this.scene as GameScene).level!;
                 
-                const targetMob = level.mobs.find((m: any) => 
-                    m.gridPos.equals(targetGridPos) && m.hp > 0 && m.active
-                );
-                
-                if (targetMob) {
-                    this.attack(targetMob);
+                if (this.handleInteraction(targetGridPos.x, targetGridPos.y)) {
+                    this.clearPath(); // Interaction ends current path
                     this.spend(1.0);
                     TurnManager.instance.playerActionComplete();
                     return;
                 }
                 
-                // Check for Walls/Doors
+                // Check for walls/obstacles
                 const tile = level.objectMap.getTile(targetGridPos.x, targetGridPos.y);
                 if (tile && tile.solid) {
-                    // Check Terrain Type
-                    const terrain = level.terrainData[targetGridPos.x][targetGridPos.y];
-                    if (terrain === TerrainType.DoorClosed) {
-                        // Open the door
-                        console.log("Opening Door!");
-                        level.terrainData[targetGridPos.x][targetGridPos.y] = TerrainType.DoorOpen;
-                        tile.solid = false;
-                        tile.clearGraphics();
-                        tile.addGraphic(level.theme.tiles[TerrainType.DoorOpen]);
-                        
-                        this.spend(1.0);
-                        TurnManager.instance.playerActionComplete();
-                        return;
-                    }
-                    
                     // Blocked
                     this.clearPath();
                     return; 
@@ -337,6 +470,105 @@ export class Hero extends Actor {
 
     public addToInventory(item: any): void {
         this.inventory.addItem(item);
+    }
+    
+    private handleInteraction(targetX: number, targetY: number): boolean {
+        if (!this.scene || !(this.scene as GameScene).level) {
+            return false;
+        }
+        
+        const level = (this.scene as GameScene).level!;
+        const interaction = Pathfinding.getInteractionAt(level, targetX, targetY);
+        
+        if (!interaction) {
+            return false;
+        }
+        
+        Logger.debug(`[Hero] handling interaction:`, interaction, "at", targetX, targetY);
+        
+        switch (interaction) {
+            case 'door_open':
+                return this.openDoor(targetX, targetY);
+            case 'door_locked':
+                Logger.debug(`[Hero] tried to open locked door`);
+                return true; // Consumed turn trying
+            case 'item_pickup':
+                return this.pickupItem(targetX, targetY);
+            case 'mob_attack':
+                return this.attackMob(targetX, targetY);
+            default:
+                return false;
+        }
+    }
+    
+    private openDoor(x: number, y: number): boolean {
+        if (!this.scene || !(this.scene as GameScene).level) {
+            return false;
+        }
+        
+        const level = (this.scene as GameScene).level!;
+        const terrain = level.getTile(x, y);
+        
+        if (terrain === TerrainType.DoorClosed) {
+            Logger.debug(`[Hero] opening door at`, x, y);
+            level.terrainData[x][y] = TerrainType.DoorOpen;
+            
+            const tile = level.objectMap.getTile(x, y);
+            if (tile) {
+                tile.solid = false;
+                tile.clearGraphics();
+                tile.addGraphic(level.theme.tiles[TerrainType.DoorOpen]);
+            }
+            
+            return true;
+        }
+        
+        return false;
+    }
+    
+    private pickupItem(x: number, y: number): boolean {
+        if (!this.scene || !(this.scene as GameScene).level) {
+            return false;
+        }
+        
+        const level = (this.scene as GameScene).level!;
+        const itemIndex = level.items.findIndex(item => 
+            (item as any).gridPos && (item as any).gridPos.x === x && (item as any).gridPos.y === y
+        );
+        
+        if (itemIndex >= 0) {
+            const item = level.items[itemIndex];
+            level.items.splice(itemIndex, 1);
+            
+            this.addToInventory(item);
+            
+            if (this.scene instanceof GameScene) {
+                this.scene.logItem(`Picked up ${item.name}`);
+            }
+            
+            Logger.debug(`[Hero] Picked up ${item.name} at`, x, y);
+            return true;
+        }
+        
+        return false;
+    }
+    
+    private attackMob(x: number, y: number): boolean {
+        if (!this.scene || !(this.scene as GameScene).level) {
+            return false;
+        }
+        
+        const level = (this.scene as GameScene).level!;
+        const target = level.mobs.find(mob => 
+            mob.gridPos.x === x && mob.gridPos.y === y && mob.hp > 0
+        );
+        
+        if (target) {
+            this.attack(target);
+            return true;
+        }
+        
+        return false;
     }
 
     public removeLastNegativeEffect(): void {

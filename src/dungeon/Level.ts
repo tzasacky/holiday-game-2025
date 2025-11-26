@@ -55,6 +55,7 @@ export class Level {
         // Initialize terrain data
         this.terrainData = new Array(width).fill(null).map(() => new Array(height).fill(TerrainType.Wall));
 
+
         scene.add(this.floorMap);
         scene.add(this.objectMap);
     }
@@ -85,14 +86,12 @@ export class Level {
                     const type = this.terrainData[x][y];
                     // Walls and Closed Doors are solid
                     // Chasms might be solid? For now, let's say yes.
-                    if (type === TerrainType.Wall || 
+                    const isSolid = (type === TerrainType.Wall || 
                         type === TerrainType.DoorClosed || 
                         type === TerrainType.DoorLocked ||
-                        type === TerrainType.Chasm) {
-                        objectTile.solid = true;
-                    } else {
-                        objectTile.solid = false;
-                    }
+                        type === TerrainType.Chasm);
+                    
+                    objectTile.solid = isSolid;
                 }
             }
         }

@@ -66,8 +66,18 @@ export class TurnManager {
             Logger.debug("[TurnManager] Actor", currentActor.name, "didAct:", didAct);
             
             if (!didAct) {
-                Logger.debug("[TurnManager] Actor waiting for input, stopping processing");
-                processing = false;
+                // Only stop processing if it's the PLAYER waiting for input
+                if (currentActor.isPlayer) {
+                    Logger.debug("[TurnManager] Player waiting for input, stopping processing");
+                    processing = false;
+                } else {
+                    // Non-player actors that can't act should skip their turn with a small time penalty
+                    Logger.debug("[TurnManager] Mob", currentActor.name, "can't act, skipping turn with time penalty");
+                    currentActor.spend(0.1); // Small time penalty to prevent infinite loops
+                    this.actors.pop();
+                    this.actors.push(currentActor);
+                    loops++;
+                }
             } else {
                 // Actor acted, they should have updated their time.
                 // We need to re-insert them into the priority queue to update their position
@@ -84,6 +94,10 @@ export class TurnManager {
     // Helper for Actor.ts to access time
     public static getTime(): number {
         return this.now;
+    }
+    
+    public getActorCount(): number {
+        return this.actors.length;
     }
     
     public get isPlayerTurnActive(): boolean {

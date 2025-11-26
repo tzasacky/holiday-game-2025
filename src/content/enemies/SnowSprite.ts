@@ -10,6 +10,7 @@ export class SnowSprite extends Mob {
             height: 32,
             color: ex.Color.Cyan // Placeholder
         });
+        this.name = 'Snow Sprite';
         this.state = AIState.Wander;
     }
 

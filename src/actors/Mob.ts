@@ -1,6 +1,8 @@
 import * as ex from 'excalibur';
 import { Actor } from './Actor';
 import { GameScene } from '../scenes/GameScene';
+import { Logger } from '../core/Logger';
+import { Pathfinding } from '../core/Pathfinding';
 
 export enum AIState {
     Idle = 'idle',
@@ -21,8 +23,15 @@ export class Mob extends Actor {
     }
 
     public async act(): Promise<boolean> {
-        if (!this.scene || !(this.scene as GameScene).level) return false;
-        if (this.moving) return false; // Skip turn if already moving
+        Logger.debug("[Mob] act() called for", this.name);
+        if (!this.scene || !(this.scene as GameScene).level) {
+            Logger.debug("[Mob] No scene or level, returning false");
+            return false;
+        }
+        if (this.moving) {
+            Logger.debug("[Mob] Currently moving, skipping turn");
+            return false; // Skip turn if already moving
+        }
         const level = (this.scene as GameScene).level!;
 
         const hero = level.actors.find((a: Actor) => a.isPlayer);

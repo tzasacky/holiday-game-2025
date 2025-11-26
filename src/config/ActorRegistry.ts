@@ -98,22 +98,47 @@ export class ActorRegistry {
             return;
         }
         console.log(`[ActorRegistry] Found config for ${actor.name}, setting up animations`);
+        console.log(`[ActorRegistry] Resource loaded:`, config.resource.isLoaded());
+        console.log(`[ActorRegistry] Resource data:`, config.resource.data ? 'has data' : 'no data');
+        console.log(`[ActorRegistry] Grid config:`, config.grid);
+        
+        try {
+            const spriteSheet = ex.SpriteSheet.fromImageSource({
+                image: config.resource,
+                grid: config.grid
+            });
+            console.log(`[ActorRegistry] SpriteSheet created successfully for ${actor.name}`);
+            console.log(`[ActorRegistry] SpriteSheet sprite count:`, spriteSheet.sprites.length);
+            
+            if (spriteSheet.sprites.length === 0) {
+                console.warn(`[ActorRegistry] SpriteSheet has no sprites for ${actor.name}!`);
+                this.addFallbackGraphics(actor);
+                return;
+            }
 
-        const spriteSheet = ex.SpriteSheet.fromImageSource({
-            image: config.resource,
-            grid: config.grid
-        });
+            config.animations.forEach((animConfig, index) => {
+                console.log(`[ActorRegistry] Creating animation ${index}: ${animConfig.name} with frames:`, animConfig.frames);
+                try {
+                    const animation = ex.Animation.fromSpriteSheet(
+                        spriteSheet,
+                        animConfig.frames,
+                        animConfig.duration
+                    );
+                    console.log(`[ActorRegistry] Animation ${animConfig.name} created successfully`);
+                    actor.graphics.add(animConfig.name, animation);
+                    console.log(`[ActorRegistry] Animation ${animConfig.name} added to actor`);
+                } catch (animError) {
+                    console.error(`[ActorRegistry] Failed to create animation ${animConfig.name}:`, animError);
+                }
+            });
 
-        config.animations.forEach(animConfig => {
-            const animation = ex.Animation.fromSpriteSheet(
-                spriteSheet,
-                animConfig.frames,
-                animConfig.duration
-            );
-            actor.graphics.add(animConfig.name, animation);
-        });
-
-        actor.graphics.use(config.defaultAnimation);
+            console.log(`[ActorRegistry] Setting default animation: ${config.defaultAnimation}`);
+            actor.graphics.use(config.defaultAnimation);
+            console.log(`[ActorRegistry] Actor ${actor.name} graphics setup complete`);
+        } catch (error) {
+            console.error(`[ActorRegistry] Failed to create sprite sheet for ${actor.name}:`, error);
+            this.addFallbackGraphics(actor);
+        }
     }
 
     private addFallbackGraphics(actor: ex.Actor) {

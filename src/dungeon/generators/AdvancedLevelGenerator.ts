@@ -68,7 +68,7 @@ export class AdvancedLevelGenerator implements LevelGenerator {
         }
 
         // 8. Place Interactables (Doors, etc.)
-        InteractableGenerator.generate(level, this.rooms, biome);
+        // InteractableGenerator.generate(level, this.rooms, biome); // DISABLED FOR DEBUGGING
 
         // 9. Spawn Points
         this.rooms.forEach(room => {
@@ -177,15 +177,15 @@ export class AdvancedLevelGenerator implements LevelGenerator {
                 }
             }
             
-            // 20% chance for a Snow Pile (Interactable)
-            if (context.random.bool(0.2)) {
-                const x = context.random.integer(room.x + 1, room.x + room.width - 2);
-                const y = context.random.integer(room.y + 1, room.y + room.height - 2);
-                if (level.terrainData[x][y] === TerrainType.Floor) {
-                    const pile = new SnowPile(ex.vec(x, y));
-                    level.addEntity(pile); 
-                }
-            }
+            // 20% chance for a Snow Pile (Interactable) - DISABLED FOR DEBUGGING
+            // if (context.random.bool(0.2)) {
+            //     const x = context.random.integer(room.x + 1, room.x + room.width - 2);
+            //     const y = context.random.integer(room.y + 1, room.y + room.height - 2);
+            //     if (level.terrainData[x][y] === TerrainType.Floor) {
+            //         const pile = new SnowPile(ex.vec(x, y));
+            //         level.addEntity(pile); 
+            //     }
+            // }
         });
     }
 }

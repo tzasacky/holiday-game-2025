@@ -8,16 +8,11 @@ import { SnowyVillageTheme } from './dungeon/themes/SnowyVillageTheme';
 import { SnowyVillage } from './dungeon/biomes/SnowyVillage';
 import { TurnManager } from './core/TurnManager';
 import { WarmthSystem } from './mechanics/WarmthSystem';
-import { CandyCaneSpear } from './content/items/weapons/CandyCaneSpear';
 import { UIManager } from './ui/UIManager';
 import { InputManager } from './core/InputManager';
 import { Spawner } from './dungeon/Spawner';
 import { GameScene } from './scenes/GameScene';
 import { Logger, LogLevel } from './core/Logger';
-
-import { WeakSword } from './content/items/weapons/WeakSword';
-import { HotCocoa } from './content/items/consumables/HotCocoa';
-import { ItemEntity } from './items/ItemEntity';
 
 // Configuration
 const urlParams = new URLSearchParams(window.location.search);
@@ -139,26 +134,19 @@ game.start(loader).then(() => {
 
 
     // Spawn Mobs
-    Spawner.spawnMobs(level);
+    const spawnConfig = {
+        floorNumber: 1,
+        spawnDensity: 'medium' as const,
+        roomType: 'normal' as const,
+        roomArea: level.width * level.height * 0.6
+    };
+    Spawner.spawnMobs(level, spawnConfig);
 
-    // Spawn Items (Keep inline for now or move to Spawner later)
-    
-    for (let i = 1; i < level.spawnPoints.length; i++) {
-        if (Math.random() < 0.3) { // 30% chance for item
-             const item = new CandyCaneSpear();
-             const entity = new ItemEntity(level.spawnPoints[i], item); // Use spawn point
-             // game.currentScene.add(entity); // Level.addEntity does this
-             level.addEntity(entity);
-        }
-    }
-
-    // Starting Equipment
-    const sword = new WeakSword();
-    hero.inventory.addItem(sword);
-    // sword.equip(hero); // Requires EnhancedEquipment wrapper
-
-    const cocoa = new HotCocoa();
-    hero.inventory.addItem(cocoa);
+    // Items are now spawned via:
+    // 1. Hero starting equipment (defined in ActorDefinitions)
+    // 2. Loot generation (handled by LootSystem via room templates)
+    // 3. World items (handled by RoomGenerationExecutor)
+    console.log('[main] Item spawning is now data-driven via room templates and actor definitions');
 
     // Input handling for TurnManager (if needed globally)
     // TurnManager is singleton, Hero calls it.

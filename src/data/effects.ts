@@ -1,7 +1,7 @@
-import { ItemID } from '../constants';
-import { AbilityID } from '../constants';
-import { ActorID } from '../constants';
-import { EffectID } from '../constants';
+import { ItemID } from '../constants/ItemIDs';
+import { AbilityID } from '../constants/AbilityIDs';
+import { ActorID } from '../constants/ActorIDs';
+import { EffectID } from '../constants/EffectIDs';
 export enum EffectType {
     INSTANT = 'instant',           // Happens once immediately
     OVER_TIME = 'over_time',      // Happens every tick
@@ -87,7 +87,7 @@ export interface EffectDefinition {
 // Data-driven effect definitions
 export const EffectDefinitions: Record<string, EffectDefinition> = {
     // Basic stat modifiers
-    EffectID.StrengthBoost: {
+    [EffectID.StrengthBoost]: {
         id: EffectID.StrengthBoost,
         name: 'Strength Boost',
         description: '+{value} Strength',
@@ -247,7 +247,7 @@ export const EffectDefinitions: Record<string, EffectDefinition> = {
     },
 
     // Holiday-themed effects
-    AbilityID.ChristmasSpirit: {
+    [AbilityID.ChristmasSpirit]: {
         id: AbilityID.ChristmasSpirit,
         name: 'Christmas Spirit',
         description: 'Feeling festive! All stats increased',
@@ -358,6 +358,7 @@ export const EffectDefinitions: Record<string, EffectDefinition> = {
                 target: 'self'
             }
         ],
+        modifiers: [],
         visuals: {
             particleEffect: 'blood_drain'
         },

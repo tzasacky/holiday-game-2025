@@ -1,6 +1,6 @@
 import * as ex from 'excalibur';
-import { Actor } from '../actors/Actor';
 import { GameEntity } from '../core/GameEntity';
+import { GameActor } from '../components/GameActor';
 
 export abstract class Trigger extends GameEntity {
     constructor(pos: ex.Vector, name: string) {
@@ -8,7 +8,7 @@ export abstract class Trigger extends GameEntity {
         this.name = name;
     }
 
-    abstract onEnter(actor: Actor): void;
-    abstract onStay(actor: Actor): void;
-    abstract onExit(actor: Actor): void;
+    abstract onEnter(actor: GameActor): void;
+    abstract onStay(actor: GameActor): void;
+    abstract onExit(actor: GameActor): void;
 }

@@ -38,12 +38,7 @@ export class StatsComponent extends ActorComponent {
             }
         });
         
-        // Listen for warmth changes from outside
-        this.listen(GameEventNames.WarmthChange, (event) => {
-            if (this.isForThisActor(event)) {
-                this.setStat('warmth', event.newValue);
-            }
-        });
+        // Warmth changes are handled via setStat directly or specific request events if needed
     }
     
     getStat(name: string): number {

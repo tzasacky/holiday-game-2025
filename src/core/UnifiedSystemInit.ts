@@ -5,6 +5,7 @@ import { EventBus } from './EventBus';
 import { ActorSpawnSystem } from '../components/ActorSpawnSystem';
 import { ComponentRegistry } from '../components/ComponentFactory';
 import { EffectExecutor } from '../systems/EffectExecutor';
+import { SpawnTableExecutor } from '../systems/SpawnTableExecutor';
 // import { AbilityExecutor } from '../systems/AbilityExecutor'; // DEFERRED: Abilities are vaporware
 
 export class UnifiedSystemInit {
@@ -33,7 +34,12 @@ export class UnifiedSystemInit {
         const effectExecutor = EffectExecutor.instance;
         console.log('[UnifiedSystemInit] EffectExecutor ready');
         
-        // 4. AbilityExecutor - DEFERRED (abilities are vaporware, sprites too costly)
+        // 4. Initialize SpawnTableExecutor (Phase 3)
+        console.log('[UnifiedSystemInit] Initializing SpawnTableExecutor...');
+        const spawnTableExecutor = SpawnTableExecutor.instance;
+        console.log('[UnifiedSystemInit] SpawnTableExecutor ready');
+        
+        // 5. AbilityExecutor - DEFERRED (abilities are vaporware, sprites too costly)
         // console.log('[UnifiedSystemInit] Initializing AbilityExecutor...');
         // const abilityExecutor = AbilityExecutor.instance;
         // console.log('[UnifiedSystemInit] AbilityExecutor ready');

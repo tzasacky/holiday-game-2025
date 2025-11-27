@@ -133,6 +133,14 @@ export class DataManager {
       this.registerRegistry('status_mechanics', StatusMechanics);
       this.registerRegistry('mechanics_helpers', MechanicsHelpers);
       
+      // Spawn tables - UNIFIED (Phase 3)
+      const { SpawnTableDefinitions } = require('../data/spawnTables');
+      this.registerRegistry('spawnTable', SpawnTableDefinitions);
+      
+      // Room templates - UNIFIED (Phase 3)
+      const { RoomTemplateDefinitions } = require('../data/roomTemplates');
+      this.registerRegistry('roomTemplate', RoomTemplateDefinitions);
+      
       console.log('[DataManager] Registered unified data systems:', Array.from(this.registries.keys()));
     } catch (error) {
       console.warn('[DataManager] Error registering unified systems:', error);

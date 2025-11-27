@@ -1,7 +1,7 @@
 import * as ex from 'excalibur';
 import { GameActor } from '../components/GameActor';
 import { Item } from '../items/Item';
-import { DamageType } from '../mechanics/DamageType';
+import { DamageType } from '../core/DamageType';
 import { AbilityID } from '../constants';
 
 // Event Names Constants

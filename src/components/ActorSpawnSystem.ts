@@ -66,6 +66,11 @@ export class ActorSpawnSystem {
             }
         });
         
+        // Handle starting items if defined
+        if (def.inventory?.startingItems) {
+            this.giveStartingItems(actor, def.inventory.startingItems);
+        }
+
         // Emit spawn event
         EventBus.instance.emit('actor:spawned' as any, {
             actor: actor,
@@ -93,5 +98,15 @@ export class ActorSpawnSystem {
     
     public spawnKrampus(gridPos: ex.Vector): GameActor {
         return this.spawnActor('Krampus', gridPos);
+    }
+
+    private giveStartingItems(actor: GameActor, itemIds: string[]): void {
+        console.log(`[ActorSpawnSystem] Giving starting items to ${actor.name}:`, itemIds);
+        
+        // Emit event for inventory system to handle
+        EventBus.instance.emit('inventory:add_starting_items' as any, {
+            actorId: actor.entityId,
+            itemIds: itemIds
+        });
     }
 }

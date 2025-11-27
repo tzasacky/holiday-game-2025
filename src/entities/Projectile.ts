@@ -1,15 +1,15 @@
 import * as ex from 'excalibur';
-import { Actor } from '../actors/Actor';
+import { GameActor } from '../components/GameActor';
 import { GameEntity } from '../core/GameEntity';
-import { DamageType } from './DamageType';
+import { DamageType } from '../core/DamageType';
 
 export class Projectile extends GameEntity {
     public speed: number = 300;
     public damage: number = 1;
     public damageType: DamageType = DamageType.Physical;
-    public owner: Actor | null = null;
+    public owner: GameActor | null = null;
 
-    constructor(pos: ex.Vector, target: ex.Vector, sprite: ex.Graphic, owner?: Actor) {
+    constructor(pos: ex.Vector, target: ex.Vector, sprite: ex.Graphic, owner?: GameActor) {
         super(pos);
         this.graphics.use(sprite);
         this.owner = owner || null;
@@ -31,14 +31,18 @@ export class Projectile extends GameEntity {
 
     onCollision(evt: ex.CollisionStartEvent) {
         const other = evt.other;
-        const otherActor = other.owner as Actor; // Assuming Collider's owner is the Actor
+        const otherActor = other.owner as GameActor; // Assuming Collider's owner is the Actor
         
         // Ignore owner
         if (otherActor === this.owner) return;
 
         // Hit Actor
-        if (otherActor instanceof Actor) {
-            otherActor.takeDamage(this.damage, this.damageType);
+        if (otherActor instanceof GameActor) {
+            // Use combat component if available, or direct damage event
+            const combat = otherActor.getGameComponent('combat') as any;
+            if (combat) {
+                combat.takeDamage(this.damage, this.damageType);
+            }
             this.kill();
             return;
         }

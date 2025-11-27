@@ -1,6 +1,6 @@
 import * as ex from 'excalibur';
-import { EffectID } from '../constants';
-import { InteractableID } from '../constants';
+import { EffectID } from '../constants/EffectIDs';
+import { InteractableID } from '../constants/InteractableIDs';
 
 export enum TerrainType {
     Wall = 'wall',

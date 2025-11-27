@@ -2,8 +2,8 @@ import * as ex from 'excalibur';
 import { Resources } from '../config/resources';
 import { EnchantmentType, CurseType } from './enchantments';
 import { ItemID } from '../constants/ItemIDs';
-import { AbilityID } from '../constants';
-import { EffectID } from '../constants';
+import { AbilityID } from '../constants/AbilityIDs';
+import { EffectID } from '../constants/EffectIDs';
 
 export enum ItemType {
     WEAPON = 'weapon',

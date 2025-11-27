@@ -1,12 +1,12 @@
 import * as ex from 'excalibur';
 import { GameActor } from '../components/GameActor';
-import { Item } from '../items/Item';
+import { WorldItemEntity } from '../items/WorldItemEntity';
 import { Room } from './Room';
 import { FloorTheme } from './FloorTheme';
 import { TerrainType } from './Terrain';
 import { TurnManager } from '../core/TurnManager';
 import { Trap } from './Trap';
-import { Trigger } from '../mechanics/Trigger';
+import { Trigger } from '../core/Trigger';
 import { Logger } from '../core/Logger';
 
 export class Level {
@@ -20,7 +20,7 @@ export class Level {
     public mobs: GameActor[] = [];
     public actors: GameActor[] = [];
     public triggers: (Trap | Trigger)[] = [];
-    public items: Item[] = [];
+    public items: WorldItemEntity[] = [];
     public rooms: Room[] = [];
     public spawnPoints: ex.Vector[] = [];
     public exitPoint: ex.Vector | null = null;
@@ -105,8 +105,10 @@ export class Level {
         console.log(`[Level] Added mob ${mob.name || 'unnamed'} to level mobs and actors lists`);
     }
 
-    public addItem(item: Item) {
+    public addItem(item: WorldItemEntity) {
         this.items.push(item);
+        this.scene.add(item);
+        Logger.info(`[Level] Added item ${item.name || 'unnamed'} to level`);
     }
 
     public addActor(actor: GameActor) {

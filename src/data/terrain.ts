@@ -12,9 +12,6 @@ export interface TerrainData {
 export const TerrainDefinitions: Record<TerrainType, TerrainData> = {
     [TerrainType.Wall]: { type: TerrainType.Wall, isSolid: true, isTransparent: false, cost: 0 },
     [TerrainType.Floor]: { type: TerrainType.Floor, isSolid: false, isTransparent: true, cost: 1 },
-    [TerrainType.DoorOpen]: { type: TerrainType.DoorOpen, isSolid: false, isTransparent: true, cost: 1 },
-    [TerrainType.DoorClosed]: { type: TerrainType.DoorClosed, isSolid: true, isTransparent: false, cost: 0 }, // Interact to open
-    [TerrainType.DoorLocked]: { type: TerrainType.DoorLocked, isSolid: true, isTransparent: false, cost: 0 }, // Needs key
     [TerrainType.Water]: { type: TerrainType.Water, isSolid: false, isTransparent: true, cost: 2 }, // Wading? Or solid for now? Let's say walkable but slow/wet
     [TerrainType.Chasm]: { type: TerrainType.Chasm, isSolid: true, isTransparent: true, cost: 0 },
     

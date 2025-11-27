@@ -7,6 +7,8 @@ import { LootTable, LootTableEntry, RarityWeights, FloorScaling } from '../data/
 import { InteractableID } from '../constants/InteractableIDs';
 import { LootTableID } from '../constants/LootTableIDs';
 import { ActorID } from '../constants/ActorIDs';
+import { ActorDefinition } from '../data/actors';
+import { InteractableDefinition } from '../data/interactables';
 
 export interface GeneratedLoot {
     itemId: string;
@@ -82,25 +84,14 @@ export class LootSystem {
     }
 
     public generateLootFromEnemy(enemyType: string, floor: number): GeneratedLoot[] {
-        // Map enemy types to loot tables
-        const enemyLootMapping: Record<string, string> = {
-            [ActorID.Snowman]: LootTableID.SnowmanLoot,
-            [ActorID.SnowSprite]: LootTableID.SnowSpriteLoot, 
-            [ActorID.Krampus]: LootTableID.KrampusLoot
-        };
-
-        const tableId = enemyLootMapping[enemyType] || LootTableID.FloorGeneral;
+        const actorDef = this.dataManager.query<ActorDefinition>('actor', enemyType);
+        const tableId = actorDef?.lootTableId || LootTableID.FloorGeneral;
         return this.generateLoot(tableId, floor);
     }
 
     public generateContainerLoot(containerType: string): GeneratedLoot[] {
-        // Map container types to loot tables
-        const containerLootMapping: Record<string, string> = {
-            [InteractableID.PresentChest]: InteractableID.PresentChest,
-            [InteractableID.Stocking]: InteractableID.Stocking
-        };
-
-        const tableId = containerLootMapping[containerType] || LootTableID.FloorGeneral;
+        const interactableDef = this.dataManager.query<InteractableDefinition>('interactable', containerType);
+        const tableId = interactableDef?.lootTableId || LootTableID.FloorGeneral;
         return this.generateLoot(tableId, 1);
     }
 
@@ -350,14 +341,9 @@ export class LootSystem {
 
     // Public utility methods
     public static getLootDropChance(enemyType: string, floor: number): number {
-        const baseChances: Record<string, number> = {
-            [ActorID.Snowman]: 0.15,
-            [ActorID.SnowSprite]: 0.12, 
-            [ActorID.Krampus]: 0.85,
-            'default': 0.1
-        };
+        const actorDef = DataManager.instance.query<ActorDefinition>('actor', enemyType);
+        const baseChance = actorDef?.dropChance || 0.1;
 
-        const baseChance = baseChances[enemyType] || baseChances['default'];
         const difficulty = DataManager.instance.query<any>('difficulty', 'lootScarcity') || 1;
         const floorBonus = floor * 0.01; // +1% per floor
 

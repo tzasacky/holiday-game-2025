@@ -71,10 +71,10 @@ export class GameActor extends GameEntity {
     }
     
     set warmth(value: number) {
-        EventBus.instance.emit(GameEventNames.WarmthChange as any, {
-            actorId: this.entityId,
-            newValue: value
-        });
+        const statsComponent = this.getGameComponent('stats') as any;
+        if (statsComponent) {
+            statsComponent.setStat('warmth', value);
+        }
     }
     
     // Equipment helpers

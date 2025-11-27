@@ -1,4 +1,4 @@
-import { ItemID } from '../content/items/ItemIDs';
+import { ItemID } from '../constants/ItemIDs';
 
 export abstract class Item {
     public stackable: boolean = false;

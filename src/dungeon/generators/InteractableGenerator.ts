@@ -2,192 +2,291 @@ import * as ex from 'excalibur';
 import { Level } from '../Level';
 import { Room } from '../Room';
 import { Biome } from '../Biome';
-import { Door } from '../interactables/Door';
 import { TerrainType } from '../Terrain';
+import { DataManager } from '../../core/DataManager';
+import { InteractableDefinition } from '../../data/interactables';
+import { Logger } from '../../core/Logger';
+import { EventBus } from '../../core/EventBus';
 
-import { PresentChest } from '../interactables/PresentChest';
-import { Stocking } from '../interactables/Stocking';
-import { ChristmasTree } from '../interactables/ChristmasTree';
-import { SecretDoor } from '../interactables/SecretDoor';
-import { DestructibleWall } from '../interactables/DestructibleWall';
-import { Bookshelf } from '../interactables/Bookshelf';
-import { AlchemyPot } from '../interactables/AlchemyPot';
-import { Anvil } from '../interactables/Anvil';
-import { SleighStation } from '../interactables/SleighStation';
-import { ItemID } from '../../constants';
-
+/**
+ * Data-driven InteractableGenerator
+ * Uses InteractableDefinitions instead of hardcoded classes
+ */
 export class InteractableGenerator {
+    private static logger = Logger.getInstance();
     
     static generate(level: Level, rooms: Room[], biome: Biome) {
+        this.logger.info('[InteractableGenerator] Generating interactables using data-driven approach');
+        
         this.placeDoors(level, rooms);
-        this.placeLoot(level, rooms);
-        this.placeDecor(level, rooms);
-        this.placeUtility(level, rooms);
+        this.placeLootContainers(level, rooms);
+        this.placeDecorations(level, rooms);
+        this.placeUtilities(level, rooms);
+        
+        this.logger.info('[InteractableGenerator] Interactable generation complete');
     }
 
-    private static placeLoot(level: Level, rooms: Room[]) {
-        const rng = new ex.Random();
+    private static placeDoors(level: Level, rooms: Room[]) {
+        // Doors are structural and still use the Door class for now
+        // This could be migrated to a DoorComponent system later
+        
         rooms.forEach(room => {
-            // Chests (10% chance per room)
-            if (rng.bool(0.1)) {
+            // Place doors at room entrances/exits
+            const entrances = this.findRoomEntrances(level, room);
+            
+            entrances.forEach(pos => {
+                this.createInteractable('door', pos, level, {
+                    isLocked: Math.random() < 0.1, // 10% chance locked
+                    keyRequired: Math.random() < 0.1 ? 'silver_key' : null
+                });
+            });
+        });
+    }
+
+    private static placeLootContainers(level: Level, rooms: Room[]) {
+        const rng = new ex.Random();
+        
+        rooms.forEach(room => {
+            const roomArea = room.width * room.height;
+            
+            // Chests based on room size
+            const chestChance = Math.min(0.3, roomArea / 100); // Larger rooms = more chests
+            if (rng.bool(chestChance)) {
                 const pos = this.getRandomFloorPosition(level, room, rng);
                 if (pos) {
-                    const isLocked = rng.bool(0.3);
-                    const isMimic = rng.bool(0.1);
-                    const keyId = isLocked ? ItemID.SilverKey : null; // Simplified key logic
-                    level.addEntity(new PresentChest(pos, isLocked, keyId, isMimic));
+                    const chestType = this.selectChestType(rng);
+                    this.createInteractable(chestType, pos, level, {
+                        isLocked: rng.bool(0.3),
+                        isMimic: rng.bool(0.05),
+                        lootTable: this.getLootTableForRoom(room)
+                    });
                 }
             }
 
-            // Stockings (Wall mounted, 20% chance)
-            if (rng.bool(0.2)) {
-                // Needs to be next to a wall
+            // Stockings (wall mounted)
+            if (rng.bool(0.15)) {
                 const pos = this.getRandomWallAdjacentPosition(level, room, rng);
                 if (pos) {
-                    level.addEntity(new Stocking(pos));
+                    this.createInteractable('stocking', pos, level, {
+                        lootTable: 'small_treasures'
+                    });
                 }
             }
         });
     }
 
-    private static placeDecor(level: Level, rooms: Room[]) {
+    private static placeDecorations(level: Level, rooms: Room[]) {
         const rng = new ex.Random();
+        
         rooms.forEach(room => {
-            // Christmas Trees (5% chance)
-            if (rng.bool(0.05)) {
+            // Christmas Trees
+            if (rng.bool(0.08)) {
                 const pos = this.getRandomFloorPosition(level, room, rng);
                 if (pos) {
-                    level.addEntity(new ChristmasTree(pos));
+                    this.createInteractable('christmas_tree', pos, level);
                 }
             }
 
-            // Bookshelves (10% chance)
-            if (rng.bool(0.1)) {
+            // Bookshelves  
+            if (rng.bool(0.12)) {
                 const pos = this.getRandomWallAdjacentPosition(level, room, rng);
                 if (pos) {
-                    level.addEntity(new Bookshelf(pos));
+                    this.createInteractable('bookshelf', pos, level);
+                }
+            }
+
+            // Wreaths (holiday decoration)
+            if (rng.bool(0.06)) {
+                const pos = this.getRandomWallAdjacentPosition(level, room, rng);
+                if (pos) {
+                    this.createInteractable('wreath', pos, level);
                 }
             }
         });
     }
 
-    private static placeUtility(level: Level, rooms: Room[]) {
+    private static placeUtilities(level: Level, rooms: Room[]) {
         const rng = new ex.Random();
-        // Place 1 Alchemy Pot and 1 Anvil per level guaranteed (if enough rooms)
-        if (rooms.length > 2) {
-            const r1 = rooms[rng.integer(0, rooms.length - 1)];
-            const p1 = this.getRandomFloorPosition(level, r1, rng);
-            if (p1) level.addEntity(new AlchemyPot(p1));
+        
+        rooms.forEach(room => {
+            const roomArea = room.width * room.height;
+            
+            // Larger rooms get more utility items
+            if (roomArea > 50) {
+                // Anvils for crafting
+                if (rng.bool(0.15)) {
+                    const pos = this.getRandomFloorPosition(level, room, rng);
+                    if (pos) {
+                        this.createInteractable('anvil', pos, level);
+                    }
+                }
 
-            const r2 = rooms[rng.integer(0, rooms.length - 1)];
-            const p2 = this.getRandomFloorPosition(level, r2, rng);
-            if (p2) level.addEntity(new Anvil(p2));
+                // Alchemy Stations
+                if (rng.bool(0.1)) {
+                    const pos = this.getRandomFloorPosition(level, room, rng);
+                    if (pos) {
+                        this.createInteractable('alchemy_pot', pos, level);
+                    }
+                }
+
+                // Sleigh Stations (holiday specific)
+                if (rng.bool(0.05)) {
+                    const pos = this.getRandomFloorPosition(level, room, rng);
+                    if (pos) {
+                        this.createInteractable('sleigh_station', pos, level);
+                    }
+                }
+            }
+
+            // Fireplaces for warmth (smaller rooms can have these)
+            if (rng.bool(0.08)) {
+                const pos = this.getRandomWallAdjacentPosition(level, room, rng);
+                if (pos) {
+                    this.createInteractable('fireplace', pos, level, {
+                        warmthRadius: 3,
+                        warmthValue: 10
+                    });
+                }
+            }
+        });
+    }
+
+    /**
+     * Create an interactable using data definitions and event system
+     */
+    private static createInteractable(
+        interactableId: string, 
+        position: ex.Vector, 
+        level: Level, 
+        config: any = {}
+    ): boolean {
+        const definition = DataManager.instance.query<InteractableDefinition>('interactable', interactableId);
+        
+        if (!definition) {
+            this.logger.warn(`[InteractableGenerator] Unknown interactable definition: ${interactableId}`);
+            return false;
         }
 
-        // Sleigh Station (Fast Travel) - 1 per level
-        const r3 = rooms[rng.integer(0, rooms.length - 1)];
-        const p3 = this.getRandomFloorPosition(level, r3, rng);
-        if (p3) level.addEntity(new SleighStation(p3));
+        // Emit event to create interactable
+        // This will be handled by an InteractableFactory or similar system
+        EventBus.instance.emit('interactable:create' as any, {
+            definitionId: interactableId,
+            definition: definition,
+            position: position,
+            config: config,
+            level: level
+        });
+
+        this.logger.debug(`[InteractableGenerator] Created ${interactableId} at ${position.x}, ${position.y}`);
+        return true;
+    }
+
+    // Helper methods for room analysis and positioning
+
+    private static findRoomEntrances(level: Level, room: Room): ex.Vector[] {
+        const entrances: ex.Vector[] = [];
+        
+        // Check room perimeter for openings (non-wall tiles)
+        for (let x = room.x; x < room.x + room.width; x++) {
+            // Top wall
+            if (this.isFloorTile(level, x, room.y)) {
+                entrances.push(ex.vec(x, room.y));
+            }
+            // Bottom wall  
+            if (this.isFloorTile(level, x, room.y + room.height - 1)) {
+                entrances.push(ex.vec(x, room.y + room.height - 1));
+            }
+        }
+        
+        for (let y = room.y; y < room.y + room.height; y++) {
+            // Left wall
+            if (this.isFloorTile(level, room.x, y)) {
+                entrances.push(ex.vec(room.x, y));
+            }
+            // Right wall
+            if (this.isFloorTile(level, room.x + room.width - 1, y)) {
+                entrances.push(ex.vec(room.x + room.width - 1, y));
+            }
+        }
+        
+        return entrances;
     }
 
     private static getRandomFloorPosition(level: Level, room: Room, rng: ex.Random): ex.Vector | null {
-        // Try 10 times to find a spot
-        for (let i = 0; i < 10; i++) {
-            const x = rng.integer(room.x + 1, room.x + room.width - 2);
-            const y = rng.integer(room.y + 1, room.y + room.height - 2);
-            if (level.terrainData[x][y] === TerrainType.Floor) {
-                // Check if occupied by another entity
-                if (level.getEntitiesAt(x, y).length === 0) {
-                    return ex.vec(x, y);
-                }
+        const attempts = 20;
+        
+        for (let i = 0; i < attempts; i++) {
+            const x = room.x + 1 + rng.integer(0, room.width - 2);
+            const y = room.y + 1 + rng.integer(0, room.height - 2);
+            
+            if (this.isValidInteractablePosition(level, x, y)) {
+                return ex.vec(x, y);
             }
         }
+        
         return null;
     }
 
     private static getRandomWallAdjacentPosition(level: Level, room: Room, rng: ex.Random): ex.Vector | null {
-        // Try 10 times
-        for (let i = 0; i < 10; i++) {
-            const x = rng.integer(room.x + 1, room.x + room.width - 2);
-            const y = rng.integer(room.y + 1, room.y + room.height - 2);
+        const attempts = 20;
+        
+        for (let i = 0; i < attempts; i++) {
+            const x = room.x + 1 + rng.integer(0, room.width - 2);
+            const y = room.y + 1 + rng.integer(0, room.height - 2);
             
-            if (level.terrainData[x][y] === TerrainType.Floor && level.getEntitiesAt(x, y).length === 0) {
-                // Check neighbors for wall
-                const hasWall = 
-                    level.terrainData[x][y-1] === TerrainType.Wall ||
-                    level.terrainData[x][y+1] === TerrainType.Wall ||
-                    level.terrainData[x-1][y] === TerrainType.Wall ||
-                    level.terrainData[x+1][y] === TerrainType.Wall;
-                
-                if (hasWall) return ex.vec(x, y);
+            if (this.isValidInteractablePosition(level, x, y) && this.isAdjacentToWall(level, x, y)) {
+                return ex.vec(x, y);
             }
         }
+        
         return null;
     }
 
-    private static placeDoors(level: Level, rooms: Room[]) {
-        rooms.forEach(room => {
-            // Check boundaries for corridors
-            for (let x = room.x; x < room.x + room.width; x++) {
-                this.tryPlaceDoor(level, x, room.y - 1); // Top
-                this.tryPlaceDoor(level, x, room.y + room.height); // Bottom
+    private static isValidInteractablePosition(level: Level, x: number, y: number): boolean {
+        if (x < 0 || x >= level.width || y < 0 || y >= level.height) {
+            return false;
+        }
+        
+        return this.isFloorTile(level, x, y);
+    }
+
+    private static isFloorTile(level: Level, x: number, y: number): boolean {
+        const terrain = level.terrainData[y]?.[x];
+        return terrain && terrain.name !== 'Wall';
+    }
+
+    private static isAdjacentToWall(level: Level, x: number, y: number): boolean {
+        const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+        
+        return directions.some(([dx, dy]) => {
+            const checkX = x + dx;
+            const checkY = y + dy;
+            
+            if (checkX < 0 || checkX >= level.width || checkY < 0 || checkY >= level.height) {
+                return true; // Edge counts as wall
             }
-            for (let y = room.y; y < room.y + room.height; y++) {
-                this.tryPlaceDoor(level, room.x - 1, y); // Left
-                this.tryPlaceDoor(level, room.x + room.width, y); // Right
-            }
+            
+            const terrain = level.terrainData[checkY]?.[checkX];
+            return terrain && terrain.name === 'Wall';
         });
     }
 
-    private static tryPlaceDoor(level: Level, x: number, y: number) {
-        if (x < 0 || x >= level.width || y < 0 || y >= level.height) return;
+    // Game logic helpers
+
+    private static selectChestType(rng: ex.Random): string {
+        const roll = rng.float();
         
-        // Must be a Floor tile (corridor/entrance)
-        if (level.terrainData[x][y] !== TerrainType.Floor) return;
-
-        // Check neighbors to determine orientation and validity
-        const above = level.terrainData[x][y-1] === TerrainType.Wall;
-        const below = level.terrainData[x][y+1] === TerrainType.Wall;
-        const left = level.terrainData[x-1][y] === TerrainType.Wall;
-        const right = level.terrainData[x+1][y] === TerrainType.Wall;
-
-        // Valid door spots:
-        // 1. Horizontal Corridor: Walls above and below, Floor left and right
-        // 2. Vertical Corridor: Walls left and right, Floor above and below
-        
-        const isHorizontal = above && below && !left && !right;
-        const isVertical = left && right && !above && !below;
-
-        if (isHorizontal || isVertical) {
-            // Check for adjacent doors (Rule: No 2 doors adjacent)
-            if (this.hasAdjacentDoor(level, x, y)) return;
-
-            // Place Door Entity
-            const door = new Door(ex.vec(x, y));
-            level.addEntity(door);
-            
-            // Note: We do NOT change TerrainType to DoorClosed anymore.
-            // It remains Floor so pathfinding works (Door entity handles blocking).
-        }
+        if (roll < 0.6) return 'present_chest';      // 60% - common
+        if (roll < 0.85) return 'treasure_chest';    // 25% - uncommon  
+        if (roll < 0.95) return 'golden_chest';      // 10% - rare
+        return 'crystal_chest';                      // 5% - epic
     }
 
-    private static hasAdjacentDoor(level: Level, x: number, y: number): boolean {
-        // Check 4 cardinal directions for existing Door entities
-        // Since entities are in a list, this might be slow if we scan all entities.
-        // Optimization: Check the grid for entities if Level supports it, or just scan nearby.
-        // For now, let's look at the entities list filtered by position.
+    private static getLootTableForRoom(room: Room): string {
+        const area = room.width * room.height;
         
-        const neighbors = [
-            {x: x+1, y: y}, {x: x-1, y: y},
-            {x: x, y: y+1}, {x: x, y: y-1}
-        ];
-
-        for (const n of neighbors) {
-            const entities = level.getEntitiesAt(n.x, n.y);
-            if (entities.some((e: any) => e instanceof Door)) {
-                return true;
-            }
-        }
-        return false;
+        if (area > 100) return 'large_room_loot';
+        if (area > 50) return 'medium_room_loot';
+        return 'small_room_loot';
     }
 }

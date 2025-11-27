@@ -1,7 +1,16 @@
 import * as ex from 'excalibur';
 
 export class ParticleSystem {
-    static createExplosion(scene: ex.Scene, pos: ex.Vector, color: ex.Color = ex.Color.Orange) {
+    private static _instance: ParticleSystem;
+    
+    public static get instance(): ParticleSystem {
+        if (!this._instance) {
+            this._instance = new ParticleSystem();
+        }
+        return this._instance;
+    }
+
+    public createExplosion(scene: ex.Scene, pos: ex.Vector, color: ex.Color = ex.Color.Orange) {
         const emitter = new ex.ParticleEmitter({
             pos: pos,
             width: 5,

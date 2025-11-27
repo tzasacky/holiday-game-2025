@@ -8,7 +8,7 @@ import { TerrainType } from '../Terrain';
 import { FeatureGenerator } from './FeatureGenerator';
 import { GenerationContext, TileReservation } from './GenerationContext';
 import { BSPGenerator, BSPNode } from './BSPGenerator';
-import { Gold } from '../../content/items/misc/Gold';
+// Gold and items now handled via ItemFactory and data definitions
 import { SnowPile } from '../interactables/SnowPile';
 import { ItemEntity } from '../../items/ItemEntity';
 import { InteractableGenerator } from './InteractableGenerator';
@@ -161,21 +161,14 @@ export class AdvancedLevelGenerator implements LevelGenerator {
 
 
     private spawnItems(level: Level, context: GenerationContext) {
-        this.rooms.forEach(room => {
-            // 50% chance for Gold Pile
-            if (context.random.bool(0.5)) {
-                const amount = context.random.integer(5, 20);
-                const gold = new Gold(amount);
-                // Pick random spot in room
-                const x = context.random.integer(room.x + 1, room.x + room.width - 2);
-                const y = context.random.integer(room.y + 1, room.y + room.height - 2);
-                
-                // Ensure spot is free (not wall/door/feature)
-                if (level.terrainData[x][y] === TerrainType.Floor) {
-                     const itemEntity = new ItemEntity(ex.vec(x, y), gold);
-                     level.addEntity(itemEntity);
-                }
-            }
+        // Legacy method - items are now spawned via:
+        // 1. InteractableGenerator (chests, containers)  
+        // 2. RoomGenerationExecutor (room-specific loot)
+        // 3. LootSystem (data-driven loot tables)
+        
+        console.log('[AdvancedLevelGenerator] Item spawning moved to data-driven systems');
+        
+        // TODO: Remove this method entirely once new system is fully integrated
             
             // 20% chance for a Snow Pile (Interactable) - DISABLED FOR DEBUGGING
             // if (context.random.bool(0.2)) {

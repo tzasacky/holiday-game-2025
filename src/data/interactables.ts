@@ -1,9 +1,10 @@
 import * as ex from 'excalibur';
 import { Resources } from '../config/resources';
-import { ItemID } from '../constants';
-import { AbilityID } from '../constants';
-import { EffectID } from '../constants';
-import { InteractableID } from '../constants';
+import { ItemID } from '../constants/ItemIDs';
+import { AbilityID } from '../constants/AbilityIDs';
+import { EffectID } from '../constants/EffectIDs';
+import { InteractableID } from '../constants/InteractableIDs';
+import { LootTableID } from '../constants/LootTableIDs';
 
 export enum InteractableType {
     CONTAINER = 'container',
@@ -55,6 +56,7 @@ export interface InteractableDefinition {
     // Loot for containers
     loot?: InteractableLoot[];
     guaranteedLoot?: string[];
+    lootTableId?: string;
     
     // Physical properties
     blocking?: boolean;
@@ -70,12 +72,12 @@ export interface InteractableDefinition {
 
 // Data-first interactable definitions
 export const InteractableDefinitions: Record<string, InteractableDefinition> = {
-    InteractableID.Door: {
+    [InteractableID.Door]: {
         id: InteractableID.Door,
         name: 'Door',
         type: InteractableType.DOOR,
         graphics: { 
-            resource: Resources.TilesPng, // Assuming doors are in the tileset
+            resource: Resources.CommonDecorPng,
             fallbackColor: ex.Color.fromHex('#8B4513')
         },
         description: 'A wooden door that can be opened or closed',
@@ -86,12 +88,12 @@ export const InteractableDefinitions: Record<string, InteractableDefinition> = {
         tags: [InteractableID.Door, 'passage']
     },
 
-    InteractableID.LockedDoor: {
+    [InteractableID.LockedDoor]: {
         id: InteractableID.LockedDoor, 
         name: 'Locked Door',
         type: InteractableType.DOOR,
         graphics: {
-            resource: Resources.TilesPng,
+            resource: Resources.CommonDecorPng,
             fallbackColor: ex.Color.fromHex('#654321')
         },
         description: 'A sturdy door secured with a lock',
@@ -103,12 +105,12 @@ export const InteractableDefinitions: Record<string, InteractableDefinition> = {
         tags: [InteractableID.Door, 'locked', 'requires_key']
     },
 
-    InteractableID.PresentChest: {
+    [InteractableID.PresentChest]: {
         id: InteractableID.PresentChest,
         name: 'Present Chest',
         type: InteractableType.CONTAINER,
         graphics: {
-            resource: Resources.TilesPng,
+            resource: Resources.CommonDecorPng,
             fallbackColor: ex.Color.fromHex('#FF0000')
         },
         description: 'A festive chest wrapped like a present. Who knows what treasures await inside?',
@@ -125,12 +127,12 @@ export const InteractableDefinitions: Record<string, InteractableDefinition> = {
         tags: ['container', 'loot', 'festive', 'present']
     },
 
-    InteractableID.Stocking: {
+    [InteractableID.Stocking]: {
         id: InteractableID.Stocking,
         name: 'Christmas Stocking',
         type: InteractableType.CONTAINER,
         graphics: {
-            resource: Resources.TilesPng,
+            resource: Resources.CommonDecorPng,
             fallbackColor: ex.Color.fromHex('#FF6666')
         },
         description: 'A Christmas stocking hanging by the fireplace',
@@ -144,12 +146,12 @@ export const InteractableDefinitions: Record<string, InteractableDefinition> = {
         tags: ['container', 'festive', InteractableID.Stocking]
     },
 
-    InteractableID.ChristmasTree: {
+    [InteractableID.ChristmasTree]: {
         id: InteractableID.ChristmasTree,
         name: 'Christmas Tree',
         type: InteractableType.DECORATIVE,
         graphics: {
-            resource: Resources.TilesPng,
+            resource: Resources.CommonDecorPng,
             fallbackColor: ex.Color.fromHex('#00AA00')
         },
         description: 'A beautifully decorated Christmas tree emanating warmth and joy',
@@ -163,12 +165,12 @@ export const InteractableDefinitions: Record<string, InteractableDefinition> = {
         tags: ['decorative', 'warmth', 'festive', 'blessing']
     },
 
-    InteractableID.Fireplace: {
+    [InteractableID.Fireplace]: {
         id: InteractableID.Fireplace,
         name: 'Fireplace',
         type: InteractableType.FUNCTIONAL,
         graphics: {
-            resource: Resources.TilesPng,
+            resource: Resources.CommonDecorPng,
             fallbackColor: ex.Color.fromHex('#FF4500')
         },
         description: 'A roaring fireplace that provides warmth and light',
@@ -181,12 +183,12 @@ export const InteractableDefinitions: Record<string, InteractableDefinition> = {
         tags: ['warmth', 'light', EffectID.Fire, 'functional']
     },
 
-    InteractableID.Bookshelf: {
+    [InteractableID.Bookshelf]: {
         id: InteractableID.Bookshelf,
         name: 'Bookshelf',
         type: InteractableType.FUNCTIONAL,
         graphics: {
-            resource: Resources.TilesPng,
+            resource: Resources.CommonDecorPng,
             fallbackColor: ex.Color.fromHex('#8B4513')
         },
         description: 'A shelf filled with ancient tomes and scrolls',
@@ -203,12 +205,12 @@ export const InteractableDefinitions: Record<string, InteractableDefinition> = {
         tags: ['knowledge', 'scrolls', 'magic', 'functional']
     },
 
-    InteractableID.Anvil: {
+    [InteractableID.Anvil]: {
         id: InteractableID.Anvil,
         name: 'Anvil',
         type: InteractableType.CRAFTING,
         graphics: {
-            resource: Resources.TilesPng,
+            resource: Resources.CommonDecorPng,
             fallbackColor: ex.Color.fromHex('#555555')
         },
         description: 'A sturdy anvil for forging and repairing equipment',
@@ -219,12 +221,12 @@ export const InteractableDefinitions: Record<string, InteractableDefinition> = {
         tags: ['crafting', 'smithing', 'repair', 'functional']
     },
 
-    InteractableID.AlchemyPot: {
+    [InteractableID.AlchemyPot]: {
         id: InteractableID.AlchemyPot,
         name: 'Alchemy Pot',
         type: InteractableType.CRAFTING,
         graphics: {
-            resource: Resources.TilesPng,
+            resource: Resources.CommonDecorPng,
             fallbackColor: ex.Color.fromHex('#800080')
         },
         description: 'A bubbling cauldron perfect for brewing potions',
@@ -236,12 +238,12 @@ export const InteractableDefinitions: Record<string, InteractableDefinition> = {
         tags: ['crafting', 'alchemy', 'potions', 'magical']
     },
 
-    InteractableID.SleighStation: {
+    [InteractableID.SleighStation]: {
         id: InteractableID.SleighStation,
         name: 'Sleigh Station',
         type: InteractableType.PORTAL,
         graphics: {
-            resource: Resources.TilesPng,
+            resource: Resources.CommonDecorPng,
             fallbackColor: ex.Color.fromHex('#FFD700')
         },
         description: 'A magical sleigh that can transport you between floors',
@@ -252,12 +254,12 @@ export const InteractableDefinitions: Record<string, InteractableDefinition> = {
         tags: ['portal', 'travel', 'sleigh', 'magical']
     },
 
-    InteractableID.SecretDoor: {
+    [InteractableID.SecretDoor]: {
         id: InteractableID.SecretDoor,
         name: 'Secret Door',
         type: InteractableType.DOOR,
         graphics: {
-            resource: Resources.TilesPng,
+            resource: Resources.CommonDecorPng,
             fallbackColor: ex.Color.fromHex('#654321')
         },
         description: 'A hidden passage disguised as a wall',
@@ -269,12 +271,12 @@ export const InteractableDefinitions: Record<string, InteractableDefinition> = {
         tags: [InteractableID.Door, 'secret', 'hidden', 'discovery']
     },
 
-    InteractableID.DestructibleWall: {
+    [InteractableID.DestructibleWall]: {
         id: InteractableID.DestructibleWall,
         name: 'Cracked Wall',
         type: InteractableType.TRAP,
         graphics: {
-            resource: Resources.TilesPng,
+            resource: Resources.CommonDecorPng,
             fallbackColor: ex.Color.fromHex('#666666')
         },
         description: 'A weakened wall that can be broken through with enough force',

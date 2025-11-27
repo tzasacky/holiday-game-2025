@@ -1,12 +1,12 @@
-import { Effect } from '../mechanics/Effect';
 import { Item } from './Item';
-import { Actor } from '../actors/Actor';
+import { GameActor } from '../components/GameActor';
+import { ItemEffect } from '../data/items';
 
 export abstract class Equipable extends Item {
     public isEquipped: boolean = false;
     public identified: boolean = false;
     public isCursed: boolean = false;
-    public effects: Effect[] = [];
+    public effects: ItemEffect[] = [];
 
     identify() {
         this.identified = true;
@@ -17,22 +17,15 @@ export abstract class Equipable extends Item {
         return this.identified ? this.name : "Unknown Item";
     }
 
-    public equip(user: Actor) {
+    public equip(user: GameActor) {
         this.isEquipped = true;
-        // Logic handled by subclasses or here if we cast?
-        // Better: Actor should have equipWeapon/equipArmor methods?
-        // Or we check instance type here.
-        // Circular dependency risk if we import Weapon/Armor here?
-        // Let's rely on the fact that we know what this is.
-        
-        // Actually, let's make this abstract or override in Weapon/Armor
     }
 
-    public unequip(user: Actor) {
+    public unequip(user: GameActor) {
         this.isEquipped = false;
     }
     
-    public execute(user: Actor) {
+    public execute(user: GameActor) {
         if (this.isEquipped) {
             this.unequip(user);
         } else {

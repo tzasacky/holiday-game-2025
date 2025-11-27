@@ -1,6 +1,7 @@
 import * as ex from 'excalibur';
 import { Resources } from '../config/resources';
 import { ActorID } from '../constants/ActorIDs';
+import { ItemID } from '../constants/ItemIDs';
 import { LootTableID } from '../constants/LootTableIDs';
 
 // Complete unified actor data system
@@ -122,7 +123,10 @@ export const ActorDefinitions: Record<string, ActorDefinition> = {
             { type: 'equipment' }
         ],
         tags: ['player', ActorID.Hero],
-        inventory: { size: 20 }
+        inventory: { 
+            size: 20,
+            startingItems: [ItemID.HotCocoa, ItemID.CandyCaneSpear]
+        }
     },
     
     [ActorID.Snowman]: {

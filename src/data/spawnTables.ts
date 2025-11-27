@@ -125,3 +125,12 @@ export const AllSpawnTables: Record<string, SpawnTableDefinition> = {
   ...BaseSpawnTables,
   ...SpecialSpawnTables
 };
+
+/**
+ * Get the appropriate spawn table ID for a given floor number
+ */
+export function getSpawnTableForFloor(floorNumber: number): string {
+  const tables = FloorSpawnTableMapping[floorNumber] || FloorSpawnTableMapping[15];
+  // Return the first table in the list (primary table for this floor)
+  return tables[0] || 'early_floors';
+}

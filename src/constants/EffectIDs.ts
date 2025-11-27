@@ -44,6 +44,12 @@ export enum EffectID {
     PoisonDOT = 'poison',
     Blind = 'blind',
     
+    // Environmental/Terrain Effects
+    Wet = 'wet',
+    SlipperyMovement = 'slippery_movement',
+    SlowMovement = 'slow_movement',
+    Warmth = 'warmth',
+    
     // Utility Effects
     Heal = 'heal',
     WarmthRestore = 'warmth_restore',

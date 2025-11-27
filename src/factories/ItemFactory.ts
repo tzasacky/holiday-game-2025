@@ -2,6 +2,7 @@ import { ItemDefinition, ItemDefinitions, ItemType } from '../data/items';
 import { DataManager } from '../core/DataManager';
 import { EventBus } from '../core/EventBus';
 import * as ex from 'excalibur';
+import { GraphicsManager } from '../data/graphics';
 
 /**
  * ItemEntity - Data container for items (no logic)
@@ -63,8 +64,7 @@ export class ItemEntity {
      * Get sprite for rendering
      */
     getSprite(): ex.Graphic | null {
-        const { GraphicsManager } = require('../data/graphics');
-        return GraphicsManager.instance.getItemSprite(this.definition.graphics.spriteIndex);
+        return GraphicsManager.instance.getItemSprite(this.id);
     }
     
     /**

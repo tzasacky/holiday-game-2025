@@ -30,80 +30,65 @@ export class EquipmentSystem {
     
     // Centralized logic for equipment stats and effects
     
-    public static calculateFinalStats(item: EnhancedEquipment): any {
-        const finalStats: any = { ...item.baseStats };
+    public static calculateFinalStats(item: ItemEntity): any {
+        const finalStats: any = { ...item.definition.stats };
         
-        // Apply bonus stats
-        Object.keys(item.bonusStats).forEach(stat => {
-            finalStats[stat] = (finalStats[stat] || 0) + (item.bonusStats[stat] || 0);
-        });
-        
-        // Apply enchantments (only if identified or not hidden)
-        item.enchantments.forEach(enchantment => {
-            if (item.identified || !enchantment.hidden) {
+        // Apply enchantments (only if identified)
+        if (item.identified && item.enchantments.length > 0) {
+            item.enchantments.forEach((enchantment: any) => {
                 Object.keys(finalStats).forEach(stat => {
                     const baseValue = finalStats[stat] || 0;
                     finalStats[stat] = EnchantmentSystem.getEnchantmentEffect(enchantment, baseValue);
                 });
-            }
-        });
+            });
+        }
         
-        // Apply curses (only if identified or not hidden)
-        item.curses.forEach(curse => {
-            if (item.identified || !curse.hidden) {
+        // Apply curses (only if identified)
+        if (item.identified && item.curses.length > 0) {
+            item.curses.forEach((curse: any) => {
                 Object.keys(finalStats).forEach(stat => {
                     const baseValue = finalStats[stat] || 0;
                     finalStats[stat] = EnchantmentSystem.getCurseEffect(curse, baseValue);
                 });
-            }
-        });
+            });
+        }
         
         return finalStats;
     }
 
-    public static identifyItem(item: EnhancedEquipment): void {
+    public static identifyItem(item: ItemEntity): void {
         if (item.identified) return;
         
         item.identified = true;
-        console.log(`${item.name} has been identified!`);
+        console.log(`${item.definition.name} has been identified!`);
         
         if (item.enchantments.length > 0) {
             console.log('Enchantments discovered:');
-            item.enchantments.forEach(ench => {
+            item.enchantments.forEach((ench: any) => {
                 console.log(`- ${ench.name}: ${ench.description}`);
             });
         }
         
         if (item.curses.length > 0) {
             console.log('CURSES revealed:');
-            item.curses.forEach(curse => {
+            item.curses.forEach((curse: any) => {
                 console.log(`- ${curse.name}: ${curse.description}`);
-                if (curse.hidden) {
-                    console.log('  (This curse was hidden!)');
-                }
             });
-            
-            // Logic for unremovable check should probably be here or in the component
-            if (item.cursed) {
-                item.unremovableWhenCursed = true;
-                console.log('WARNING: This cursed item cannot be removed until cleansed!');
-            }
+            console.log('WARNING: This cursed item may have negative effects!');
         }
     }
 
-    public static getItemDisplayName(item: EnhancedEquipment): string {
+    public static getItemDisplayName(item: ItemEntity): string {
         if (!item.identified) {
             return this.getUnidentifiedItemName(item);
         }
         
-        let displayName = item.name;
+        let displayName = item.definition.name;
         
         // Add enchantment prefixes/suffixes
         if (item.enchantments.length > 0) {
-            const primaryEnchant = item.enchantments[0];
-            // Ideally we'd look up the enchantment definition to get the prefix/suffix
-            // For now, we'll use the name as a prefix if no specific logic exists
-             displayName = `${primaryEnchant.name} ${displayName}`;
+            const primaryEnchant = item.enchantments[0] as any;
+            displayName = `${primaryEnchant.name} ${displayName}`;
         }
         
         // Add curse indicators
@@ -114,23 +99,22 @@ export class EquipmentSystem {
         return displayName;
     }
 
-    public static getUnidentifiedItemName(item: EnhancedEquipment): string {
-        const tierDescriptors: Record<number, string> = {
-            0: 'Worn',
-            1: 'Plain', 
-            2: 'Quality',
-            3: 'Fine',
-            4: 'Ornate',
-            5: 'Magnificent'
+    public static getUnidentifiedItemName(item: ItemEntity): string {
+        const rarityDescriptors: Record<string, string> = {
+            'common': 'Plain',
+            'uncommon': 'Quality', 
+            'rare': 'Fine',
+            'epic': 'Ornate',
+            'legendary': 'Magnificent',
+            'unique': 'Mysterious'
         };
         
-        // We might want to move these category names to a constant or data file
-        const category = item.type ? item.type.charAt(0).toUpperCase() + item.type.slice(1) : 'Item';
+        const category = item.definition.type ? item.definition.type.charAt(0).toUpperCase() + item.definition.type.slice(1) : 'Item';
         
-        return `${tierDescriptors[item.tier] || 'Unknown'} ${category}`;
+        return `${rarityDescriptors[item.definition.rarity] || 'Unknown'} ${category}`;
     }
 
-    public static getItemTooltip(item: EnhancedEquipment): string {
+    public static getItemTooltip(item: ItemEntity): string {
         let tooltip = this.getItemDisplayName(item);
         
         if (item.identified) {
@@ -144,25 +128,22 @@ export class EquipmentSystem {
             
             if (item.enchantments.length > 0) {
                 tooltip += '\n\nEnchantments:';
-                item.enchantments.forEach(ench => {
+                item.enchantments.forEach((ench: any) => {
                     tooltip += `\n• ${ench.name}: ${ench.description}`;
                 });
             }
             
             if (item.curses.length > 0) {
                 tooltip += '\n\nCurses:';
-                item.curses.forEach(curse => {
+                item.curses.forEach((curse: any) => {
                     tooltip += `\n• ${curse.name}: ${curse.description}`;
                 });
-                
-                if (item.unremovableWhenCursed) {
-                    tooltip += '\n\n⚠️ CURSED - Cannot be removed until cleansed!';
-                }
+                tooltip += '\n\n⚠️ CURSED - May have negative effects!';
             }
         } else {
             tooltip += '\n\nThis item needs to be identified to see its properties.';
             
-            if (item.cursed && item.curses.some(c => !c.hidden)) {
+            if (item.curses.length > 0) {
                 tooltip += '\n\n⚠️ This item radiates dark energy...';
             }
         }

@@ -239,7 +239,6 @@ export const RoomTemplateDefinitions: Record<string, RoomTemplate> = {
     tags: ['safe', 'healing', 'peaceful'],
     rarity: 'uncommon',
     theme: {
-      lighting: 'warm',
       temperature: 'warm',
     },
   },
@@ -363,7 +362,6 @@ export const RoomTemplateDefinitions: Record<string, RoomTemplate> = {
       maxFloor: 8,
     },
     theme: {
-      lighting: 'warm',
       temperature: 'warm',
       preferredTerrain: ['WoodFloor'],
     },

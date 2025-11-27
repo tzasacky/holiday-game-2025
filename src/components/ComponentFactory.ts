@@ -5,6 +5,7 @@ import { PlayerInputComponent } from './PlayerInputComponent';
 import { AIComponent } from './AIComponent';
 import { InventoryComponent } from './InventoryComponent';
 import { MovementComponent } from './MovementComponent';
+import { EquipmentComponent } from './EquipmentComponent';
 
 export type ComponentFactory = (actor: any, config?: any) => ActorComponent;
 
@@ -35,3 +36,4 @@ ComponentRegistry.register('player_input', (actor, config) => new PlayerInputCom
 ComponentRegistry.register('ai', (actor, config) => new AIComponent(actor, config));
 ComponentRegistry.register('inventory', (actor, config) => new InventoryComponent(actor, config));
 ComponentRegistry.register('movement', (actor, config) => new MovementComponent(actor));
+ComponentRegistry.register('equipment', (actor, config) => new EquipmentComponent(actor));

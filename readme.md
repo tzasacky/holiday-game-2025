@@ -1,20 +1,18 @@
-# Excalibur Tiled Vite Sample
+# Holiday Game 2025
 
-Play sample [here](https://excaliburjs.com/sample-tiled-vite)
+Copyright 2025 Tye Zasacky
 
-![sample-animation](./sample.gif)
+Tye's Holiday Game. Winter is Here and the pixel dungeon awaits. Can you reach the bottom and save the New Years Baby from the clutches of the corrupted Father Time?
 
-## Running locally
+## About
 
-- Using [nodejs](https://nodejs.org/en/) and [npm](https://www.npmjs.com/)
-- Run the `npm install` to install dependencies
-- Run the `npm run start` to run the development server to test out changes
+This is a pixel dungeon-style game written with the ExcaliburJS engine. It uses an event-driven architecture and is built with the Vite framework. The game features procedurally generated levels, a variety of enemies, and a number of other semi-working systems.
 
-## Building bundles
+Code by Tye Zasacky, art by Nano Banana Pro
 
-- Run `npm run start` to produce javascript bundles for debugging in the `dist/` folder
-- Run `npm run build` to produce javascript bundles for production (minified) in the `dist/` folder
+## Quickstart
 
-# Processing Sprites
-
-Usage options:
+- Clone the repository
+- Run `npm install` to install dependencies
+- Run `npm run start` to start the development server
+- Open `http://localhost:5173` in your browser

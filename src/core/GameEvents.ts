@@ -89,6 +89,20 @@ export enum GameEventNames {
     
     // Sound Events
     SoundPlay = "sound:play",
+    
+    // Actor Spawning Events (added for event-driven architecture)
+    ActorSpawned = 'actor:spawned',
+    ActorTurn = 'actor:turn',
+    
+    // Item Spawn Events
+    ItemSpawnRequest = 'item:spawn_request',
+    
+    // Inventory Events
+    InventoryAddStartingItems = 'inventory:add_starting_items',
+    
+    // Registry Query/Response Events
+    RegistryQuery = 'registry:query',
+    RegistryResponse = 'registry:response',
 }
 
 // Event Classes

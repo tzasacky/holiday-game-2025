@@ -148,11 +148,11 @@ export enum ItemID {
     PotionOfCureDisease = 'potion_of_cure_disease',
     ScrollOfTeleport = 'scroll_of_teleport',
     SantasCookie = 'santas_cookie',
-    IcicleDagger = "IcicleDagger",
-    SantaSuit = "SantaSuit",
-    ChristmasStar = "ChristmasStar",
-    GoldCoin = "GoldCoin",
-    Coal = "Coal",
-    KrampusHorn = "krampus_horn",
-    ScrollOfFrost = "scroll_of_frost"
+    IcicleDagger = 'icicle_dagger',
+    SantaSuit = 'santa_suit',
+    ChristmasStar = 'christmas_star',
+    GoldCoin = 'gold_coin',
+    Coal = 'coal',
+    KrampusHorn = 'krampus_horn',
+    ScrollOfFrost = 'scroll_of_frost'
 }

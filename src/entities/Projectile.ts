@@ -1,7 +1,7 @@
 import * as ex from 'excalibur';
 import { GameActor } from '../components/GameActor';
 import { GameEntity } from '../core/GameEntity';
-import { DamageType } from '../core/DamageType';
+import { DamageType } from '../data/mechanics';
 
 export class Projectile extends GameEntity {
     public speed: number = 300;

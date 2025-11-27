@@ -129,7 +129,7 @@ export class GraphicsManager {
     }
     
     // Item graphics system
-    private itemSpriteSheet: ex.SpriteSheet;
+    private itemSpriteSheet!: ex.SpriteSheet; // Initialized lazily in initializeItemGraphics()
     private itemSprites: Map<string, ex.Graphic> = new Map();
     
     private initializeItemGraphics(): void {

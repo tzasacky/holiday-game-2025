@@ -241,7 +241,6 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
     },
 
     // === WEAPONS (Continue) ===
-    
     // Weak Sword
     [ItemID.WeakSword]: {
         id: ItemID.WeakSword,
@@ -367,7 +366,6 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
     },
 
     // === CONSUMABLES (Comprehensive) ===
-    
     // Projectiles
     [ItemID.Snowball]: {
         id: ItemID.Snowball,
@@ -518,7 +516,6 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
     },
 
     // === ARTIFACTS ===
-    
     // Rings
     [ItemID.RingOfFrost]: {
         id: ItemID.RingOfFrost,
@@ -600,7 +597,6 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
     },
 
     // === MISC/KEYS ===
-    
     [ItemID.Gold]: {
         id: ItemID.Gold,
         name: 'Gold',
@@ -663,7 +659,6 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
     },
 
     // === CHRISTMAS WANDS (Complete Collection) ===
-    
     [ItemID.SparklerWand]: {
         id: ItemID.SparklerWand,
         name: 'Sparkler Wand',
@@ -788,7 +783,6 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
     },
 
     // === CHRISTMAS LIGHT WHIPS ===
-    
     [ItemID.TangledChristmasLights]: {
         id: ItemID.TangledChristmasLights,
         name: 'Tangled Christmas Lights',
@@ -882,7 +876,6 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
     },
 
     // === ARMOR VARIATIONS ===
-    
     // Santa Suits (complete progression)
     [ItemID.TornSantaSuit]: {
         id: ItemID.TornSantaSuit,
@@ -1067,7 +1060,6 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
     },
 
     // === REMAINING SCROLLS ===
-    
     [ItemID.ScrollOfChristmasSpirit]: {
         id: ItemID.ScrollOfChristmasSpirit,
         name: 'Scroll of Christmas Spirit',
@@ -1110,7 +1102,6 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
     },
 
     // === ORNAMENT GRENADES ===
-    
     [ItemID.CrackedOrnamentGrenade]: {
         id: ItemID.CrackedOrnamentGrenade,
         name: 'Cracked Ornament Grenade',
@@ -1180,7 +1171,6 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
     },
 
     // === ADDITIONAL ARTIFACTS ===
-    
     [ItemID.RingOfChristmasSpirit]: {
         id: ItemID.RingOfChristmasSpirit,
         name: 'Ring of Christmas Spirit',
@@ -1224,7 +1214,6 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
     },
 
     // === UNIDENTIFIED/SPECIAL ===
-    
     [ItemID.UnlabeledPotion]: {
         id: ItemID.UnlabeledPotion,
         name: 'Unlabeled Potion',
@@ -1283,7 +1272,6 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
     },
 
     // === FINAL MISSING ITEMS ===
-
     // Weapons
     [ItemID.PoinsettiaDagger]: {
         id: ItemID.PoinsettiaDagger,
@@ -1576,7 +1564,7 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
         name: 'Santa\'s Spyglass',
         type: ItemType.ARTIFACT,
         rarity: ItemRarity.RARE,
-        graphics: { spriteIndex: 115},
+        graphics: { spriteIndex: 115 },
         description: 'See from far away',
         effects: [
             { type: 'vision_range', value: 10 },
@@ -1655,6 +1643,36 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
             { type: 'warmth_generation', value: 1 }
         ],
         tags: ['artifact', 'christmas', 'decoration']
+    },
+    [ItemID.Marshmallow]: {
+        id: ItemID.Marshmallow,
+        name: 'Marshmallow',
+        type: ItemType.CONSUMABLE,
+        rarity: ItemRarity.COMMON,
+        graphics: { spriteIndex: 42 },
+        description: 'A fluffy marshmallow, restores warmth',
+        stackable: true,
+        maxStack: 10,
+        effects: [
+            { type: EffectID.WarmthRestore, value: 15 },
+            { type: 'heal', value: 3 }
+        ],
+        tags: ['consumable', 'food', 'warmth']
+    },
+    [ItemID.CandyCane]: {
+        id: ItemID.CandyCane,
+        name: 'Candy Cane',
+        type: ItemType.CONSUMABLE,
+        rarity: ItemRarity.COMMON,
+        graphics: { spriteIndex: 44 },
+        description: 'A sweet peppermint treat',
+        stackable: true,
+        maxStack: 15,
+        effects: [
+            { type: 'heal', value: 5 },
+            { type: AbilityID.ChristmasSpirit, value: 5 }
+        ],
+        tags: ['consumable', 'food', 'christmas']
     }
 };
 

@@ -3,6 +3,8 @@ import { GameEventNames, CollisionCheckEvent, CollisionResultEvent, TerrainInter
 import { Logger } from '../core/Logger';
 import { TerrainType, TerrainDefinitions } from '../data/terrain';
 import { DamageType } from '../data/mechanics';
+import { EffectID } from '../constants/EffectIDs';
+import { DamageSource } from '../constants/DamageSources';
 import { DataManager } from '../core/DataManager';
 import { Level } from '../dungeon/Level';
 import * as ex from 'excalibur';
@@ -35,70 +37,72 @@ export class CollisionSystem {
     
     // Check bounds
     if (position.x < 0 || position.x >= level.width || position.y < 0 || position.y >= level.height) {
-      this.emitCollisionResult({
-        canMove: false,
-        position,
+      this.emitCollisionResult(new CollisionResultEvent(
         actorId,
-        collisionType: 'terrain'
-      });
+        position,
+        false,
+        'terrain'
+      ));
       return;
     }
 
     // Check terrain collision
     const terrainResult = this.checkTerrainCollision(position, level, movementType);
     if (!terrainResult.canPass) {
-      this.emitCollisionResult({
-        canMove: false,
-        position,
+      this.emitCollisionResult(new CollisionResultEvent(
         actorId,
-        collisionType: 'terrain',
-        interaction: terrainResult.interaction,
-        consequences: terrainResult.consequences
-      });
+        position,
+        false,
+        'terrain',
+        terrainResult.interaction,
+        terrainResult.consequences
+      ));
       return;
     }
 
     // Check actor collision
     const actorCollision = this.checkActorCollision(position, level, actorId);
     if (actorCollision) {
-      this.emitCollisionResult({
-        canMove: false,
-        position,
+      this.emitCollisionResult(new CollisionResultEvent(
         actorId,
-        collisionType: 'actor',
-        interaction: {
+        position,
+        false,
+        'actor',
+        {
           type: 'actor_block',
           data: { blockingActorId: actorCollision }
         }
-      });
+      ));
       return;
     }
 
     // Check interactable collision
     const interactableCollision = this.checkInteractableCollision(position, level);
     if (interactableCollision) {
-      this.emitCollisionResult({
-        canMove: !interactableCollision.solid,
-        position,
+      this.emitCollisionResult(new CollisionResultEvent(
         actorId,
-        collisionType: 'interactable',
-        interaction: {
+        position,
+        !interactableCollision.solid,
+        'interactable',
+        {
           type: 'interactable',
           data: interactableCollision
         }
-      });
+      ));
       return;
     }
 
     // Movement is allowed - but check for environmental effects
     const environmentalEffects = this.checkEnvironmentalEffects(position, level);
     
-    this.emitCollisionResult({
-      canMove: true,
-      position,
+    this.emitCollisionResult(new CollisionResultEvent(
       actorId,
-      consequences: environmentalEffects
-    });
+      position,
+      true,
+      undefined,
+      undefined,
+      environmentalEffects
+    ));
   }
 
   private checkTerrainCollision(position: ex.Vector, level: Level, movementType: string): {
@@ -171,7 +175,7 @@ export class CollisionSystem {
             data: {
               damageType: DamageType.Physical,
               amount: 15,
-              source: 'chasm_fall'
+              source: DamageSource.ChasmFall
             }
           },
           {
@@ -188,7 +192,7 @@ export class CollisionSystem {
         consequences.push({
           type: 'effect',
           data: {
-            effectId: 'wet',
+            effectId: EffectID.Wet,
             duration: 100
           }
         });
@@ -198,7 +202,7 @@ export class CollisionSystem {
         consequences.push({
           type: 'effect',
           data: {
-            effectId: 'slippery_movement',
+            effectId: EffectID.SlipperyMovement,
             duration: 1
           }
         });
@@ -208,7 +212,7 @@ export class CollisionSystem {
         consequences.push({
           type: 'effect',
           data: {
-            effectId: 'slow_movement',
+            effectId: EffectID.SlowMovement,
             duration: 1
           }
         });
@@ -223,8 +227,10 @@ export class CollisionSystem {
     const entitiesAt = level.getEntitiesAt(position.x, position.y);
     
     for (const entity of entitiesAt) {
-      if (entity.entityId !== movingActorId && entity.entityId.startsWith('actor_')) {
-        return entity.entityId;
+      // Use 'name' or 'id' property instead of entityId which doesn't exist on ex.Actor
+      const entityId = (entity as any).entityId || entity.name || entity.id;
+      if (entityId && entityId !== movingActorId && entityId.toString().startsWith('actor_')) {
+        return entityId;
       }
     }
     
@@ -257,9 +263,9 @@ export class CollisionSystem {
     if (terrainDef?.isWarmthSource) {
       EventBus.instance.emit(GameEventNames.EffectApply, {
         targetId: actorId,
-        effectId: 'warmth',
+        effectId: EffectID.Warmth,
         duration: 50,
-        source: 'terrain_fireplace'
+        source: DamageSource.TerrainFireplace
       });
     }
     
@@ -268,7 +274,7 @@ export class CollisionSystem {
       EventBus.instance.emit(GameEventNames.LevelTransitionRequest, {
         actorId,
         direction: 'down' as const,
-        source: 'stairs'
+        source: DamageSource.Stairs
       });
     }
   }

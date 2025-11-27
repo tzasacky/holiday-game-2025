@@ -364,6 +364,87 @@ export const EffectDefinitions: Record<string, EffectDefinition> = {
         },
         tags: ['triggered', 'lifesteal', 'combat'],
         category: 'neutral'
+    },
+
+    // Environmental/Terrain Effects
+    [EffectID.Wet]: {
+        id: EffectID.Wet,
+        name: 'Wet',
+        description: 'Soaked with water',
+        type: EffectType.DEBUFF,
+        duration: 100,
+        modifiers: [
+            { type: 'vulnerability', target: 'cold_damage', value: 25 },
+            { type: 'resistance', target: 'fire_damage', value: 50 }
+        ],
+        visuals: {
+            colorTint: '#4488FF',
+            particleEffect: 'water_drips'
+        },
+        tags: ['debuff', 'environmental', 'water'],
+        category: 'debuff',
+        dispellable: true
+    },
+
+    [EffectID.SlipperyMovement]: {
+        id: EffectID.SlipperyMovement,
+        name: 'Slippery',
+        description: 'Movement is unpredictable on ice',
+        type: EffectType.DEBUFF,
+        duration: 1,
+        modifiers: [
+            { type: 'stat', target: 'movement_control', value: 0.5, isMultiplier: true }
+        ],
+        visuals: {
+            colorTint: '#AADDFF',
+            particleEffect: 'ice_sparkles'
+        },
+        tags: ['debuff', 'environmental', 'ice', 'movement'],
+        category: 'debuff',
+        dispellable: false
+    },
+
+    [EffectID.SlowMovement]: {
+        id: EffectID.SlowMovement,
+        name: 'Trudging',
+        description: 'Moving slowly through deep snow',
+        type: EffectType.DEBUFF,
+        duration: 1,
+        modifiers: [
+            { type: 'stat', target: 'speed', value: 0.6, isMultiplier: true }
+        ],
+        visuals: {
+            colorTint: '#FFFFFF',
+            particleEffect: 'snow_puffs'
+        },
+        tags: ['debuff', 'environmental', 'snow', 'movement'],
+        category: 'debuff',
+        dispellable: false
+    },
+
+    [EffectID.Warmth]: {
+        id: EffectID.Warmth,
+        name: 'Warmth',
+        description: 'Feeling warm and cozy',
+        type: EffectType.BUFF,
+        duration: 50,
+        modifiers: [
+            { type: 'resistance', target: 'cold_damage', value: 50 }
+        ],
+        actions: [
+            {
+                type: 'restore_warmth',
+                value: 5,
+                target: 'self'
+            }
+        ],
+        visuals: {
+            colorTint: '#FFAA44',
+            particleEffect: 'warm_glow'
+        },
+        tags: ['buff', 'environmental', 'warmth', 'comfort'],
+        category: 'buff',
+        dispellable: false
     }
 };
 

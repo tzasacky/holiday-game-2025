@@ -84,12 +84,13 @@ game.start(loader).then(() => {
     UnifiedSystemInit.initialize();
     
     const hero = ActorFactory.instance.createHero(spawn);
-    if (hero) {
-        level.addActor(hero);
-        console.log('[main] Hero created with unified system, components:', Array.from(hero.components.keys()));
-    } else {
+    if (!hero) {
         console.error('[main] Failed to create hero with unified system');
+        return;
     }
+    
+    level.addActor(hero);
+    console.log('[main] Hero created with unified system, components:', Array.from(hero.components.keys()));
     
     // Camera - set zoom BEFORE going to scene
     game.currentScene.camera.zoom = 1.5; // Much more reasonable zoom
@@ -97,6 +98,8 @@ game.start(loader).then(() => {
     
     // Debug camera position after a short delay
     setTimeout(() => {
+        if (!hero) return; // Additional safety check
+        
         Logger.info("Camera position:", game.currentScene.camera.pos);
         Logger.info("Hero position:", hero.pos);
         Logger.info("Game engine size:", game.drawWidth, "x", game.drawHeight);

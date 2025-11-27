@@ -38,7 +38,7 @@ export class SpawnTableExecutor {
    * Roll for a spawn from a table with optional filtering
    */
   public rollSpawn(request: SpawnRequest): SpawnResult | null {
-    const table = DataManager.instance.query<SpawnTableDefinition>('spawnTable', request.tableId);
+    const table = DataManager.instance.query<SpawnTableDefinition>('spawn_table', request.tableId);
     
     if (!table) {
       Logger.warn(`SpawnTableExecutor: Table '${request.tableId}' not found`);
@@ -119,7 +119,7 @@ export class SpawnTableExecutor {
 
       // Tag filtering
       if (request.tags && request.tags.length > 0) {
-        const hasMatchingTag = request.tags.some(tag => entry.tags.includes(tag));
+        const hasMatchingTag = request.tags.some(tag => entry.tags?.includes(tag));
         if (!hasMatchingTag) return false;
       }
 
@@ -127,16 +127,16 @@ export class SpawnTableExecutor {
       if (request.spawnType) {
         switch (request.spawnType) {
           case 'boss':
-            if (!entry.tags.includes('boss')) return false;
+            if (!entry.tags?.includes('boss')) return false;
             break;
           case 'elite':
-            if (!entry.tags.includes('elite') && !entry.tags.includes('rare')) return false;
+            if (!entry.tags?.includes('elite') && !entry.tags?.includes('rare')) return false;
             break;
           case 'pack':
             if (!entry.packSize) return false;
             break;
           case 'guardian':
-            if (!entry.tags.includes('guardian')) return false;
+            if (!entry.tags?.includes('guardian')) return false;
             break;
           case 'normal':
             // Normal spawns can use any entry
@@ -163,12 +163,12 @@ export class SpawnTableExecutor {
       result.packSize = min + Math.floor(Math.random() * (max - min + 1));
     }
 
-    // Apply floor scaling if enabled
-    if (table.floorScaling?.enabled) {
+    // Apply floor scaling if present
+    if (table.floorScaling) {
       const floorMultiplier = Math.max(1, floorNumber - 1); // Start scaling from floor 2
       result.floorScaling = {
-        strengthMultiplier: Math.pow(table.floorScaling.strengthMultiplier, floorMultiplier),
-        hpMultiplier: Math.pow(table.floorScaling.hpMultiplier, floorMultiplier),
+        strengthMultiplier: 1 + (table.floorScaling.strengthBonus * floorMultiplier),
+        hpMultiplier: 1 + (table.floorScaling.hpBonus * floorMultiplier),
       };
     }
 
@@ -179,7 +179,7 @@ export class SpawnTableExecutor {
    * Validate that all spawn tables are properly configured
    */
   public validateSpawnTables(): boolean {
-    const allTables = DataManager.instance.getAllData('spawnTable');
+    const allTables = DataManager.instance.getAllData('spawn_table');
     let isValid = true;
 
     Object.entries(allTables).forEach(([id, table]) => {
@@ -218,7 +218,7 @@ export class SpawnTableExecutor {
    * Get debug information about a spawn table
    */
   public getTableDebugInfo(tableId: string, floorNumber: number): string {
-    const table = DataManager.instance.query<SpawnTableDefinition>('spawnTable', tableId);
+    const table = DataManager.instance.query<SpawnTableDefinition>('spawn_table', tableId);
     
     if (!table) {
       return `Table '${tableId}' not found`;

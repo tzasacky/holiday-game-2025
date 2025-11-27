@@ -32,7 +32,7 @@ export class IdentificationSystem {
 
     private identificationQueue: Map<string, IdentificationProcess> = new Map();
 
-    public startIdentification(actor: GameActor, item: EnhancedEquipment): boolean {
+    public startIdentification(actor: GameActor, item: ItemEntity): boolean {
         if (item.identified) {
             console.log(`${item.getDisplayName()} is already identified.`);
             return false;
@@ -61,18 +61,10 @@ export class IdentificationSystem {
 
         console.log(`🤔 You begin carefully examining ${item.getDisplayName()}...`);
         console.log(`📚 This will take approximately ${Math.floor(identificationTime / 10)} moves to complete.`);
-        
-        // If the item is cursed and the actor equips it, trigger immediate identification
-        if (item.cursed && this.isItemEquipped(actor, item)) {
-            console.log('⚡ The cursed item forces you to understand its true nature!');
-            this.completeIdentification(itemKey);
-            return true;
-        }
-
         return true;
     }
 
-    public instantIdentify(actor: GameActor, item: EnhancedEquipment): boolean {
+    public instantIdentify(actor: GameActor, item: ItemEntity): boolean {
         if (item.identified) {
             return false;
         }
@@ -80,8 +72,7 @@ export class IdentificationSystem {
         EquipmentSystem.identifyItem(item);
         console.log(`${item.getDisplayName()} has been instantly identified!`);
         
-        if (item.cursed && this.isItemEquipped(actor, item)) {
-            item.unremovableWhenCursed = true;
+        if (item.curses.length > 0 && this.isItemEquipped(actor, item)) {
             console.log('The cursed item binds to you!');
         }
 
@@ -116,8 +107,7 @@ export class IdentificationSystem {
         console.log(`You finish studying ${item.getDisplayName()}...`);
         EquipmentSystem.identifyItem(item);
 
-        if (item.cursed && this.isItemEquipped(actor, item)) {
-            item.unremovableWhenCursed = true;
+        if (item.curses.length > 0 && this.isItemEquipped(actor, item)) {
             console.log('The cursed energy binds the item to your very soul!');
             // Apply curse effects logic here if needed
         }
@@ -135,7 +125,7 @@ export class IdentificationSystem {
         );
     }
 
-    private isItemEquipped(actor: GameActor, item: EnhancedEquipment): boolean {
+    private isItemEquipped(actor: GameActor, item: ItemEntity): boolean {
         const equipment = actor.getGameComponent('equipment') as any;
         if (!equipment) return false;
         return equipment.getEquipment('weapon') === item || equipment.getEquipment('armor') === item;

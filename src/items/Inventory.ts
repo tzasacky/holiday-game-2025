@@ -1,5 +1,5 @@
 import * as ex from 'excalibur';
-import { ItemEntity } from './ItemFactory';
+import { ItemEntity } from '../factories/ItemFactory';
 import { EventBus } from '../core/EventBus';
 import { GameEventNames, InventoryChangeEvent } from '../core/GameEvents';
 

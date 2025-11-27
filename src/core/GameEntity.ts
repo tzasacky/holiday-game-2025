@@ -1,4 +1,5 @@
 import * as ex from 'excalibur';
+import { GraphicsManager } from '../data/graphics';
 
 export abstract class GameEntity extends ex.Actor {
     public gridPos: ex.Vector;
@@ -17,7 +18,6 @@ export abstract class GameEntity extends ex.Actor {
     public getSprite(): ex.Graphic | null {
         // Default implementation checks unified graphics system
         if (this.name) {
-             const { GraphicsManager } = require('../data/graphics');
              return GraphicsManager.instance.getActorSprite(this.name);
         }
         return null;

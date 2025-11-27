@@ -4,6 +4,7 @@ import { ActorDefinitions } from '../data/actors';
 import { ComponentRegistry } from './ComponentFactory';
 import { EventBus } from '../core/EventBus';
 import { GameEventNames } from '../core/GameEvents';
+import { Logger } from '../core/Logger';
 
 export class ActorSpawnSystem {
     private static _instance: ActorSpawnSystem;
@@ -20,17 +21,20 @@ export class ActorSpawnSystem {
     }
     
     private setupEventListeners(): void {
-        EventBus.instance.on('spawn:actor' as any, (event: any) => {
-            this.spawnActor(event.defName, event.gridPos, event.options);
-        });
-        
-        EventBus.instance.on(GameEventNames.ActorCreate, (event: any) => {
+        // Listen for actor creation events from ActorFactory
+        EventBus.instance.on(GameEventNames.ActorCreate, (event: any) =>{
             this.spawnActor(event.defName, event.gridPos, event.options);
         });
     }
     
     public spawnActor(defName: string, gridPos: ex.Vector, options: any = {}): GameActor {
-        console.log(`[ActorSpawnSystem] Spawning ${defName} at ${gridPos.x}, ${gridPos.y}`);
+        // Validate position parameter
+        if (!gridPos || gridPos.x === undefined || gridPos.y === undefined) {
+            Logger.error(`[ActorSpawnSystem] Invalid position for ${defName}:`, gridPos);
+            throw new Error(`Cannot spawn ${defName}: invalid position (${gridPos})`);
+        }
+        
+        Logger.debug(`[ActorSpawnSystem] Spawning ${defName} at ${gridPos.x}, ${gridPos.y}`);
         
         // Get definition
         const def = ActorDefinitions[defName];
@@ -60,9 +64,9 @@ export class ActorSpawnSystem {
                 const component = ComponentRegistry.create(componentDef.type, actor, config);
                 actor.addGameComponent(componentDef.type, component);
                 
-                console.log(`[ActorSpawnSystem] Added ${componentDef.type} component to ${defName}`);
+                Logger.debug(`[ActorSpawnSystem] Added ${componentDef.type} component to ${defName}`);
             } catch (error) {
-                console.error(`[ActorSpawnSystem] Failed to create ${componentDef.type} component for ${defName}:`, error);
+                Logger.error(`[ActorSpawnSystem] Failed to create ${componentDef.type} component for ${defName}:`, error);
             }
         });
         
@@ -72,14 +76,14 @@ export class ActorSpawnSystem {
         }
 
         // Emit spawn event
-        EventBus.instance.emit('actor:spawned' as any, {
+        EventBus.instance.emit(GameEventNames.ActorSpawned, {
             actor: actor,
             definition: def,
             defName: defName,
-            gridPos: gridPos
+            position: gridPos
         });
         
-        console.log(`[ActorSpawnSystem] Successfully spawned ${defName}`);
+        Logger.debug(`[ActorSpawnSystem] Successfully spawned ${defName}`);
         return actor;
     }
     
@@ -101,10 +105,10 @@ export class ActorSpawnSystem {
     }
 
     private giveStartingItems(actor: GameActor, itemIds: string[]): void {
-        console.log(`[ActorSpawnSystem] Giving starting items to ${actor.name}:`, itemIds);
+        Logger.debug(`[ActorSpawnSystem] Giving starting items to ${actor.name}:`, itemIds);
         
-        // Emit event for inventory system to handle
-        EventBus.instance.emit('inventory:add_starting_items' as any, {
+        // Emit event for InventoryComponent to handle
+        EventBus.instance.emit(GameEventNames.InventoryAddStartingItems, {
             actorId: actor.entityId,
             itemIds: itemIds
         });

@@ -6,6 +6,7 @@ import { getSpawnTableForFloor } from '../data/spawnTables';
 import { ActorFactory } from '../factories/ActorFactory';
 import { Logger } from '../core/Logger';
 import * as ex from 'excalibur';
+import { TerrainType } from '../constants';
 
 export interface SpawnConfig {
     floorNumber: number;
@@ -136,7 +137,7 @@ export class Spawner {
      * Apply floor scaling modifiers to a spawned mob
      */
     private static applyFloorScaling(mob: GameActor, scaling: { strengthMultiplier: number; hpMultiplier: number }) {
-        const statsComponent = mob.getComponent('stats');
+        const statsComponent = mob.getGameComponent('stats') as any;
         
         if (statsComponent) {
             // Apply scaling via events to maintain data-driven approach
@@ -201,7 +202,7 @@ export class Spawner {
         
         // Check terrain (avoid walls)
         const terrainType = level.terrainData[pos.y]?.[pos.x];
-        if (terrainType && terrainType.name === 'Wall') {
+        if (terrainType && terrainType === TerrainType.Wall) {
             return false;
         }
         

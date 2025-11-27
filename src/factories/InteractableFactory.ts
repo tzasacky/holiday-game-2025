@@ -65,8 +65,8 @@ class PlaceholderInteractable extends GameEntity {
     this.name = definition.name;
   }
 
-  onInitialize(): void {
-    super.onInitialize();
+  onInitialize(engine: ex.Engine): void {
+    super.onInitialize(engine);
     
     // Basic visual representation
     const color = this.getColorForType(this.definition.type);

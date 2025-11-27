@@ -3,6 +3,7 @@ import { GameEntity } from '../core/GameEntity';
 import { ActorComponent } from './ActorComponent';
 import { EventBus } from '../core/EventBus';
 import { GameEventNames } from '../core/GameEvents';
+import { GraphicsManager } from '../data/graphics';
 
 /**
  * GameActor - Minimal actor container with component-based architecture
@@ -124,7 +125,6 @@ export class GameActor extends GameEntity {
     onInitialize(engine: ex.Engine): void {
         super.onInitialize(engine);
         // Use unified graphics system
-        const { GraphicsManager } = require('../data/graphics');
         GraphicsManager.instance.configureActor(this);
     }
 }

@@ -1,5 +1,4 @@
 import { ActorComponent } from './ActorComponent';
-import { EnhancedEquipment } from '../mechanics/EquipmentSystem';
 import { ItemType } from '../data/items';
 
 export class EquipmentComponent extends ActorComponent {

@@ -1,5 +1,5 @@
 import { Equipable } from './Equipable';
-import { Actor } from '../actors/Actor';
+
 
 export abstract class Weapon extends Equipable {
     public minDamage: number = 1;

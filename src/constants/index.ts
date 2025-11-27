@@ -16,5 +16,5 @@ export { LootTableID } from './LootTableIDs';
 // Re-export data enums for convenience
 export { ItemType, ItemRarity } from '../data/items';
 export { EnchantmentType, CurseType } from '../data/enchantments';
-export { DamageType } from '../mechanics/DamageType';
-export { TerrainType } from '../dungeon/Terrain';
+export { DamageType } from '../data/mechanics';
+export { TerrainType } from '../data/terrain';

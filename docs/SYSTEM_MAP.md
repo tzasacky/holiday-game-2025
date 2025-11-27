@@ -256,7 +256,7 @@ HUD listens, updates display
 ### Old Imports (BROKEN)
 
 ```typescript
-❌ import { Actor } from '../actors/Actor';
+❌
 ❌ import { Hero } from '../actors/Hero';
 ❌ import { Mob } from '../actors/Mob';
 ❌ import { ActorRegistry } from '../config/ActorRegistry';

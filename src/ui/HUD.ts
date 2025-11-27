@@ -1,6 +1,7 @@
 import { UIComponent } from './components/UIComponent';
 import { EventBus } from '../core/EventBus';
 import { GameEventNames, HealthChangeEvent, WarmthChangeEvent } from '../core/GameEvents';
+import { GameActor } from '../components/GameActor';
 
 export class HUD extends UIComponent {
     private hpBar: HTMLElement | null = null;
@@ -8,7 +9,7 @@ export class HUD extends UIComponent {
     private warmthBar: HTMLElement | null = null;
     private warmthText: HTMLElement | null = null;
 
-    constructor(private hero: any) { // Using any to avoid circular dependency if possible, or import Hero
+    constructor(private hero: GameActor) {
         super('#hud');
         this.initialize();
     }
@@ -21,8 +22,15 @@ export class HUD extends UIComponent {
 
         // Initial update
         if (this.hero) {
-            this.updateHealth(this.hero.hp, this.hero.maxHp);
-            this.updateWarmth(this.hero.warmth, this.hero.maxWarmth);
+            // We need to access stats from StatsComponent if possible, or via helper methods on GameActor if they exist.
+            // GameActor doesn't have direct hp/maxHp properties anymore, they are in StatsComponent.
+            // However, for now, let's assume the stats are accessible or we wait for an event.
+            // Actually, we should query the stats component.
+            const stats = this.hero.components.get('stats') as any; // Temporary cast until StatsComponent is fully typed/imported
+            if (stats) {
+                 this.updateHealth(stats.getStat('hp'), stats.getStat('maxHp'));
+                 this.updateWarmth(stats.getStat('warmth'), stats.getStat('maxWarmth'));
+            }
         }
 
         this.setupListeners();
@@ -32,11 +40,15 @@ export class HUD extends UIComponent {
         const bus = EventBus.instance;
         
         bus.on(GameEventNames.HealthChange, (event: HealthChangeEvent) => {
-            this.updateHealth(event.current, event.max);
+            if (event.actor === this.hero) {
+                this.updateHealth(event.current, event.max);
+            }
         });
 
         bus.on(GameEventNames.WarmthChange, (event: WarmthChangeEvent) => {
-            this.updateWarmth(event.current, event.max);
+            if (event.actor === this.hero) {
+                this.updateWarmth(event.current, event.max);
+            }
         });
     }
 

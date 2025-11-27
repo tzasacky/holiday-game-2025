@@ -111,7 +111,8 @@ export class Pathfinding {
         const tile = level.objectMap.getTile(x, y);
         if (tile && tile.solid) {
             // Special case: doors can be interacted with
-            if (terrain === TerrainType.DoorClosed || terrain === TerrainType.DoorLocked) {
+            // TODO: Check for door interactables instead of terrain types
+            if (false) { // Temporarily disabled - doors are now interactables
                 return !options.avoidInteractables;
             }
             return false;
@@ -155,7 +156,8 @@ export class Pathfinding {
         }
 
         // Can target doors (will be handled as interaction)
-        if (terrain === TerrainType.DoorClosed || terrain === TerrainType.DoorLocked) {
+        // TODO: Check for door interactables instead of terrain types  
+        if (false) { // doors are now interactables
             return true;
         }
 
@@ -171,10 +173,12 @@ export class Pathfinding {
 
         // Check terrain interactions
         const terrain = level.getTile(x, y);
-        if (terrain === TerrainType.DoorClosed) {
+        // TODO: Check for closed door interactable
+        if (false) { // doors are now interactables
             return 'door_open';
         }
-        if (terrain === TerrainType.DoorLocked) {
+        // TODO: Check for locked door interactable  
+        if (false) { // doors are now interactables
             return 'door_locked';
         }
 

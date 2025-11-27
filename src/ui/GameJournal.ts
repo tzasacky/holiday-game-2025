@@ -1,6 +1,6 @@
 import { UIComponent } from './components/UIComponent';
 import { EventBus } from '../core/EventBus';
-import { GameEventNames, LogEvent } from '../core/GameEvents';
+import { GameEventNames, LogEvent, AttackEvent, DamageEvent, DieEvent, ItemPickupEvent, ItemUseEvent, LevelUpEvent } from '../core/GameEvents';
 
 export enum LogCategory {
     Combat = 'Combat',
@@ -33,8 +33,45 @@ export class GameJournal extends UIComponent {
         }
 
         // Listen for logs
-        EventBus.instance.on(GameEventNames.Log, (event: LogEvent) => {
+        const bus = EventBus.instance;
+        
+        bus.on(GameEventNames.Log, (event: LogEvent) => {
             this.addEntry(event.message, event.category as LogCategory, event.color);
+        });
+
+        // Listen for game events and auto-log them
+        bus.on(GameEventNames.Attack, (event: AttackEvent) => {
+            if (event.attacker.isPlayer) {
+                this.addEntry(`You attack ${event.target.name} for ${event.damage} damage!`, LogCategory.Combat);
+            } else if (event.target.isPlayer) {
+                this.addEntry(`${event.attacker.name} attacks you for ${event.damage} damage!`, LogCategory.Combat, '#ff6b6b');
+            }
+        });
+
+        bus.on(GameEventNames.Die, (event: DieEvent) => {
+            if (event.actor.isPlayer) {
+                this.addEntry(`You have died!`, LogCategory.System, '#ff0000');
+            } else {
+                this.addEntry(`${event.actor.name} dies!`, LogCategory.Combat, '#ffd93d');
+            }
+        });
+
+        bus.on(GameEventNames.ItemPickup, (event: ItemPickupEvent) => {
+            if (event.actor.isPlayer) {
+                this.addEntry(`You picked up ${event.item.getDisplayName()}.`, LogCategory.Items);
+            }
+        });
+
+        bus.on(GameEventNames.ItemUse, (event: ItemUseEvent) => {
+            if (event.actor.isPlayer) {
+                this.addEntry(`You used ${event.item.getDisplayName()}.`, LogCategory.Items);
+            }
+        });
+
+        bus.on(GameEventNames.LevelUp, (event: LevelUpEvent) => {
+            if (event.actor.isPlayer) {
+                this.addEntry(`Level Up! You are now level ${event.newLevel}.`, LogCategory.System, '#74c0fc');
+            }
         });
     }
 

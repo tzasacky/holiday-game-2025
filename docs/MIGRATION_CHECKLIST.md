@@ -248,7 +248,7 @@ Current state:
 - [x] **3.4.2** Create interactable placement rules in room templates ✅
   - Room templates define interactable placement rules
   - Treasure rooms: higher chance of chests
-  - Combat rooms: spawn traps or hazards  
+  - Combat rooms: spawn traps or hazards
   - Utility rooms: spawn crafting stations
 - [x] **3.4.3** Event-driven interactable system ✅
   - InteractableGenerator emits 'interactable:create' events
@@ -293,14 +293,46 @@ Current state:
 
 **Connect themes to the data system**
 
-- [ ] **3.7.1** Enhance FloorTheme with data-driven approach
+- [x] **3.7.1** Enhance FloorTheme with data-driven approach
   - Themes specify preferred spawn tables
   - Themes define visual and interactable sets
   - Floor progression uses different themes
-- [ ] **3.7.2** Update Biome system integration
+- [x] **3.7.2** Update Biome system integration
   - Biomes influence spawn table selection
   - Environmental hazards based on biome data
   - Theme-appropriate terrain generation
+
+#### 3.8: Legacy Dungeon System Cleanup 🧹
+
+**Remove/Convert OOP dungeon generation classes**
+
+- [ ] **3.8.1** Delete legacy interactable classes
+  - Delete `/src/dungeon/interactables/**/*.ts` (ChristmasTree, DestructibleWall, etc.)
+  - All functionality now in data definitions + InteractableFactory
+- [ ] **3.8.2** Convert room decorators to data-driven
+  - Delete `/src/dungeon/decorators/**/*.ts`  
+  - Room decoration rules now in RoomTemplates
+- [ ] **3.8.3** Convert terrain features to data-driven
+  - Delete `/src/dungeon/features/**/*.ts`
+  - Environmental effects now in BiomeDefinitions
+- [ ] **3.8.4** Convert hazards to data-driven
+  - Delete `/src/dungeon/hazards/**/*.ts`
+  - Hazard definitions now in data/mechanics.ts
+- [ ] **3.8.5** Remove door terrain types (doors are interactables)
+  - Remove `DoorOpen`, `DoorClosed`, `DoorLocked` from TerrainType
+  - Update all door references to use InteractableID.Door
+- [ ] **3.8.6** Delete legacy prefab system
+  - Delete `/src/dungeon/Prefab.ts`
+  - All prefabs now in data/prefabDefinitions.ts
+- [ ] **3.8.7** Clean up theme classes
+  - Convert `/src/dungeon/themes/*.ts` to data definitions
+  - Themes should be pure data, not classes
+- [ ] **3.8.8** Clean up biome classes  
+  - Convert `/src/dungeon/biomes/*.ts` to data definitions
+  - Biomes should be pure data, not classes
+- [ ] **3.8.9** Delete misc legacy files
+  - Delete `/src/dungeon/Trap.ts` (traps are interactables)
+  - Delete `/src/dungeon/Wreath.ts` (decorations are interactables)
 
 ### Key Architectural Improvements in Phase 3
 
@@ -342,12 +374,13 @@ level.addMob(mob);
 - [ ] **4.1.1** Verify `EventBus` handles all new events
 - [ ] **4.1.2** Add missing event types to `GameEvents.ts`
 - [ ] **4.1.3** Test event flow (spawn → update → death)
+- [ ] **4.1.4** Replace hardcoded strings with enums and fix type errors and cross-references
 
 #### 4.2: UI Integration
 
 - [ ] **4.2.1** Update HUD to show stats from `StatsComponent`
 - [ ] **4.2.2** Update Inventory to show items from `ItemDefinitions`
-- [ ] **4.2.3** Update Hotbar to use new ability system
+- [ ] **4.2.3** Update Hotbar
 - [ ] **4.2.4** Update GameJournal to listen to new events
 
 #### 4.3: Save/Load System

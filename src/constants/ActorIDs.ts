@@ -6,4 +6,7 @@ export enum ActorID {
     Snowman = 'snowman',
     SnowSprite = 'snow_sprite',
     Krampus = 'krampus',
+    SNOW_SPRITE = 'snow_sprite',
+    SNOW_GOLEM = 'snow_golem',
+    FROST_GIANT = 'frost_giant',
 }

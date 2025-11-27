@@ -19,6 +19,11 @@ export class DataManager {
     this.registerSystemDefaults();
   }
 
+  public getAllData(system: string): Record<string, any> {
+    const registry = this.registries.get(system);
+    return registry || {};
+  }
+
   // Unified query interface
   query<T>(system: string, key: string): T | null {
     const registry = this.registries.get(system);
@@ -140,6 +145,10 @@ export class DataManager {
       // Room templates - UNIFIED (Phase 3)
       const { RoomTemplateDefinitions } = require('../data/roomTemplates');
       this.registerRegistry('roomTemplate', RoomTemplateDefinitions);
+      
+      // Prefab definitions - UNIFIED (Phase 3.6)
+      const { PrefabDefinitions } = require('../data/prefabDefinitions');
+      this.registerRegistry('prefab', PrefabDefinitions);
       
       console.log('[DataManager] Registered unified data systems:', Array.from(this.registries.keys()));
     } catch (error) {

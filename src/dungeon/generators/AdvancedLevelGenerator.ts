@@ -9,9 +9,9 @@ import { FeatureGenerator } from './FeatureGenerator';
 import { GenerationContext, TileReservation } from './GenerationContext';
 import { BSPGenerator, BSPNode } from './BSPGenerator';
 // Gold and items now handled via ItemFactory and data definitions
-import { SnowPile } from '../interactables/SnowPile';
-import { ItemEntity } from '../../items/ItemEntity';
 import { InteractableGenerator } from './InteractableGenerator';
+import { RoomGenerationExecutor } from '../../systems/RoomGenerationExecutor';
+import { getRoomTemplatesForFloor } from '../../data/roomTemplates';
 
 export class AdvancedLevelGenerator implements LevelGenerator {
     private rooms: Room[] = [];
@@ -67,16 +67,16 @@ export class AdvancedLevelGenerator implements LevelGenerator {
             });
         }
 
-        // 8. Place Interactables (Doors, etc.)
-        // InteractableGenerator.generate(level, this.rooms, biome); // DISABLED FOR DEBUGGING
+        // 8. Place Interactables using data-driven approach
+        InteractableGenerator.generate(level, this.rooms, biome);
 
         // 9. Spawn Points
         this.rooms.forEach(room => {
             if (room) level.spawnPoints.push(room.center);
         });
 
-        // 10. Spawn Items
-        this.spawnItems(level, context);
+        // 10. Room population using RoomGenerationExecutor
+        this.populateRoomsWithTemplates(level, context);
 
         // Final pass: Update Graphics
         level.updateTileGraphics();
@@ -169,16 +169,36 @@ export class AdvancedLevelGenerator implements LevelGenerator {
         console.log('[AdvancedLevelGenerator] Item spawning moved to data-driven systems');
         
         // TODO: Remove this method entirely once new system is fully integrated
+    }
+
+    private populateRoomsWithTemplates(level: Level, context: GenerationContext): void {
+        const floorNumber = 1; // TODO: Get actual floor number from context
+        const availableTemplates = getRoomTemplatesForFloor(floorNumber);
+        
+        if (availableTemplates.length === 0) {
+            return;
+        }
+
+        this.rooms.forEach(room => {
+            // Select appropriate room template
+            const template = this.selectRoomTemplate(room, availableTemplates, context);
             
-            // 20% chance for a Snow Pile (Interactable) - DISABLED FOR DEBUGGING
-            // if (context.random.bool(0.2)) {
-            //     const x = context.random.integer(room.x + 1, room.x + room.width - 2);
-            //     const y = context.random.integer(room.y + 1, room.y + room.height - 2);
-            //     if (level.terrainData[x][y] === TerrainType.Floor) {
-            //         const pile = new SnowPile(ex.vec(x, y));
-            //         level.addEntity(pile); 
-            //     }
-            // }
+            if (template) {
+                const request = {
+                    room: room,
+                    template: template,
+                    floorNumber: floorNumber,
+                    level: level
+                };
+                
+                RoomGenerationExecutor.instance.populateRoom(request);
+            }
         });
+    }
+
+    private selectRoomTemplate(room: Room, templates: any[], context: GenerationContext): any {
+        // For now, select basic room template
+        // TODO: Implement proper room type selection logic
+        return templates.find(t => t.id === 'basic_room') || templates[0];
     }
 }

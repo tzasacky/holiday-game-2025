@@ -12,9 +12,11 @@ export class ItemEntity {
     public definition: ItemDefinition;
     public count: number = 1;
     public identified: boolean = true;
-    public enchantments: string[] = [];
-    public curses: string[] = [];
+    public enchantments: any[] = [];
+    public curses: any[] = [];
     public gridPos?: ex.Vector;
+    public bonusStats?: Record<string, number>;
+    public tier: number = 1;
     
     constructor(defId: string, count: number = 1) {
         const def = DataManager.instance.query<ItemDefinition>('item', defId);
@@ -42,7 +44,8 @@ export class ItemEntity {
             itemId: this.id,
             userId: userId,
             effects: this.definition.effects,
-            definition: this.definition
+            definition: this.definition,
+            bonusStats: this.bonusStats
         });
         
         // Consumables are destroyed on use
@@ -75,7 +78,8 @@ export class ItemEntity {
         let name = this.definition.name;
         
         if (this.enchantments.length > 0) {
-            name = `${this.enchantments[0]} ${name}`;
+            const enchantment = this.enchantments[0];
+            name = `${enchantment.name || enchantment} ${name}`;
         }
         
         if (this.curses.length > 0) {
@@ -93,6 +97,8 @@ export class ItemEntity {
         item.identified = this.identified;
         item.enchantments = [...this.enchantments];
         item.curses = [...this.curses];
+        item.bonusStats = this.bonusStats ? { ...this.bonusStats } : undefined;
+        item.tier = this.tier;
         return item;
     }
 }
@@ -132,6 +138,21 @@ export class ItemFactory {
             return null;
         }
     }
+
+    /**
+     * Create an item from GeneratedLoot data
+     */
+    createFromLoot(loot: any): ItemEntity | null {
+        const item = this.create(loot.itemId, loot.quantity);
+        if (item) {
+            item.identified = loot.identified;
+            item.enchantments = loot.enchantments || [];
+            item.curses = loot.curses || [];
+            item.bonusStats = loot.bonusStats;
+            item.tier = loot.tier || 1;
+        }
+        return item;
+    }
     
     /**
      * Create item at a specific position (for world drops)
@@ -153,6 +174,8 @@ export class ItemFactory {
             item.identified = data.identified ?? true;
             item.enchantments = data.enchantments ?? [];
             item.curses = data.curses ?? [];
+            item.bonusStats = data.bonusStats;
+            item.tier = data.tier || 1;
             if (data.gridPos) {
                 item.gridPos = ex.vec(data.gridPos.x, data.gridPos.y);
             }

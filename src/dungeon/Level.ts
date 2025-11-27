@@ -84,12 +84,11 @@ export class Level {
                     // Collision Logic based on TerrainType
                     // This assumes terrainData is the source of truth for collision
                     const type = this.terrainData[x][y];
-                    // Walls and Closed Doors are solid
-                    // Chasms might be solid? For now, let's say yes.
+                    // Walls and Chasms are solid. Doors are now interactables.
                     const isSolid = (type === TerrainType.Wall || 
-                        type === TerrainType.DoorClosed || 
-                        type === TerrainType.DoorLocked ||
                         type === TerrainType.Chasm);
+                    
+                    // TODO: Check for solid interactables (like closed doors) at this position
                     
                     objectTile.solid = isSolid;
                 }

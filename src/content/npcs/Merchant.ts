@@ -1,4 +1,3 @@
-import { Actor } from '../../actors/Actor';
 import * as ex from 'excalibur';
 
 export class Merchant extends Actor {

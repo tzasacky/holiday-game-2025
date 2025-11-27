@@ -6,7 +6,7 @@ import { Logger } from '../core/Logger';
 export class InventoryComponent extends ActorComponent {
     public items: ItemEntity[] = [];
     public maxSize: number;
-    private logger = Logger.getInstance();
+    private logger = Logger.instance;
     
     constructor(actor: any, config: { size?: number } = {}) {
         super(actor);

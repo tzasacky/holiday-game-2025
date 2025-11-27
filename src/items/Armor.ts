@@ -1,5 +1,4 @@
 import { Equipable } from './Equipable';
-import { Actor } from '../actors/Actor';
 
 export abstract class Armor extends Equipable {
     public defense: number = 1;

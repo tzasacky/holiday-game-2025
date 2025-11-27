@@ -1,11 +1,13 @@
 import { DataManager } from '../core/DataManager';
 import { Logger } from '../core/Logger';
+import { EventBus } from '../core/EventBus';
 import { SpawnTableExecutor } from './SpawnTableExecutor';
 import { ActorFactory } from '../factories/ActorFactory';
 import { Level } from '../dungeon/Level';
 import { Room } from '../dungeon/Room';
 import { RoomTemplate, InteractablePlacement, SpawnPointConfig } from '../data/roomTemplates';
 import { Spawner, SpawnConfig } from '../dungeon/Spawner';
+import { TerrainType } from '../data/terrain';
 import * as ex from 'excalibur';
 
 export interface RoomPopulationRequest {
@@ -24,7 +26,7 @@ export interface InteractableSpawnResult {
 
 export class RoomGenerationExecutor {
   private static _instance: RoomGenerationExecutor;
-  private logger = Logger.getInstance();
+  private logger = Logger.instance;
 
   public static get instance(): RoomGenerationExecutor {
     if (!RoomGenerationExecutor._instance) {
@@ -85,7 +87,8 @@ export class RoomGenerationExecutor {
           const spawnPointIndex = Math.floor(Math.random() * roomSpawnPoints.length);
           const spawnPoint = roomSpawnPoints.splice(spawnPointIndex, 1)[0];
           
-          const mob = Spawner.spawnMobAt(level, spawnPoint, floorNumber, guaranteedSpawn.type);
+          const spawnType = guaranteedSpawn.type === 'guardian' ? 'elite' : guaranteedSpawn.type as 'normal' | 'elite' | 'boss' | 'pack';
+          const mob = Spawner.spawnMobAt(level, spawnPoint, floorNumber, spawnType);
           if (mob) {
             this.logger.debug(`[RoomGenerationExecutor] Spawned guaranteed ${guaranteedSpawn.type} at ${spawnPoint}`);
           }
@@ -319,7 +322,7 @@ export class RoomGenerationExecutor {
     }
     
     const terrain = level.terrainData[y]?.[x];
-    return terrain && terrain.name !== 'Wall';
+    return terrain && terrain !== TerrainType.Wall;
   }
 
   private isAdjacentToWall(x: number, y: number, level: Level): boolean {
@@ -336,7 +339,7 @@ export class RoomGenerationExecutor {
       }
       
       const terrain = level.terrainData[checkY]?.[checkX];
-      return terrain && terrain.name === 'Wall';
+      return terrain && terrain === TerrainType.Wall;
     });
   }
 
@@ -420,9 +423,15 @@ export class RoomGenerationExecutor {
   }
 
   private spawnLootItem(itemId: string, position: ex.Vector, level: Level, count: number = 1): boolean {
-    // TODO: This will be implemented when we update item spawning to use ItemFactory
-    this.logger.debug(`[RoomGenerationExecutor] Would spawn ${count}x ${itemId} at ${position}`);
-    return true; // Placeholder
+    EventBus.instance.emit('item:spawn_request' as any, {
+      itemId: itemId,
+      position: position,
+      level: level,
+      count: count
+    });
+    
+    this.logger.debug(`[RoomGenerationExecutor] Spawned ${count}x ${itemId} at ${position}`);
+    return true;
   }
 
   /**

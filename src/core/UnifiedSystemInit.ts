@@ -6,6 +6,10 @@ import { ActorSpawnSystem } from '../components/ActorSpawnSystem';
 import { ComponentRegistry } from '../components/ComponentFactory';
 import { EffectExecutor } from '../systems/EffectExecutor';
 import { SpawnTableExecutor } from '../systems/SpawnTableExecutor';
+import { RoomGenerationExecutor } from '../systems/RoomGenerationExecutor';
+import { ItemSpawner } from '../systems/ItemSpawner';
+import { InteractableFactory } from '../factories/InteractableFactory';
+import { PrefabExecutor } from '../systems/PrefabExecutor';
 // import { AbilityExecutor } from '../systems/AbilityExecutor'; // DEFERRED: Abilities are vaporware
 
 export class UnifiedSystemInit {
@@ -39,15 +43,35 @@ export class UnifiedSystemInit {
         const spawnTableExecutor = SpawnTableExecutor.instance;
         console.log('[UnifiedSystemInit] SpawnTableExecutor ready');
         
-        // 5. AbilityExecutor - DEFERRED (abilities are vaporware, sprites too costly)
+        // 5. Initialize RoomGenerationExecutor (Phase 3)  
+        console.log('[UnifiedSystemInit] Initializing RoomGenerationExecutor...');
+        const roomExecutor = RoomGenerationExecutor.instance;
+        console.log('[UnifiedSystemInit] RoomGenerationExecutor ready');
+        
+        // 6. Initialize ItemSpawner (Phase 3)
+        console.log('[UnifiedSystemInit] Initializing ItemSpawner...');
+        const itemSpawner = ItemSpawner.instance;
+        console.log('[UnifiedSystemInit] ItemSpawner ready');
+        
+        // 7. Initialize InteractableFactory (Phase 3)
+        console.log('[UnifiedSystemInit] Initializing InteractableFactory...');
+        const interactableFactory = InteractableFactory.instance;
+        console.log('[UnifiedSystemInit] InteractableFactory ready');
+        
+        // 8. Initialize PrefabExecutor (Phase 3.6)
+        console.log('[UnifiedSystemInit] Initializing PrefabExecutor...');
+        const prefabExecutor = PrefabExecutor.instance;
+        console.log('[UnifiedSystemInit] PrefabExecutor ready');
+        
+        // 9. AbilityExecutor - DEFERRED (abilities are vaporware, sprites too costly)
         // console.log('[UnifiedSystemInit] Initializing AbilityExecutor...');
         // const abilityExecutor = AbilityExecutor.instance;
         // console.log('[UnifiedSystemInit] AbilityExecutor ready');
         
-        // 5. Log available component types (Stream B)
+        // 10. Log available component types (Stream B)
         console.log('[UnifiedSystemInit] Available component types:', ComponentRegistry.getRegisteredTypes());
         
-        // 6. Set up integration between Stream A and Stream B
+        // 11. Set up integration between Stream A and Stream B
         this.setupStreamIntegration();
         
         this._initialized = true;

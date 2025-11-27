@@ -1,10 +1,10 @@
 import * as ex from 'excalibur';
-import { Item } from './Item';
+import { ItemEntity } from './ItemFactory';
 import { EventBus } from '../core/EventBus';
 import { GameEventNames, InventoryChangeEvent } from '../core/GameEvents';
 
-export class Inventory extends ex.EventEmitter<any> { // Keeping generic emitter for local listeners if any, but main bus is global
-    public items: (Item | null)[];
+export class Inventory extends ex.EventEmitter<any> {
+    public items: (ItemEntity | null)[];
     public capacity: number;
 
     constructor(capacity: number = 20) {
@@ -13,10 +13,13 @@ export class Inventory extends ex.EventEmitter<any> { // Keeping generic emitter
         this.items = new Array(capacity).fill(null);
     }
 
-    public addItem(item: Item): boolean {
+    public addItem(item: ItemEntity): boolean {
         // Check for stacking
-        if (item.stackable) {
-            const existing = this.items.find(i => i !== null && i.name === item.name && i.stackable);
+        // ItemEntity doesn't have stackable property directly exposed, it's in definition
+        // But we can assume if it has count > 1 or is consumable it might be stackable.
+        // Let's check definition.
+        if (item.definition.stackable) {
+            const existing = this.items.find(i => i !== null && i.id === item.id);
             if (existing) {
                 existing.count += item.count;
                 EventBus.instance.emit(GameEventNames.InventoryChange, new InventoryChangeEvent(this, 'change', item));
@@ -33,7 +36,7 @@ export class Inventory extends ex.EventEmitter<any> { // Keeping generic emitter
         return true;
     }
 
-    public removeItem(item: Item): boolean {
+    public removeItem(item: ItemEntity): boolean {
         const index = this.items.indexOf(item);
         if (index === -1) return false;
 
@@ -42,7 +45,7 @@ export class Inventory extends ex.EventEmitter<any> { // Keeping generic emitter
         return true;
     }
 
-    public getItem(index: number): Item | null {
+    public getItem(index: number): ItemEntity | null {
         if (index < 0 || index >= this.capacity) return null;
         return this.items[index];
     }
@@ -58,7 +61,7 @@ export class Inventory extends ex.EventEmitter<any> { // Keeping generic emitter
         return true;
     }
 
-    public drop(index: number): Item | null {
+    public drop(index: number): ItemEntity | null {
         const item = this.getItem(index);
         if (!item) return null;
 
@@ -68,14 +71,14 @@ export class Inventory extends ex.EventEmitter<any> { // Keeping generic emitter
     }
 
     public hasItem(itemId: string): boolean {
-        return this.items.some(i => i !== null && (i.name === itemId || i.id === itemId));
+        return this.items.some(i => i !== null && i.id === itemId);
     }
 
-    public removeItemByName(name: string, count: number = 1): boolean {
-        const item = this.items.find(i => i !== null && (i.name === name || i.id === name));
+    public removeItemByName(id: string, count: number = 1): boolean {
+        const item = this.items.find(i => i !== null && i.id === id);
         if (!item) return false;
 
-        if (item.stackable) {
+        if (item.definition.stackable) {
             item.count -= count;
             if (item.count <= 0) {
                 this.removeItem(item);

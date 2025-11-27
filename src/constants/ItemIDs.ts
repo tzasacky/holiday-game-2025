@@ -40,6 +40,8 @@ export enum ItemID {
     // Consumables
     HotCocoa = 'hot_cocoa',
     Fruitcake = 'fruitcake',
+    Marshmallow = 'marshmallow',
+    CandyCane = 'candy_cane',
     
     // Snowball Projectiles
     Snowball = 'snowball',

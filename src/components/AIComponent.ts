@@ -1,5 +1,4 @@
 import { ActorComponent } from './ActorComponent';
-import { AIState } from '../actors/Mob'; // Keep enum for compatibility
 import * as ex from 'excalibur';
 
 export interface AIConfig {

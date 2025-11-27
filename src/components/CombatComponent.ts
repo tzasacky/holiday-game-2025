@@ -1,6 +1,5 @@
 import { ActorComponent } from './ActorComponent';
 import { GameEventNames, AttackEvent, DamageEvent } from '../core/GameEvents';
-import { DamageType } from '../mechanics/DamageType';
 
 export class CombatComponent extends ActorComponent {
     private lastAttackTime = 0;

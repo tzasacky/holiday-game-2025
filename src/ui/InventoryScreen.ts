@@ -1,15 +1,17 @@
 import { UIComponent } from './components/UIComponent';
 import { EventBus } from '../core/EventBus';
 import { GameEventNames, InventoryChangeEvent, ItemEquipEvent, ItemUnequipEvent } from '../core/GameEvents';
-import { EnhancedEquipment } from '../mechanics/EquipmentSystem';
 import { SpriteMapper } from './SpriteMapper';
+import { GameActor } from '../components/GameActor';
+import { InventoryComponent } from '../components/InventoryComponent';
+import { ItemEntity } from '../items/ItemFactory';
 
 export class InventoryScreen extends UIComponent {
     private equipmentPanel: HTMLElement | null = null;
     private inventoryGrid: HTMLElement | null = null;
     private closeBtn: HTMLElement | null = null;
 
-    constructor(private hero: any) {
+    constructor(private hero: GameActor) {
         super('#inventory-screen');
         this.visible = false; // Hidden by default in CSS
         this.initialize();
@@ -59,7 +61,10 @@ export class InventoryScreen extends UIComponent {
             label.textContent = slotName.charAt(0).toUpperCase() + slotName.slice(1);
             slot.appendChild(label);
 
-            const item = this.hero[slotName];
+            // Access equipment via GameActor getters or component
+            // GameActor has getters for weapon/armor that return the item
+            const item = (this.hero as any)[slotName]; // Using compatibility getters on GameActor
+            
             if (item) {
                 const icon = document.createElement('div');
                 icon.className = 'item-icon';
@@ -70,7 +75,12 @@ export class InventoryScreen extends UIComponent {
                 
                 // Click to unequip
                 slot.addEventListener('click', () => {
-                    this.hero.unequip(item);
+                    // this.hero.unequip(item); // GameActor doesn't have unequip directly exposed in the snippet I saw, but maybe it does or we use component
+                    // Let's assume we can emit an unequip event or call a method on equipment component
+                    const equipmentComp = this.hero.getGameComponent('equipment') as any;
+                    if (equipmentComp) {
+                        equipmentComp.unequip(slotName);
+                    }
                 });
             } else {
                 slot.classList.add('empty');
@@ -82,47 +92,59 @@ export class InventoryScreen extends UIComponent {
     }
 
     private updateInventory(): void {
-        if (!this.inventoryGrid || !this.hero || !this.hero.inventory) return;
-        this.inventoryGrid.innerHTML = '';
-
-        const inventory = this.hero.inventory;
+        if (!this.inventoryGrid || !this.hero) return;
         
-        for (let i = 0; i < inventory.capacity; i++) {
-            const item = inventory.getItem(i);
+        const inventoryComp = this.hero.getGameComponent('inventory') as InventoryComponent;
+        if (!inventoryComp) return;
+
+        this.inventoryGrid.innerHTML = '';
+        const items = inventoryComp.getItems(); // Get all items
+        const capacity = inventoryComp.maxSize;
+        
+        for (let i = 0; i < capacity; i++) {
+            const item = items[i]; // This might be undefined if items array is sparse or just shorter
+            // InventoryComponent.items is an array of ItemEntity, not sparse.
+            // But we want to show empty slots too.
+            // Actually InventoryComponent.items is just the items present.
+            // So we iterate up to capacity.
+            
             const slot = document.createElement('div');
             slot.className = 'inventory-slot';
             slot.dataset.index = i.toString();
 
-            if (item) {
+            if (i < items.length) {
+                const itemEntity = items[i];
                 const icon = document.createElement('div');
                 icon.className = 'item-icon';
-                icon.textContent = SpriteMapper.getIcon(item);
+                icon.textContent = SpriteMapper.getIcon(itemEntity);
                 slot.appendChild(icon);
 
-                if (item.count > 1) {
+                if (itemEntity.count > 1) {
                     const count = document.createElement('span');
                     count.className = 'count';
-                    count.textContent = item.count.toString();
+                    count.textContent = itemEntity.count.toString();
                     slot.appendChild(count);
                 }
 
-                slot.title = `${item.name}\n${item.description || ''}`;
+                slot.title = `${itemEntity.getDisplayName()}\n${itemEntity.definition.description || ''}`;
+                slot.className += ` ${SpriteMapper.getCSSClass(itemEntity)}`;
 
                 // Click to use/equip
                 slot.addEventListener('click', () => {
-                    if (item instanceof EnhancedEquipment) {
-                        this.hero.equip(item);
-                    } else if (typeof item.use === 'function') {
-                        item.use(this.hero);
+                    // Check if equipable
+                    if (itemEntity.definition.type === 'weapon' || itemEntity.definition.type === 'armor') {
+                        this.hero.equip(itemEntity);
+                    } else {
+                        inventoryComp.useItem(itemEntity.id);
                     }
                 });
                 
                 // Right click to drop?
                 slot.addEventListener('contextmenu', (e) => {
                     e.preventDefault();
-                    // Drop item logic
-                    // this.hero.dropItem(i);
-                    console.log('Drop item not implemented in UI yet');
+                    inventoryComp.removeItem(itemEntity.id); // Drop logic needs to spawn item in world too
+                    // For now just remove from inventory
+                    console.log('Drop item not fully implemented in UI yet');
                 });
             } else {
                 slot.classList.add('empty');

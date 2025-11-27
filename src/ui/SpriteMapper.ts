@@ -1,12 +1,13 @@
-import { Item } from '../items/Item';
+import { ItemEntity } from '../items/ItemFactory';
+import { ItemDefinition } from '../data/items';
 import { ItemID } from '../constants';
 
 export class SpriteMapper {
     // Map item names/IDs to image URLs or emoji
     // For now, we'll use emojis as placeholders, but this structure supports URLs
     
-    public static getIcon(item: Item): string {
-        const name = item.name.toLowerCase();
+    public static getIcon(item: ItemEntity | ItemDefinition): string {
+        const name = (item instanceof ItemEntity ? item.definition.name : item.name).toLowerCase();
         
         if (name.includes('potion')) return '🧪';
         if (name.includes('sword')) return '⚔️';
@@ -19,13 +20,17 @@ export class SpriteMapper {
         if (name.includes('key')) return '🔑';
         if (name.includes(ItemID.Gold) || name.includes('coin')) return '💰';
         if (name.includes('food') || name.includes('cocoa')) return '☕';
+        if (name.includes('wand')) return '🪄';
+        if (name.includes('ring')) return '💍';
+        if (name.includes('amulet')) return '🧿';
         
         return '📦'; // Default box
     }
     
-    public static getCSSClass(item: Item): string {
+    public static getCSSClass(item: ItemEntity | ItemDefinition): string {
         // Return a CSS class based on rarity or type
         // e.g. 'item-rare', 'item-legendary'
-        return 'item-common';
+        const rarity = item instanceof ItemEntity ? item.definition.rarity : item.rarity;
+        return `item-${rarity || 'common'}`;
     }
 }

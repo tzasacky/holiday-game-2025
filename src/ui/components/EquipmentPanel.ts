@@ -2,7 +2,6 @@ import * as ex from 'excalibur';
 import { UITheme } from '../UITheme';
 import { ItemSlot, ItemSlotConfig } from './ItemSlot';
 import { Item } from '../../items/Item';
-import { Hero } from '../../actors/Hero';
 
 export enum EquipmentSlotType {
     MainHand = 'mainhand',

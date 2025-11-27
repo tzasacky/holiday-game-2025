@@ -1,5 +1,5 @@
 import { Item } from './Item';
-import { Actor } from '../actors/Actor';
+
 
 export abstract class Consumable extends Item {
     // Projectile/Grenade properties

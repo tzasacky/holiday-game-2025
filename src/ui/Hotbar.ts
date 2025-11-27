@@ -1,14 +1,15 @@
 import { UIComponent } from './components/UIComponent';
 import { EventBus } from '../core/EventBus';
 import { GameEventNames, InventoryChangeEvent } from '../core/GameEvents';
-import { Item } from '../items/Item';
 import { SpriteMapper } from './SpriteMapper';
+import { GameActor } from '../components/GameActor';
+import { InventoryComponent } from '../components/InventoryComponent';
 
 export class Hotbar extends UIComponent {
     private slots: HTMLElement[] = [];
     private readonly SLOT_COUNT = 5;
 
-    constructor(private hero: any, private onInventoryToggle?: () => void) {
+    constructor(private hero: GameActor, private onInventoryToggle?: () => void) {
         super('#hotbar');
         this.initialize();
     }
@@ -65,17 +66,18 @@ export class Hotbar extends UIComponent {
     }
 
     private updateSlots(): void {
-        if (!this.hero || !this.hero.inventory) return;
+        if (!this.hero) return;
+        
+        const inventoryComp = this.hero.getGameComponent('inventory') as InventoryComponent;
+        if (!inventoryComp) return;
+
+        const items = inventoryComp.getItems();
 
         for (let i = 0; i < this.SLOT_COUNT; i++) {
-            const item = this.hero.inventory.getItem(i);
+            const item = items[i]; // May be undefined
             const slot = this.slots[i];
             
             // Clear previous content (except hotkey)
-            // Actually, let's just manage the content div or img
-            // Structure: <div class="slot"> <span class="hotkey">1</span> <img src="..."> <span class="count">5</span> </div>
-            
-            // Remove old item content (keep hotkey which is first child usually)
             // Safer to rebuild content
             const hotkey = slot.querySelector('.hotkey');
             slot.innerHTML = '';
@@ -97,25 +99,25 @@ export class Hotbar extends UIComponent {
                 }
 
                 // Tooltip
-                slot.title = `${item.name}\n${item.description || ''}`;
+                slot.title = `${item.getDisplayName()}\n${item.definition.description || ''}`;
+                slot.className = `slot ${SpriteMapper.getCSSClass(item)}`;
             } else {
                 slot.title = 'Empty';
+                slot.className = 'slot';
             }
         }
     }
 
     private handleSlotClick(index: number): void {
-        const item = this.hero.inventory.getItem(index);
+        const inventoryComp = this.hero.getGameComponent('inventory') as InventoryComponent;
+        if (!inventoryComp) return;
+
+        const items = inventoryComp.getItems();
+        const item = items[index];
+        
         if (item) {
-            console.log(`[Hotbar] Using item in slot ${index}: ${item.name}`);
-            // Use item logic
-            // item.use(this.hero); // Abstract method on Item?
-            // EnhancedEquipment has use(). Base Item might not.
-            if (typeof item.use === 'function') {
-                item.use(this.hero);
-            } else {
-                console.warn('Item has no use method:', item);
-            }
+            console.log(`[Hotbar] Using item in slot ${index}: ${item.definition.name}`);
+            inventoryComp.useItem(item.id);
         }
     }
 }

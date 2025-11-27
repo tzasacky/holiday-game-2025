@@ -1,4 +1,19 @@
-import { TerrainType } from '../dungeon/Terrain';
+import { EffectID } from '../constants/EffectIDs';
+import { InteractableID } from '../constants/InteractableIDs';
+
+export enum TerrainType {
+    Wall = 'wall',
+    Floor = 'floor',
+    Water = 'water',
+    Chasm = 'chasm',
+    // Holiday Specific
+    Ice = EffectID.Ice, // Slippery
+    DeepSnow = 'deep_snow', // Slow movement
+    Fireplace = InteractableID.Fireplace, // Warmth source
+    Decoration = 'decoration', // Blocker but visual
+    StairsDown = 'stairs_down', // Exit to next level
+    Bridge = 'bridge' // Walkable over water
+}
 
 export interface TerrainData {
     type: TerrainType;

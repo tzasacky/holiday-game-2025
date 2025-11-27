@@ -1,4 +1,13 @@
 import { EffectID } from '../constants';
+
+// Enums for mechanics (used throughout the system)
+export enum DamageType {
+    Physical = 'physical',
+    Magical = 'magical', 
+    Ice = 'ice',
+    Fire = 'fire'
+}
+
 // Data-driven game mechanics definitions
 export interface ScalingFormula {
     type: 'linear' | 'exponential' | 'logarithmic' | 'stepwise';

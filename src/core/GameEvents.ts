@@ -1,64 +1,69 @@
 import * as ex from 'excalibur';
 import { GameActor } from '../components/GameActor';
-import { Item } from '../items/Item';
-import { DamageType } from '../core/DamageType';
+import { ItemEntity } from '../items/ItemFactory';
 import { AbilityID } from '../constants';
 
-// Event Names Constants
-export const GameEventNames = {
+// Event Names Enum
+export enum GameEventNames {
     // Combat
-    Attack: 'attack',
-    Damage: 'damage',
-    Heal: AbilityID.Heal,
-    Die: 'die',
+    Attack = 'attack',
+    Damage = 'damage',
+    Heal = 'heal',
+    Die = 'die',
     
     // Items
-    ItemPickup: 'itempickup',
-    ItemDrop: 'itemdrop',
-    ItemUse: 'itemuse',
-    ItemEquip: 'itemequip',
-    ItemUnequip: 'itemunequip',
-    InventoryChange: 'inventorychange',
+    ItemPickup = 'itempickup',
+    ItemDrop = 'itemdrop',
+    ItemUse = 'itemuse',
+    ItemEquip = 'itemequip',
+    ItemUnequip = 'itemunequip',
+    InventoryChange = 'inventorychange',
+    ItemDestroyed = 'item:destroyed',
+    ItemCreated = 'item:created',
     
+    // Enchantments
+    EnchantmentApplied = 'enchantment:applied',
+    EnchantmentRemoved = 'enchantment:removed',
+
     // Stats
-    HealthChange: 'healthchange',
-    WarmthChange: 'warmthchange',
-    XpGain: 'xpgain',
-    LevelUp: 'levelup',
+    HealthChange = 'healthchange',
+    WarmthChange = 'warmthchange',
+    XpGain = 'xpgain',
+    LevelUp = 'levelup',
     
     // System
-    Log: 'log',
-    Save: 'save',
-    Load: 'load',
-    LevelChange: 'levelchange',
-    GameStart: 'gamestart',
-    GameOver: 'gameover',
+    Log = 'log',
+    Save = 'save',
+    Load = 'load',
+    LevelChange = 'levelchange',
+    GameStart = 'gamestart',
+    GameOver = 'gameover',
 
     // Registry Events
-    TerrainQuery: "terrain:query",
-    ActorConfigQuery: "actor:config:query",
-    ItemSpriteQuery: "item:sprite:query",
-    EnchantmentQuery: "enchantment:query",
-    LootQuery: "loot:query",
+    TerrainQuery = "terrain:query",
+    ActorConfigQuery = "actor:config:query",
+    ItemSpriteQuery = "item:sprite:query",
+    EnchantmentQuery = "enchantment:query",
+    LootQuery = "loot:query",
 
     // Data modification events
-    TerrainModify: "terrain:modify",
-    ActorConfigModify: "actor:config:modify",
-    BalanceModify: "balance:modify",
+    TerrainModify = "terrain:modify",
+    ActorConfigModify = "actor:config:modify",
+    BalanceModify = "balance:modify",
 
     // Registry System events
-    RegistryReload: "registry:reload",
-    RegistryError: "registry:error",
+    RegistryReload = "registry:reload",
+    RegistryError = "registry:error",
 
     // Factory events
-    ActorCreate: "actor:create",
-    ItemCreate: "item:create",
-    InteractableCreate: "interactable:create",
+    ActorCreate = "actor:create",
+    ItemCreate = "item:create",
+    InteractableCreate = "interactable:create",
     
     // Loot Events
-    LootRequest: "loot:request",
-    LootGenerated: "loot:generated",
-} as const;
+    LootRequest = "loot:request",
+    LootGenerated = "loot:generated",
+}
 
 // Event Classes
 
@@ -111,7 +116,7 @@ export class DieEvent extends ex.GameEvent<GameActor> {
 export class ItemPickupEvent extends ex.GameEvent<GameActor> {
     constructor(
         public actor: GameActor,
-        public item: Item
+        public item: ItemEntity
     ) {
         super();
         this.target = actor;
@@ -121,7 +126,7 @@ export class ItemPickupEvent extends ex.GameEvent<GameActor> {
 export class ItemDropEvent extends ex.GameEvent<GameActor> {
     constructor(
         public actor: GameActor,
-        public item: Item
+        public item: ItemEntity
     ) {
         super();
         this.target = actor;
@@ -131,7 +136,7 @@ export class ItemDropEvent extends ex.GameEvent<GameActor> {
 export class ItemUseEvent extends ex.GameEvent<GameActor> {
     constructor(
         public actor: GameActor,
-        public item: Item
+        public item: ItemEntity
     ) {
         super();
         this.target = actor;
@@ -141,7 +146,7 @@ export class ItemUseEvent extends ex.GameEvent<GameActor> {
 export class ItemEquipEvent extends ex.GameEvent<GameActor> {
     constructor(
         public actor: GameActor,
-        public item: Item,
+        public item: ItemEntity,
         public slot: string
     ) {
         super();
@@ -152,7 +157,7 @@ export class ItemEquipEvent extends ex.GameEvent<GameActor> {
 export class ItemUnequipEvent extends ex.GameEvent<GameActor> {
     constructor(
         public actor: GameActor,
-        public item: Item,
+        public item: ItemEntity,
         public slot: string
     ) {
         super();
@@ -162,10 +167,29 @@ export class ItemUnequipEvent extends ex.GameEvent<GameActor> {
 
 export class InventoryChangeEvent extends ex.GameEvent<any> {
     constructor(
-        public inventory: any, // Avoid circular dependency if possible, or use Inventory type
+        public inventory: any, 
         public action: 'add' | 'remove' | 'swap' | 'change',
-        public item?: Item,
+        public item?: ItemEntity,
         public index?: number
+    ) {
+        super();
+    }
+}
+
+// --- Enchantment Events ---
+export class EnchantmentAppliedEvent extends ex.GameEvent<any> {
+    constructor(
+        public item: ItemEntity,
+        public enchantment: any
+    ) {
+        super();
+    }
+}
+
+export class EnchantmentRemovedEvent extends ex.GameEvent<any> {
+    constructor(
+        public item: ItemEntity,
+        public enchantment: any
     ) {
         super();
     }
@@ -322,7 +346,12 @@ export type GameEventMap = {
     [GameEventNames.ItemEquip]: ItemEquipEvent;
     [GameEventNames.ItemUnequip]: ItemUnequipEvent;
     [GameEventNames.InventoryChange]: InventoryChangeEvent;
+    [GameEventNames.ItemDestroyed]: ex.GameEvent<any>;
+    [GameEventNames.ItemCreated]: ex.GameEvent<any>;
     
+    [GameEventNames.EnchantmentApplied]: EnchantmentAppliedEvent;
+    [GameEventNames.EnchantmentRemoved]: EnchantmentRemovedEvent;
+
     [GameEventNames.HealthChange]: HealthChangeEvent;
     [GameEventNames.WarmthChange]: WarmthChangeEvent;
     [GameEventNames.XpGain]: XpGainEvent;
@@ -356,3 +385,4 @@ export type GameEventMap = {
     [GameEventNames.LootRequest]: LootRequestEvent;
     [GameEventNames.LootGenerated]: LootGeneratedEvent;
 };
+

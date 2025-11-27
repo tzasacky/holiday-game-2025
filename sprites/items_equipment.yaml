@@ -1,0 +1,49 @@
+- file: items/items_equipment.png
+  output: public/assets/items/items_equipment.png
+  generate: false
+  spec:
+    cols: 8
+    rows: 4
+  expectedTotal: 20
+  prompt: |
+    ITEM ICONS SPRITESHEET - EQUIPMENT (ARMOR & ARTIFACTS)
+    SOLID COLOR BACKGROUND WITH NO GRIDLINES OR TEXT
+    STYLE: Pixel art. Vibrant and detailed. Christmas and holiday themed. 32x32.
+
+    LAYOUT: 8x8 Grid.
+
+    ROW 1 (Armor):
+    - Col 0: Cozy Sweater (green knit)
+    - Col 1: Santa Suit (legendary red suit)
+    - Col 2: Torn Santa Suit (raggedy red)
+    - Col 3: Luxury Santa Suit (rich velvet)
+    - Col 4: Magnificent Santa Suit (golden trim)
+    - Col 5: Melting Ice Plate (dripping blue)
+    - Col 6: Thick Ice Plate (solid crystal)
+    - Col 7: Eternal Ice Plate (magical shimmer)
+
+    ROW 2 (Cloaks):
+    - Col 0: Elf Cloak (green with hood)
+    - Col 1: Master Elf Cloak (ornate green)
+    - Col 2: Reindeer Hide Cloak (brown fur)
+    - Col 3: [Empty]
+    - Col 4: [Empty]
+    - Col 5: [Empty]
+    - Col 6: [Empty]
+    - Col 7: [Empty]
+
+    ROW 3 (Rings):
+    - Col 0: Ring of Frost (icy blue ring)
+    - Col 1: Ring of Warmth (red glowing ring)
+    - Col 2: Ring of Haste (golden speed ring)
+    - Col 3: Ring of Christmas Spirit (festive colors)
+    - Col 4: Ring of Elven Grace (elegant silver)
+    - Col 5: [Empty]
+    - Col 6: [Empty]
+    - Col 7: [Empty]
+
+    ROW 4 (Artifacts):
+    - Col 0: Snow Globe (glass with swirling snow)
+    - Col 1: Reindeer Bell (golden with ribbon)
+    - Col 2: Elven Compass (intricate device)
+    - Col 3: Christmas Star (shining star)

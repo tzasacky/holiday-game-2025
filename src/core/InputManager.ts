@@ -42,11 +42,13 @@ export class InputManager {
             Logger.debug("[InputManager] Mouse click detected at world pos:", evt.worldPos, "button:", evt.button);
             
             // Check if UI should handle this click first
-            this.isUIInteractionActive = this.gameScene?.isInventoryOpen() || false;
-            Logger.debug("[InputManager] UI active check:", this.isUIInteractionActive);
+            // We check if the click hit any active UI element
+            const hitUI = this.gameScene?.checkUIHit(evt.screenPos) || false;
+            this.isUIInteractionActive = hitUI;
+            
+            Logger.debug("[InputManager] UI hit check:", hitUI);
             
             // Only set click target for game world if UI isn't handling it  
-            Logger.debug("[InputManager] Checking click conditions - UI active:", this.isUIInteractionActive, "button:", evt.button, "PointerButton.Left:", ex.PointerButton.Left);
             if (!this.isUIInteractionActive && evt.button === ex.PointerButton.Left) {
                 // Convert world coordinates to tile coordinates (32px per tile)
                 const tileX = Math.floor(evt.worldPos.x / 32);
@@ -72,6 +74,13 @@ export class InputManager {
                 this.toggleInventory();
                 return;
             }
+            
+            // Handle hotbar keys (1-5)
+            if (evt.key === ex.Keys.Digit1) { this.useHotbarSlot(1); return; }
+            if (evt.key === ex.Keys.Digit2) { this.useHotbarSlot(2); return; }
+            if (evt.key === ex.Keys.Digit3) { this.useHotbarSlot(3); return; }
+            if (evt.key === ex.Keys.Digit4) { this.useHotbarSlot(4); return; }
+            if (evt.key === ex.Keys.Digit5) { this.useHotbarSlot(5); return; }
             
             // Process movement keys immediately for turn-based gameplay
             let action: GameActionType | null = null;
@@ -122,7 +131,21 @@ export class InputManager {
             (this.gameScene as any).toggleInventory();
         }
     }
+    
+    private useHotbarSlot(slotNumber: number) {
+        if (!this.gameScene) return;
+        
+        Logger.debug(`[InputManager] Using hotbar slot ${slotNumber}`);
+        // Access UIManager to get hotbar
+        const uiManager = UIManager.instance;
+        const hotbar = uiManager.getHotbar();
+        if (hotbar) {
+            hotbar.useSlot(slotNumber);
+        }
+    }
 
+    // Helper to get mouse position for movement logic in Hero
+    // Consumes the click
     // Helper to get mouse position for movement logic in Hero
     // Consumes the click
     getClickTarget(): ex.Vector | null {
@@ -142,6 +165,11 @@ export class InputManager {
         }
         Logger.debug("[InputManager] No click target available");
         return null;
+    }
+    
+    // Check if there is a pending click target without consuming it
+    hasClickTarget(): boolean {
+        return !!this.lastClickTarget && !this.isUIInteractionActive;
     }
     
     // Update UI interaction state  

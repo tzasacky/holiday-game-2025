@@ -1,43 +1,132 @@
 import * as ex from 'excalibur';
 import { UITheme } from '../UITheme';
-import { Item } from '../../items/Item';
+import { ItemEntity } from '../../factories/ItemFactory';
 
 export interface ItemSlotConfig {
     size: number;
     showCount?: boolean;
     showHotkey?: boolean;
     hotkey?: string;
-    acceptsItemType?: (item: Item) => boolean;
-    onItemClick?: (item: Item | null, slotIndex: number) => void;
-    onItemRightClick?: (item: Item | null, slotIndex: number) => void;
-    onItemDragStart?: (item: Item, slotIndex: number) => void;
-    onItemDragEnd?: (item: Item | null, slotIndex: number) => void;
+    acceptsItemType?: (item: ItemEntity) => boolean;
+    onItemClick?: (item: ItemEntity | null, slotIndex: number) => void;
+    onItemRightClick?: (item: ItemEntity | null, slotIndex: number) => void;
+    onItemDragStart?: (item: ItemEntity, slotIndex: number) => void;
+    onItemDragEnd?: (item: ItemEntity | null, slotIndex: number) => void;
 }
 
-export class ItemSlot {
-    private item: Item | null = null;
+export class ItemSlot extends ex.Actor {
     private config: ItemSlotConfig;
     private slotIndex: number;
+    private item: ItemEntity | null = null;
+    
+    // Visuals
+    private background!: ex.Rectangle;
+    private border!: ex.Rectangle;
+    private countText?: ex.Text;
+    private hotkeyText?: ex.Text;
+    
+    // State
     private isHovered: boolean = false;
     private isDragTarget: boolean = false;
     private isSelected: boolean = false;
     
-    // Visual elements
-    private background!: ex.Rectangle;
-    private border!: ex.Rectangle;
-    private hotkeyText?: ex.Text;
-    private countText?: ex.Text;
-    
     constructor(config: ItemSlotConfig, slotIndex: number = 0) {
+        super({
+            width: config.size,
+            height: config.size,
+            name: `ItemSlot-${slotIndex}`,
+        });
+        
         this.config = config;
         this.slotIndex = slotIndex;
-        
+    }
+    
+    onInitialize(engine: ex.Engine) {
         this.initializeVisuals();
+        this.setupInput();
     }
     
     private initializeVisuals() {
-        // Background
-        this.background = UITheme.createRectangle(
+        this.graphics.use(new ex.GraphicsGroup({ members: [] })); // Clear default
+        this.updateVisuals();
+    }
+    
+    
+    private setupInput() {
+        this.on('pointerenter', (evt) => {
+            console.log(`[ItemSlot-${this.slotIndex}] PointerEnter - screenPos: (${evt.screenPos.x}, ${evt.screenPos.y}), worldPos: (${evt.worldPos.x}, ${evt.worldPos.y})`);
+            this.setHovered(true);
+        });
+        
+        this.on('pointerleave', (evt) => {
+            console.log(`[ItemSlot-${this.slotIndex}] PointerLeave`);
+            this.setHovered(false);
+        });
+        
+        this.on('pointerdown', (evt) => {
+            console.log(`[ItemSlot-${this.slotIndex}] PointerDown - button: ${evt.button}, screenPos: (${evt.screenPos.x}, ${evt.screenPos.y}), this.pos: (${this.pos.x}, ${this.pos.y})`);
+            if (evt.button === ex.PointerButton.Left) {
+                this.config.onItemClick?.(this.item, this.slotIndex);
+                if (this.item) {
+                    this.config.onItemDragStart?.(this.item, this.slotIndex);
+                }
+            } else if (evt.button === ex.PointerButton.Right) {
+                this.config.onItemRightClick?.(this.item, this.slotIndex);
+            }
+        });
+        
+        this.on('pointerup', (evt) => {
+             // Drag end logic is usually handled by a global drag manager or the container
+             // But we can signal it here if needed
+        });
+    }
+
+    
+    public setItem(item: ItemEntity | null) {
+        this.item = item;
+        this.updateVisuals();
+    }
+    
+    public getItem(): ItemEntity | null {
+        return this.item;
+    }
+    
+    public isEmpty(): boolean {
+        return this.item === null;
+    }
+    
+    public canAcceptItem(item: ItemEntity): boolean {
+        if (!this.config.acceptsItemType) return true;
+        return this.config.acceptsItemType(item);
+    }
+    
+    public setHovered(hovered: boolean) {
+        this.isHovered = hovered;
+        this.updateVisuals();
+    }
+    
+    public setDragTarget(isDragTarget: boolean) {
+        this.isDragTarget = isDragTarget;
+        this.updateVisuals();
+    }
+    
+    public setSelected(selected: boolean) {
+        this.isSelected = selected;
+        this.updateVisuals();
+    }
+    
+    public handleDragEnd(item: ItemEntity | null): void {
+        this.config.onItemDragEnd?.(item, this.slotIndex);
+    }
+    
+    
+    private updateVisuals() {
+        console.log(`[ItemSlot-${this.slotIndex}] updateVisuals() called - has item: ${!!this.item}`);
+        const members: { graphic: ex.Graphic, offset: ex.Vector }[] = [];
+        
+        
+        // Background - positioned at (0, 0) from top-left
+        const bg = UITheme.createRectangle(
             this.config.size,
             this.config.size,
             {
@@ -46,226 +135,127 @@ export class ItemSlot {
                 strokeWidth: UITheme.Layout.borderWidth.thin
             }
         );
+        members.push({ graphic: bg, offset: ex.vec(0, 0) });
         
-        // Border for states (hover, drag target, etc.)
-        this.border = new ex.Rectangle({
-            width: this.config.size,
-            height: this.config.size,
-            color: ex.Color.Transparent,
-            strokeColor: UITheme.Colors.borderLight,
-            lineWidth: 2
-        });
+        // Border (State-based) - overlay on background
+        let borderColor = ex.Color.Transparent;
+        let borderWidth = 1;
         
-        // Hotkey text
+        if (this.isSelected) {
+            borderColor = UITheme.Colors.primary;
+            borderWidth = 3;
+        } else if (this.isDragTarget) {
+            borderColor = UITheme.Colors.accent;
+            borderWidth = 2;
+        } else if (this.isHovered) {
+            borderColor = UITheme.Colors.borderLight;
+            borderWidth = 2;
+        }
+        
+        if (borderColor !== ex.Color.Transparent) {
+            const border = new ex.Rectangle({
+                width: this.config.size,
+                height: this.config.size,
+                color: ex.Color.Transparent,
+                strokeColor: borderColor,
+                lineWidth: borderWidth
+            });
+            members.push({ graphic: border, offset: ex.vec(0, 0) });
+        }
+        
+        // Hotkey label - top-left corner
         if (this.config.showHotkey && this.config.hotkey) {
-            this.hotkeyText = UITheme.createText(
+            const hotkeyText = UITheme.createText(
                 this.config.hotkey,
                 'small',
                 UITheme.Colors.textMuted
             );
-        }
-    }
-    
-    public setItem(item: Item | null) {
-        this.item = item;
-        
-        // Update count text if needed
-        if (this.config.showCount && item && item.count > 1) {
-            this.countText = UITheme.createText(
-                item.count.toString(),
-                'small',
-                UITheme.Colors.text
-            );
-        } else {
-            this.countText = undefined;
-        }
-    }
-    
-    public getItem(): Item | null {
-        return this.item;
-    }
-    
-    public isEmpty(): boolean {
-        return this.item === null;
-    }
-    
-    public canAcceptItem(item: Item): boolean {
-        if (!this.config.acceptsItemType) return true;
-        return this.config.acceptsItemType(item);
-    }
-    
-    public setHovered(hovered: boolean) {
-        this.isHovered = hovered;
-        this.updateBorderState();
-    }
-    
-    public setDragTarget(isDragTarget: boolean) {
-        this.isDragTarget = isDragTarget;
-        this.updateBorderState();
-    }
-    
-    public setSelected(selected: boolean) {
-        this.isSelected = selected;
-        this.updateBorderState();
-    }
-    
-    private updateBorderState() {
-        if (this.isSelected) {
-            this.border.strokeColor = UITheme.Colors.primary;
-            this.border.lineWidth = 3;
-        } else if (this.isDragTarget) {
-            this.border.strokeColor = UITheme.Colors.accent;
-            this.border.lineWidth = 2;
-        } else if (this.isHovered) {
-            this.border.strokeColor = UITheme.Colors.borderLight;
-            this.border.lineWidth = 2;
-        } else {
-            this.border.strokeColor = ex.Color.Transparent;
-            this.border.lineWidth = 1;
-        }
-    }
-    
-    public handleClick(pos: ex.Vector, slotBounds: { x: number, y: number }): boolean {
-        if (this.isPointInSlot(pos, slotBounds)) {
-            this.config.onItemClick?.(this.item, this.slotIndex);
-            return true;
-        }
-        return false;
-    }
-    
-    public handleRightClick(pos: ex.Vector, slotBounds: { x: number, y: number }): boolean {
-        if (this.isPointInSlot(pos, slotBounds)) {
-            this.config.onItemRightClick?.(this.item, this.slotIndex);
-            return true;
-        }
-        return false;
-    }
-    
-    public handleDragStart(pos: ex.Vector, slotBounds: { x: number, y: number }): boolean {
-        if (this.isPointInSlot(pos, slotBounds) && this.item) {
-            this.config.onItemDragStart?.(this.item, this.slotIndex);
-            return true;
-        }
-        return false;
-    }
-    
-    public handleDragEnd(item: Item | null): void {
-        this.config.onItemDragEnd?.(item, this.slotIndex);
-    }
-    
-    private isPointInSlot(pos: ex.Vector, slotBounds: { x: number, y: number }): boolean {
-        return pos.x >= slotBounds.x && 
-               pos.x <= slotBounds.x + this.config.size &&
-               pos.y >= slotBounds.y && 
-               pos.y <= slotBounds.y + this.config.size;
-    }
-    
-    public draw(ctx: ex.ExcaliburGraphicsContext, x: number, y: number) {
-        // Draw background
-        this.background.draw(ctx, x, y);
-        
-        // Draw border (for states)
-        if (this.border.strokeColor !== ex.Color.Transparent) {
-            this.border.draw(ctx, x, y);
+            members.push({ graphic: hotkeyText, offset: ex.vec(4, 4) });
         }
         
-        // Draw hotkey
-        if (this.hotkeyText) {
-            this.hotkeyText.draw(ctx, x + 2, y + 2);
-        }
-        
-        // Draw item if present
+        // Item sprite or fallback
         if (this.item) {
-            this.drawItem(ctx, x, y);
-        } else {
-            this.drawEmptySlotIcon(ctx, x, y);
-        }
-        
-        // Draw count
-        if (this.countText) {
-            const countX = x + this.config.size - (this.countText.width || 15) - 2;
-            const countY = y + this.config.size - 12;
+            console.log(`[ItemSlot-${this.slotIndex}] Rendering item: ${this.item.definition.name} (ID: ${this.item.id})`);
+            const sprite = this.item.getSprite?.();
+            console.log(`[ItemSlot-${this.slotIndex}] getSprite() returned:`, sprite ? sprite.constructor.name : 'null');
             
-            // Background for count
-            ctx.drawRectangle(
-                ex.vec(countX - 1, countY - 1),
-                (this.countText.width || 15) + 2,
-                12,
-                UITheme.Colors.backgroundDark
-            );
+            if (sprite) {
+                // Center the 32x32 sprite in the slot
+                const spriteX = (this.config.size - 32) / 2;
+                const spriteY = (this.config.size - 32) / 2;
+                members.push({ graphic: sprite, offset: ex.vec(spriteX, spriteY) });
+            } else {
+                // Fallback rendering when sprite not available
+                console.warn(`[ItemSlot-${this.slotIndex}] No sprite for item '${this.item.definition.name}' (ID: ${this.item.id})`);
+                
+                // Create fallback graphic - colored rectangle with text
+                const fallbackBg = new ex.Rectangle({
+                    width: 28,
+                    height: 28,
+                    color: UITheme.Colors.panelLight.lighten(0.2)
+                });
+                
+                const nameText = UITheme.createText(
+                    this.item.definition.name.substring(0, 3).toUpperCase(),
+                    'small',
+                    UITheme.Colors.text
+                );
+                
+                // Center both the background and text
+                const fallbackX = (this.config.size - 28) / 2;
+                const fallbackY = (this.config.size - 28) / 2;
+                members.push({ graphic: fallbackBg, offset: ex.vec(fallbackX, fallbackY) });
+                
+                const textX = this.config.size / 2 - (nameText.width || 10) / 2;
+                const textY = this.config.size / 2 - 6; // Approximate text height centering
+                members.push({ graphic: nameText, offset: ex.vec(textX, textY) });
+            }
             
-            this.countText.draw(ctx, countX, countY);
-        }
-    }
-    
-    private drawItem(ctx: ex.ExcaliburGraphicsContext, x: number, y: number) {
-        if (!this.item) return;
-        
-        // Try to get item sprite
-        const sprite = this.item.getSprite?.();
-        if (sprite) {
-            // Draw sprite centered in slot
-            const spriteX = x + (this.config.size - 32) / 2; // Assuming 32px sprites
-            const spriteY = y + (this.config.size - 32) / 2;
-            sprite.draw(ctx, spriteX, spriteY);
-        } else {
-            // Fallback: draw item name abbreviation
-            const nameText = UITheme.createText(
-                this.item.name.substring(0, 3).toUpperCase(),
-                'small',
-                UITheme.Colors.text
-            );
-            const textX = x + (this.config.size - (nameText.width || 20)) / 2;
-            const textY = y + (this.config.size - 10) / 2;
-            nameText.draw(ctx, textX, textY);
-        }
-        
-        // Draw rarity indicator
-        const rarityColor = UITheme.getItemRarityColor(this.item);
-        if (rarityColor !== UITheme.Colors.common) {
-            ctx.drawRectangle(
-                ex.vec(x, y + this.config.size - 3),
-                this.config.size,
-                3,
-                rarityColor
-            );
+            // Rarity indicator bar at bottom
+            const rarityColor = UITheme.getItemRarityColor(this.item);
+            if (rarityColor !== UITheme.Colors.common) {
+                const rarityBar = new ex.Rectangle({
+                    width: this.config.size,
+                    height: 3,
+                    color: rarityColor
+                });
+                members.push({ graphic: rarityBar, offset: ex.vec(0, this.config.size - 3) });
+            }
+            
+            // Stack count badge - bottom-right corner
+            if (this.config.showCount && this.item.count > 1) {
+                const countText = UITheme.createText(
+                    this.item.count.toString(),
+                    'small',
+                    UITheme.Colors.text
+                );
+                const countX = this.config.size - (countText.width || 15) - 4;
+                const countY = this.config.size - 14;
+                
+                // Background for count
+                const countBg = new ex.Rectangle({
+                    width: (countText.width || 15) + 4,
+                    height: 14,
+                    color: UITheme.Colors.backgroundDark
+                });
+                
+                members.push({ graphic: countBg, offset: ex.vec(countX - 2, countY - 1) });
+                members.push({ graphic: countText, offset: ex.vec(countX, countY) });
+            }
         }
         
-        // Draw cursed indicator
-        if (this.item.cursed) {
-            ctx.drawCircle(
-                ex.vec(x + this.config.size - 8, y + 8),
-                4,
-                UITheme.Colors.cursed
-            );
-        }
+        // Use GraphicsGroup with useAnchor: false for consistent top-left positioning
+        console.log(`[ItemSlot-${this.slotIndex}] Setting GraphicsGroup with ${members.length} members`);
+        members.forEach((m, i) => {
+            console.log(`[ItemSlot-${this.slotIndex}]   Member ${i}: ${m.graphic.constructor.name} at offset (${m.offset.x}, ${m.offset.y})`);
+        });
         
-        // Draw identified indicator
-        if ('identified' in this.item && !this.item.identified) {
-            const qText = UITheme.createText('?', 'small', UITheme.Colors.textWarning);
-            qText.draw(ctx, x + 2, y + this.config.size - 8);
-        }
-    }
-    
-    private drawEmptySlotIcon(ctx: ex.ExcaliburGraphicsContext, x: number, y: number) {
-        // Draw subtle plus icon for empty slots
-        const centerX = x + this.config.size / 2;
-        const centerY = y + this.config.size / 2;
-        const size = 6;
+        this.graphics.use(new ex.GraphicsGroup({ 
+            members,
+            useAnchor: false // Critical: position from top-left corner
+        }));
         
-        ctx.drawLine(
-            ex.vec(centerX - size, centerY),
-            ex.vec(centerX + size, centerY),
-            UITheme.Colors.textMuted,
-            1
-        );
-        
-        ctx.drawLine(
-            ex.vec(centerX, centerY - size),
-            ex.vec(centerX, centerY + size),
-            UITheme.Colors.textMuted,
-            1
-        );
+        console.log(`[ItemSlot-${this.slotIndex}] updateVisuals() complete`);
     }
     
     // Tooltip support
@@ -276,12 +266,25 @@ export class ItemSlot {
             return this.item.getTooltipText();
         }
         
-        // Basic tooltip
         let tooltip = this.item.getDisplayName();
-        if (this.item.description) {
-            tooltip += '\n' + this.item.description;
+        if (this.item.definition.description) {
+            tooltip += '\n' + this.item.definition.description;
         }
         
         return tooltip;
+    }
+    
+    // Compatibility methods for manual interaction if needed (but prefer events)
+    public handleClick(pos: ex.Vector, slotBounds: { x: number, y: number }): boolean {
+        // Deprecated, use events
+        return false;
+    }
+    
+    public handleRightClick(pos: ex.Vector, slotBounds: { x: number, y: number }): boolean {
+        return false;
+    }
+    
+    public handleDragStart(pos: ex.Vector, slotBounds: { x: number, y: number }): boolean {
+        return false;
     }
 }

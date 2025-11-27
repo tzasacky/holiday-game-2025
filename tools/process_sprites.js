@@ -12,7 +12,7 @@ const yaml = require('js-yaml');
 
 const PROJECT_ROOT = path.join(__dirname, '..');
 const GENERATED_DIR = path.join(PROJECT_ROOT, 'generated');
-const CONFIG_PATH = path.join(PROJECT_ROOT, 'sprites.yaml');
+const CONFIG_PATH = path.join(PROJECT_ROOT, 'sprites/items_weapons.yaml');
 
 async function main() {
     console.log('🎮 Holiday Game Sprite Processor');

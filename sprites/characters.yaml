@@ -1,0 +1,171 @@
+- file: characters/hero.png
+  output: public/assets/characters/hero.png
+  generate: false
+  spec:
+    cols: 8
+    rows: 5
+  expectedTotal: 36
+  prompt: |
+    CHARACTER SPRITESHEET, SOLID COLOR BACKGROUND WITH NO GRIDLINES OR TEXT
+
+    STYLE: Pixel art. Dungeon crawler style. Cute but adventurous. 32x32
+
+    SUBJECT: A brave adventurer wearing a red Santa hat and a cozy green scarf. They are holding a small lantern.
+
+    LAYOUT: 8 frames across (columns) x 5 rows. Total of 40 frames arranged as follows:
+
+    ROW 1 - IDLE ANIMATIONS (2 frames per direction):
+    - Frames 1-2: Character facing DOWN, idle breathing animation
+    - Frames 3-4: Character facing LEFT, idle breathing animation
+    - Frames 5-6: Character facing RIGHT, idle breathing animation
+    - Frames 7-8: Character facing UP, idle breathing animation
+
+    ROW 2 - WALK ANIMATIONS (2 frames per direction):
+    - Frames 9-10: Character walking DOWN, walk cycle
+    - Frames 11-12: Character walking LEFT, walk cycle
+    - Frames 13-14: Character walking RIGHT, walk cycle
+    - Frames 15-16: Character walking UP, walk cycle
+
+    ROW 3 - MELEE ATTACK ANIMATIONS (2 frames per direction):
+    - Frames 17-18: Character attacking DOWN, attack motion
+    - Frames 19-20: Character attacking LEFT, attack motion
+    - Frames 21-22: Character attacking RIGHT, attack motion
+    - Frames 23-24: Character attacking UP, attack motion
+
+    ROW 4 - HURT ANIMATIONS (2 frames per direction):
+    - Frames 25-26: Character hurt/recoiling while facing DOWN
+    - Frames 27-28: Character hurt/recoiling while facing LEFT
+    - Frames 29-30: Character hurt/recoiling while facing RIGHT
+    - Frames 31-32: Character hurt/recoiling while facing UP
+
+    ROW 5 - DEATH ANIMATION (direction-neutral):
+    - Frames 33-36: Character death sequence (4 frames total), animation collapse from upright to grave
+
+- file: enemies/snowman.png
+  output: public/assets/enemies/snowman.png
+  generate: false
+  spec:
+    cols: 8
+    rows: 5
+  expectedTotal: 36
+  prompt: |
+    CHARACTER SPRITESHEET, SOLID COLOR BACKGROUND WITH NO GRIDLINES OR TEXT
+
+    STYLE: Pixel art. Dungeon crawler style. Cute but mischevious. 32x32
+
+    SUBJECT: An animated snowman with stick arms, a carrot nose, and an angry expression.
+
+    LAYOUT: 8 frames across (columns) x 5 rows. Total of 40 frames arranged as follows:
+
+    ROW 1 - IDLE ANIMATIONS (2 frames per direction):
+    - Frames 1-2: Character facing DOWN, idle breathing animation
+    - Frames 3-4: Character facing LEFT, idle breathing animation
+    - Frames 5-6: Character facing RIGHT, idle breathing animation
+    - Frames 7-8: Character facing UP, idle breathing animation
+
+    ROW 2 - WALK ANIMATIONS (2 frames per direction):
+    - Frames 9-10: Character walking DOWN, walk cycle
+    - Frames 11-12: Character walking LEFT, walk cycle
+    - Frames 13-14: Character walking RIGHT, walk cycle
+    - Frames 15-16: Character walking UP, walk cycle
+
+    ROW 3 - MELEE ATTACK ANIMATIONS (2 frames per direction):
+    - Frames 17-18: Character attacking DOWN, attack motion
+    - Frames 19-20: Character attacking LEFT, attack motion
+    - Frames 21-22: Character attacking RIGHT, attack motion
+    - Frames 23-24: Character attacking UP, attack motion
+
+    ROW 4 - HURT ANIMATIONS (2 frames per direction):
+    - Frames 25-26: Character hurt/recoiling while facing DOWN
+    - Frames 27-28: Character hurt/recoiling while facing LEFT
+    - Frames 29-30: Character hurt/recoiling while facing RIGHT
+    - Frames 31-32: Character hurt/recoiling while facing UP
+
+    ROW 5 - DEATH ANIMATION (direction-neutral):
+    - Frames 33-36: Character death sequence (4 frames total), animation collapse from upright to grave
+
+- file: enemies/snow_sprite.png
+  output: public/assets/enemies/snow_sprite.png
+  generate: false
+  spec:
+    cols: 8
+    rows: 5
+  expectedTotal: 36
+  prompt: |
+    CHARACTER SPRITESHEET, SOLID COLOR BACKGROUND WITH NO GRIDLINES OR TEXT
+
+    STYLE: Pixel art. Dungeon crawler style. Cute but mischievous. 32x32
+
+    SUBJECT: A small, floating ball of snow and ice with glowing blue eyes.
+
+    LAYOUT: 8 frames across (columns) x 5 rows. Total of 40 frames arranged as follows:
+
+    ROW 1 - IDLE ANIMATIONS (2 frames per direction):
+    - Frames 1-2: Character facing DOWN, idle breathing animation
+    - Frames 3-4: Character facing LEFT, idle breathing animation
+    - Frames 5-6: Character facing RIGHT, idle breathing animation
+    - Frames 7-8: Character facing UP, idle breathing animation
+
+    ROW 2 - WALK ANIMATIONS (2 frames per direction):
+    - Frames 9-10: Character walking DOWN, walk cycle
+    - Frames 11-12: Character walking LEFT, walk cycle
+    - Frames 13-14: Character walking RIGHT, walk cycle
+    - Frames 15-16: Character walking UP, walk cycle
+
+    ROW 3 - MELEE ATTACK ANIMATIONS (2 frames per direction):
+    - Frames 17-18: Character attacking DOWN, attack motion
+    - Frames 19-20: Character attacking LEFT, attack motion
+    - Frames 21-22: Character attacking RIGHT, attack motion
+    - Frames 23-24: Character attacking UP, attack motion
+
+    ROW 4 - HURT ANIMATIONS (2 frames per direction):
+    - Frames 25-26: Character hurt/recoiling while facing DOWN
+    - Frames 27-28: Character hurt/recoiling while facing LEFT
+    - Frames 29-30: Character hurt/recoiling while facing RIGHT
+    - Frames 31-32: Character hurt/recoiling while facing UP
+
+    ROW 5 - DEATH ANIMATION (direction-neutral):
+    - Frames 33-36: Character death sequence (4 frames total), animation collapse from upright to grave
+
+- file: enemies/krampus.png
+  output: public/assets/enemies/krampus.png
+  generate: false
+  spec:
+    cols: 8
+    rows: 5
+  expectedTotal: 36
+  prompt: |
+    CHARACTER SPRITESHEET, SOLID COLOR BACKGROUND WITH NO GRIDLINES OR TEXT
+
+    STYLE: Pixel art. Dungeon crawler style. Cute but mischievous. 32x32
+
+    SUBJECT: A krampus wearing a santa suit. He carries a bundle of birch branches and a sack.
+
+    LAYOUT: 8 frames across (columns) x 5 rows. Total of 40 frames arranged as follows:
+
+    ROW 1 - IDLE ANIMATIONS (2 frames per direction):
+    - Frames 1-2: Character facing DOWN, idle breathing animation
+    - Frames 3-4: Character facing LEFT, idle breathing animation
+    - Frames 5-6: Character facing RIGHT, idle breathing animation
+    - Frames 7-8: Character facing UP, idle breathing animation
+
+    ROW 2 - WALK ANIMATIONS (2 frames per direction):
+    - Frames 9-10: Character walking DOWN, walk cycle
+    - Frames 11-12: Character walking LEFT, walk cycle
+    - Frames 13-14: Character walking RIGHT, walk cycle
+    - Frames 15-16: Character walking UP, walk cycle
+
+    ROW 3 - MELEE ATTACK ANIMATIONS (2 frames per direction):
+    - Frames 17-18: Character attacking DOWN, attack motion
+    - Frames 19-20: Character attacking LEFT, attack motion
+    - Frames 21-22: Character attacking RIGHT, attack motion
+    - Frames 23-24: Character attacking UP, attack motion
+
+    ROW 4 - HURT ANIMATIONS (2 frames per direction):
+    - Frames 25-26: Character hurt/recoiling while facing DOWN
+    - Frames 27-28: Character hurt/recoiling while facing LEFT
+    - Frames 29-30: Character hurt/recoiling while facing RIGHT
+    - Frames 31-32: Character hurt/recoiling while facing UP
+
+    ROW 5 - DEATH ANIMATION (direction-neutral):
+    - Frames 33-36: Character death sequence (4 frames total), animation collapse from upright to grave

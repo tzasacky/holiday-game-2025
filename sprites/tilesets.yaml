@@ -1,0 +1,141 @@
+- file: tilesets/snowy_village_tiles.png
+  output: public/assets/tilesets/snowy_village_tiles.png
+  generate: false
+  spec:
+    cols: 8
+    rows: 3
+  expectedTotal: 24
+  prompt: |
+    **I. Core Image Parameters & Constraints (CRITICAL)**
+
+    * **Output:** Single **TILESET SPRITESHEET** only.
+    * **Content:** Only **FLOOR and WALL** tiles.
+    * **Background:** Solid, contrasting color (e.g., pure white or black). **NO GRIDLINES, NO TEXT, NO OTHER OBJECTS.**
+    * **Style:** **PERFECT PIXEL ART.** **Dungeon Crawler** aesthetic. **Top-Down Perspective.**
+    * **Theme:** **Winter Wonderland / Christmas.**
+    * **Size/Resolution:** Optimize for clear, distinct tiles suitable for a low-resolution pixel art game (e.g., 16x16 or 32x32 per tile).
+
+    ### **II. Layout Definition (ABSOLUTE CRITICALITY)**
+
+    The spritesheet must be a perfectly arranged **3x8 grid of tiles** (3 rows, 8 columns).
+
+    * **Tile Specification:** Every tile must be a **PERFECTLY SQUARE,** full-filled sprite.
+    * **Seamlessness:** **ALL** tiles must be designed to **tile perfectly** with identical copies of themselves and their neighbors in the final sheet. There must be **NO GAPS, NO BORDERS, NO SEPARATORS, and NO ANTI-ALIASING** between the sprites.
+    * **Arrangement:** The sheet must be arranged exactly as specified below:
+
+    | Row | Col 0 | Col 1 | Col 2 | Col 3 | Col 4 | Col 5 | Col 6 | Col 7 |
+    | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+    | **ROW 1: Winter Floors** | Clean Snow (Seamless) | Deep Snow (Seamless) | Packed Ice (Seamless) | Slushy Ice (Seamless) | Lake Tile (Seamless, No Shore) | Flowing Water (Frame 1) | Flowing Water (Frame 2) | Flowing Water (Frame 3) |
+    | **ROW 2: Indoor Floors** | Wood Planks (Light, Seamless) | Wood Planks (Dark, Seamless) | Red Christmas Carpet (Seamless) | Green/White Striped Carpet (Seamless) | Wood Floor Variation (Seamless) | Abstract Carpet Pattern (Seamless) | Red/Green Checkerboard (Seamless) | Frozen Wood Planks (Seamless) |
+    | **ROW 3: Walls** | Log Cabin Wall (Seamless) | Clear Ice Wall (Seamless) | Red Brick Wall (Seamless) | Stone Dungeon Wall (Seamless) | Bookshelf Wall (Seamless) | Fireplace Wall (Static, Seamless) | Window Wall (Lit Interior, Seamless) | Window Wall (Dark Exterior, Seamless) |
+
+    ### **III. Negative Prompts (Strict Exclusions)**
+
+    * **Avoid:** Grids, text, labels, labels on tiles, separation lines, borders, anti-aliasing, non-square tiles, complex perspectives, isometric views, single large image, blurry textures, gradients, non-pixel-art elements, characters, items, furniture, environment clutter.
+
+- file: tilesets/snowy_village_decor.png
+  output: public/assets/tilesets/snowy_village_decor.png
+  generate: false
+  spec:
+    cols: 8
+    rows: 5
+  expectedTotal: 40
+  prompt: |
+    **I. Core Image Parameters & Constraints (CRITICAL)**
+
+    * **Output:** Single **DECORATIVE SPRITESHEET** only.
+    * **Content:** Only **FURNITURE, PROPS, AND OBJECTS**.
+    * **Background:** Solid, contrasting color (e.g., pure white or black). **NO GRIDLINES, NO TEXT, NO OTHER OBJECTS.**
+    * **Style:** **PERFECT PIXEL ART.** **Dungeon Crawler** aesthetic. **Top-Down Perspective.**
+    * **Theme:** **Winter Wonderland / Christmas.**
+    * **Size/Resolution:** Optimize for clear, distinct sprites suitable for a low-resolution pixel art game (e.g., 32x32 per sprite).
+
+    ### **II. Layout Definition (ABSOLUTE CRITICALITY)**
+
+    The spritesheet must be a perfectly arranged **5x8 grid of sprites** (5 rows, 8 columns).
+
+    * **Sprite Specification:** Every sprite must be a **PERFECTLY SQUARE,** distinct object.
+    * **Seamlessness:** These are **individual objects**, NOT seamless tiles. However, they must be centered and clearly separated.
+    * **Arrangement:** The sheet must be arranged exactly as specified below:
+
+    | Row | Col 0 | Col 1 | Col 2 | Col 3 | Col 4 | Col 5 | Col 6 | Col 7 |
+    | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+    | **ROW 1: Rugs** | Red Rug Center | Red Rug Edge (Top) | Red Rug Corner (Top-Left) | Green Rug Center | Green Rug Edge (Top) | Green Rug Corner (Top-Left) | Rug Pattern 1 | Rug Pattern 2 |
+    | **ROW 2: Furniture** | Window (Lit) | Window (Dark) | Door (Closed) | Door (Open) | Fireplace (Lit) | Bookshelf | Table | Chair |
+    | **ROW 3: Animations** | Fireplace Frame 1 | Fireplace Frame 2 | Fireplace Frame 3 | Fireplace Frame 4 | Torch Wall Frame 1 | Torch Wall Frame 2 | Torch Wall Frame 3 | Torch Wall Frame 4 |
+    | **ROW 4: Nature** | Snowy Rock | Frozen Bush | Pine Tree (Small) | Dead Tree (Small) | Snowman Prop (Static) | Signpost | Fence (Horizontal) | Fence (Vertical) |
+    | **ROW 5: Interactables** | Campfire (Unlit) | Campfire (Lit Frame 1) | Campfire (Lit Frame 2) | Campfire (Lit Frame 3) | Lever (Left) | Lever (Right) | Pressure Plate (Up) | Pressure Plate (Down) |
+
+    ### **III. Negative Prompts (Strict Exclusions)**
+
+    * **Avoid:** Grids, text, labels, labels on tiles, separation lines, borders, anti-aliasing, non-square tiles, complex perspectives, isometric views, single large image, blurry textures, gradients, non-pixel-art elements.
+
+- file: tilesets/common_tiles.png
+  output: public/assets/tilesets/common_tiles.png
+  generate: false
+  spec:
+    cols: 8
+    rows: 3
+  expectedTotal: 24
+  prompt: |
+    **I. Core Image Parameters & Constraints (CRITICAL)**
+
+    * **Output:** Single **TILESET SPRITESHEET** only.
+    * **Content:** Only **TERRAIN AND HAZARD** tiles.
+    * **Background:** Solid, contrasting color (e.g., pure white or black). **NO GRIDLINES, NO TEXT, NO OTHER OBJECTS.**
+    * **Style:** **PERFECT PIXEL ART.** **Dungeon Crawler** aesthetic. **Top-Down Perspective.**
+    * **Size/Resolution:** Optimize for clear, distinct tiles suitable for a low-resolution pixel art game (e.g., 32x32 per tile).
+
+    ### **II. Layout Definition (ABSOLUTE CRITICALITY)**
+
+    The spritesheet must be a perfectly arranged **3x8 grid of tiles** (3 rows, 8 columns).
+
+    * **Tile Specification:** Every tile must be a **PERFECTLY SQUARE,** full-filled sprite.
+    * **Seamlessness:** **Hazard fluid tiles** (lava, water, etc.) must completely fill the 32x32 square area with seamless textures. They must tile perfectly with neighbors. No gaps or borders.
+    * **Arrangement:** The sheet must be arranged exactly as specified below:
+
+    | Row | Col 0 | Col 1 | Col 2 | Col 3 | Col 4 | Col 5 | Col 6 | Col 7 |
+    | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+    | **ROW 1: Doors & Portals** | Wooden Door (Closed) | Wooden Door (Open) | Iron Door (Closed) | Iron Door (Open) | Boss Door (Closed) | Boss Door (Open) | Archway/Passage | Barred Gate |
+    | **ROW 2: Stairs & Traps** | Stairs Up (Stone) | Stairs Down (Stone) | Stairs Up (Wood) | Stairs Down (Wood) | Bridge (Vertical) | Bridge (Horizontal) | Ladder Up | Ladder Down |
+    | **ROW 3: Hazards** | Spikes (Retracted) | Spikes (Extended) | Bear Trap (Open) | Bear Trap (Closed) | Lava/Fire Pit (Seamless) | Poison/Slime (Seamless) | Water (Seamless) | Void/Abyss (Seamless) |
+
+    ### **III. Negative Prompts (Strict Exclusions)**
+
+    * **Avoid:** Grids, text, labels, labels on tiles, separation lines, borders, anti-aliasing, non-square tiles, complex perspectives, isometric views, single large image, blurry textures, gradients, non-pixel-art elements, characters, items, furniture, environment clutter.
+
+- file: tilesets/common_decor.png
+  output: public/assets/tilesets/common_decor.png
+  generate: false
+  spec:
+    cols: 8
+    rows: 5
+  expectedTotal: 40
+  prompt: |
+    **I. Core Image Parameters & Constraints (CRITICAL)**
+
+    * **Output:** Single **DECORATIVE SPRITESHEET** only.
+    * **Content:** Only **CONTAINERS, FURNITURE, AND OBJECTS**.
+    * **Background:** Solid, contrasting color (e.g., pure white or black). **NO GRIDLINES, NO TEXT, NO OTHER OBJECTS.**
+    * **Style:** **PERFECT PIXEL ART.** **Dungeon Crawler** aesthetic. **Top-Down Perspective.**
+    * **Size/Resolution:** Optimize for clear, distinct sprites suitable for a low-resolution pixel art game (e.g., 32x32 per sprite).
+
+    ### **II. Layout Definition (ABSOLUTE CRITICALITY)**
+
+    The spritesheet must be a perfectly arranged **5x8 grid of sprites** (5 rows, 8 columns).
+
+    * **Sprite Specification:** Every sprite must be a **PERFECTLY SQUARE,** distinct object.
+    * **Seamlessness:** These are **individual objects**, NOT seamless tiles. However, they must be centered and clearly separated.
+    * **Arrangement:** The sheet must be arranged exactly as specified below:
+
+    | Row | Col 0 | Col 1 | Col 2 | Col 3 | Col 4 | Col 5 | Col 6 | Col 7 |
+    | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+    | **ROW 1: Containers** | Chest (Wood, Closed) | Chest (Wood, Open) | Chest (Gold, Closed) | Chest (Gold, Open) | Crate | Barrel | Sack | Pot/Vase |
+    | **ROW 2: Furniture** | Bed (Head) | Bed (Foot) | Table (Round) | Table (Rectangular) | Chair (Front) | Chair (Back) | Bookshelf | Cabinet |
+    | **ROW 3: Lights** | Torch (Wall) | Torch (Stand) | Candle (Lit) | Candle (Unlit) | Lantern (Hanging) | Lantern (Ground) | Chandelier | Fireplace (Lit) |
+    | **ROW 4: Holiday Decor** | Christmas Tree | Snowman Prop | Wreath | Stocking | Gift Box (Red) | Gift Box (Green) | Garland | Mistletoe |
+    | **ROW 5: Generic Items** | Key (Gold) | Key (Silver) | Potion (Red) | Potion (Blue) | Coin | Gem | Scroll | Meat/Food |
+
+    ### **III. Negative Prompts (Strict Exclusions)**
+
+    * **Avoid:** Grids, text, labels, labels on tiles, separation lines, borders, anti-aliasing, non-square tiles, complex perspectives, isometric views, single large image, blurry textures, gradients, non-pixel-art elements.

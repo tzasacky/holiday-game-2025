@@ -1,53 +1,61 @@
 import * as ex from 'excalibur';
 import { UITheme } from '../UITheme';
 import { ItemSlot, ItemSlotConfig } from './ItemSlot';
-import { Item } from '../../items/Item';
-import { Hero } from '../../actors/Hero';
+import { GameActor } from '../../components/GameActor';
+import { ItemEntity } from '../../factories/ItemFactory';
 
 export enum EquipmentSlotType {
-    MainHand = 'mainhand',
+    MainHand = 'mainHand',
     Body = 'body',
     Accessory = 'accessory'
-}
-
-export interface EquipmentSlot {
-    type: EquipmentSlotType;
-    slot: ItemSlot;
-    label: string;
-    position: ex.Vector;
 }
 
 export interface EquipmentPanelConfig {
     width: number;
     height: number;
-    onItemEquip?: (item: Item, slotType: EquipmentSlotType) => void;
-    onItemUnequip?: (item: Item, slotType: EquipmentSlotType) => void;
-    onSlotRightClick?: (slotType: EquipmentSlotType, item: Item | null) => void;
+    padding: number;
+    slotSize: number;
+    onItemEquip?: (item: ItemEntity, slotType: EquipmentSlotType) => void;
+    onItemUnequip?: (item: ItemEntity, slotType: EquipmentSlotType) => void;
+    onSlotRightClick?: (slotType: EquipmentSlotType, item: ItemEntity | null) => void;
 }
 
-export class EquipmentPanel {
+export class EquipmentPanel extends ex.Actor {
     private config: EquipmentPanelConfig;
-    private hero: Hero;
-    private slots: Map<EquipmentSlotType, EquipmentSlot> = new Map();
+    private hero: GameActor | null = null;
     
-    // Visual elements
+    // Visuals
     private background!: ex.Rectangle;
     private titleText!: ex.Text;
     
-    // Layout constants
-    private readonly SLOT_SIZE = UITheme.Layout.sizes.slotSize;
-    private readonly PADDING = UITheme.Layout.padding.medium;
+    // Slots
+    private slots: Map<EquipmentSlotType, {
+        type: EquipmentSlotType;
+        slot: ItemSlot;
+        label: string;
+        position: ex.Vector;
+    }> = new Map();
     
-    constructor(config: EquipmentPanelConfig, hero: Hero) {
-        this.config = config;
-        this.hero = hero;
+    // Layout constants
+    private readonly PADDING = 10;
+    private readonly SLOT_SIZE = 40;
+    
+    constructor(config: EquipmentPanelConfig) {
+        super({
+            width: config.width,
+            height: config.height,
+            name: 'EquipmentPanel',
+        });
         
+        this.config = config;
+    }
+    
+    onInitialize(engine: ex.Engine) {
         this.initializeVisuals();
-        this.setupEquipmentSlots();
+        this.createSlots();
     }
     
     private initializeVisuals() {
-        // Background panel
         this.background = UITheme.createRectangle(
             this.config.width,
             this.config.height,
@@ -58,15 +66,25 @@ export class EquipmentPanel {
             }
         );
         
-        // Title
-        this.titleText = UITheme.createText('Equipment', 'heading');
+        this.titleText = UITheme.createText('Equipment', 'title');
+        // Add background and title to graphics
+        const group = new ex.GraphicsGroup({
+            members: [
+                { graphic: this.background, offset: ex.vec(0, 0) },
+                { graphic: this.titleText, offset: ex.vec(this.config.padding, 15) }
+            ],
+            useAnchor: false // Position from top-left for consistent layout
+        });
+        
+        this.graphics.use(group);
     }
     
-    private setupEquipmentSlots() {
-        const slotConfigs: Array<{ type: EquipmentSlotType, label: string, position: ex.Vector }> = [
+    private createSlots() {
+        // Define slot layout
+        const slotConfigs = [
             { 
                 type: EquipmentSlotType.MainHand, 
-                label: 'Main Hand',
+                label: 'Main Hand', 
                 position: ex.vec(this.PADDING + 10, 40)
             },
             {
@@ -84,7 +102,7 @@ export class EquipmentPanel {
         slotConfigs.forEach(({ type, label, position }) => {
             const slotConfig: ItemSlotConfig = {
                 size: this.SLOT_SIZE,
-                acceptsItemType: (item: Item) => this.canEquipInSlot(item, type),
+                acceptsItemType: (item: ItemEntity) => this.canEquipInSlot(item, type),
                 onItemClick: (item, slotIndex) => this.handleSlotClick(type, item),
                 onItemRightClick: (item, slotIndex) => this.handleSlotRightClick(type, item),
                 onItemDragStart: (item, slotIndex) => this.onDragStart(type, item),
@@ -92,6 +110,23 @@ export class EquipmentPanel {
             };
             
             const slot = new ItemSlot(slotConfig, 0);
+            slot.pos = position;
+            
+            // Add label
+            const labelText = UITheme.createText(label, 'small', UITheme.Colors.textSecondary);
+            // We can add the label to the panel's graphics group or as a child actor
+            // Let's add to panel's graphics for simplicity
+            const currentGraphics = this.graphics.current as ex.GraphicsGroup;
+            if (currentGraphics) {
+                currentGraphics.members.push({
+                    graphic: labelText,
+                    offset: ex.vec(position.x, position.y - 15)
+                });
+            }
+            
+            slot.graphics.visible = false; // Start hidden, controlled by InventoryScreen
+            
+            this.addChild(slot);
             
             this.slots.set(type, {
                 type,
@@ -102,7 +137,7 @@ export class EquipmentPanel {
         });
     }
     
-    private canEquipInSlot(item: Item, slotType: EquipmentSlotType): boolean {
+    private canEquipInSlot(item: ItemEntity, slotType: EquipmentSlotType): boolean {
         const idStr = item.id.toString();
         
         switch (slotType) {
@@ -130,7 +165,7 @@ export class EquipmentPanel {
         }
     }
     
-    private handleSlotClick(slotType: EquipmentSlotType, item: Item | null) {
+    private handleSlotClick(slotType: EquipmentSlotType, item: ItemEntity | null) {
         if (item) {
             // Unequip item
             this.config.onItemUnequip?.(item, slotType);
@@ -138,22 +173,22 @@ export class EquipmentPanel {
         // If no item, slot click doesn't do anything (items are equipped by dragging)
     }
     
-    private handleSlotRightClick(slotType: EquipmentSlotType, item: Item | null) {
+    private handleSlotRightClick(slotType: EquipmentSlotType, item: ItemEntity | null) {
         this.config.onSlotRightClick?.(slotType, item);
     }
     
-    private onDragStart(slotType: EquipmentSlotType, item: Item) {
+    private onDragStart(slotType: EquipmentSlotType, item: ItemEntity) {
         // Start dragging equipped item to unequip it
         // This will be handled by the parent inventory system
     }
     
-    private handleDragEnd(slotType: EquipmentSlotType, item: Item | null) {
+    private handleDragEnd(slotType: EquipmentSlotType, item: ItemEntity | null) {
         if (item && this.canEquipInSlot(item, slotType)) {
             this.config.onItemEquip?.(item, slotType);
         }
     }
     
-    public update(hero: Hero) {
+    public updateEquipment(hero: GameActor) {
         this.hero = hero;
         
         // Update slot contents based on hero equipment
@@ -173,125 +208,11 @@ export class EquipmentPanel {
         }
     }
     
-    public handleClick(pos: ex.Vector, panelBounds: { x: number, y: number }): boolean {
-        const localPos = pos.sub(ex.vec(panelBounds.x, panelBounds.y));
-        
-        for (const [slotType, equipSlot] of this.slots) {
-            const slotBounds = {
-                x: equipSlot.position.x,
-                y: equipSlot.position.y
-            };
-            
-            if (equipSlot.slot.handleClick(localPos, slotBounds)) {
-                return true;
-            }
-        }
-        
-        return false;
-    }
+    // Compatibility methods removed
     
-    public handleRightClick(pos: ex.Vector, panelBounds: { x: number, y: number }): boolean {
-        const localPos = pos.sub(ex.vec(panelBounds.x, panelBounds.y));
-        
-        for (const [slotType, equipSlot] of this.slots) {
-            const slotBounds = {
-                x: equipSlot.position.x,
-                y: equipSlot.position.y
-            };
-            
-            if (equipSlot.slot.handleRightClick(localPos, slotBounds)) {
-                return true;
-            }
-        }
-        
-        return false;
-    }
-    
-    public handleDragStart(pos: ex.Vector, panelBounds: { x: number, y: number }): boolean {
-        const localPos = pos.sub(ex.vec(panelBounds.x, panelBounds.y));
-        
-        for (const [slotType, equipSlot] of this.slots) {
-            const slotBounds = {
-                x: equipSlot.position.x,
-                y: equipSlot.position.y
-            };
-            
-            if (equipSlot.slot.handleDragStart(localPos, slotBounds)) {
-                return true;
-            }
-        }
-        
-        return false;
-    }
-    
-    public handleDrop(pos: ex.Vector, item: Item, panelBounds: { x: number, y: number }): boolean {
-        const localPos = pos.sub(ex.vec(panelBounds.x, panelBounds.y));
-        
-        for (const [slotType, equipSlot] of this.slots) {
-            const slotBounds = {
-                x: equipSlot.position.x,
-                y: equipSlot.position.y
-            };
-            
-            // Check if drop position is over this slot
-            if (localPos.x >= slotBounds.x && 
-                localPos.x <= slotBounds.x + this.SLOT_SIZE &&
-                localPos.y >= slotBounds.y && 
-                localPos.y <= slotBounds.y + this.SLOT_SIZE) {
-                
-                if (this.canEquipInSlot(item, slotType)) {
-                    equipSlot.slot.handleDragEnd(item);
-                    return true;
-                }
-            }
-        }
-        
-        return false;
-    }
-    
-    public getHoveredSlot(pos: ex.Vector, panelBounds: { x: number, y: number }): { slotType: EquipmentSlotType, item: Item | null } | null {
-        const localPos = pos.sub(ex.vec(panelBounds.x, panelBounds.y));
-        
-        for (const [slotType, equipSlot] of this.slots) {
-            const slotBounds = {
-                x: equipSlot.position.x,
-                y: equipSlot.position.y
-            };
-            
-            if (localPos.x >= slotBounds.x && 
-                localPos.x <= slotBounds.x + this.SLOT_SIZE &&
-                localPos.y >= slotBounds.y && 
-                localPos.y <= slotBounds.y + this.SLOT_SIZE) {
-                
-                return {
-                    slotType,
-                    item: equipSlot.slot.getItem()
-                };
-            }
-        }
-        
+    public getHoveredSlot(pos: ex.Vector, panelBounds: { x: number, y: number }): { slotType: EquipmentSlotType, item: ItemEntity | null } | null {
+        // Similar to InventoryGrid, we can implement this if needed, but slots handle their own hover
         return null;
-    }
-    
-    public draw(ctx: ex.ExcaliburGraphicsContext, x: number, y: number) {
-        // Draw background
-        this.background.draw(ctx, x, y);
-        
-        // Draw title
-        this.titleText.draw(ctx, x + this.PADDING, y + 10);
-        
-        // Draw equipment slots
-        for (const [slotType, equipSlot] of this.slots) {
-            const slotX = x + equipSlot.position.x;
-            const slotY = y + equipSlot.position.y;
-            
-            // Draw slot label
-            const labelText = UITheme.createText(equipSlot.label, 'small', UITheme.Colors.textSecondary);
-            labelText.draw(ctx, slotX, slotY - 15);
-            
-            // Draw slot
-            equipSlot.slot.draw(ctx, slotX, slotY);
-        }
     }
     
     public getWidth(): number {

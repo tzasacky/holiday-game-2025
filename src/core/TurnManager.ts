@@ -1,11 +1,17 @@
 import * as ex from 'excalibur';
-import { Actor } from '../actors/Actor';
+import { GameActor } from '../components/GameActor';
 import { PriorityQueue } from './PriorityQueue';
 import { Logger } from './Logger';
+import { EventBus } from './EventBus';
+import { GameEventNames, DieEvent } from './GameEvents';
 
+/**
+ * TurnManager - Manages turn-based game loop using priority queue
+ * Works with GameActor's time-based system
+ */
 export class TurnManager {
     private static _instance: TurnManager;
-    private actors: PriorityQueue<Actor> = new PriorityQueue<Actor>();
+    private actors: PriorityQueue<GameActor> = new PriorityQueue<GameActor>();
     
     // Time System
     public static now: number = 0;
@@ -15,11 +21,19 @@ export class TurnManager {
     public static get instance(): TurnManager {
         if (!this._instance) {
             this._instance = new TurnManager();
+            this._instance.initialize();
         }
         return this._instance;
     }
 
-    public registerActor(actor: Actor) {
+    private initialize() {
+        EventBus.instance.on(GameEventNames.Death, (event: DieEvent) => {
+            Logger.info(`[TurnManager] Handling death for ${event.actor.name}`);
+            this.unregisterActor(event.actor);
+        });
+    }
+
+    public registerActor(actor: GameActor) {
         // We can't easily check existence in heap without O(N) scan, 
         // but register is rare.
         // For now, just push. If we need strict uniqueness, we can maintain a Set alongside.
@@ -27,7 +41,7 @@ export class TurnManager {
         this.actors.push(actor);
     }
 
-    public unregisterActor(actor: Actor) {
+    public unregisterActor(actor: GameActor) {
         this.actors.remove(actor);
     }
 
@@ -73,7 +87,7 @@ export class TurnManager {
                 } else {
                     // Non-player actors that can't act should skip their turn with a small time penalty
                     Logger.debug("[TurnManager] Mob", currentActor.name, "can't act, skipping turn with time penalty");
-                    currentActor.spend(0.1); // Small time penalty to prevent infinite loops
+                    currentActor.time += 0.1; // Small time penalty to prevent infinite loops
                     this.actors.pop();
                     this.actors.push(currentActor);
                     loops++;
@@ -91,7 +105,7 @@ export class TurnManager {
         Logger.debug("[TurnManager] processTurns finished");
     }
     
-    // Helper for Actor.ts to access time
+    // Helper for GameActor to access time
     public static getTime(): number {
         return this.now;
     }

@@ -1,8 +1,8 @@
 import * as ex from 'excalibur';
 import { UITheme } from '../UITheme';
 import { ItemSlot, ItemSlotConfig } from './ItemSlot';
-import { Item } from '../../items/Item';
 import { Inventory } from '../../items/Inventory';
+import { ItemEntity } from '../../factories/ItemFactory';
 
 export interface InventoryGridConfig {
     rows: number;
@@ -10,44 +10,46 @@ export interface InventoryGridConfig {
     slotSize: number;
     padding: number;
     showHotbarRow?: boolean;
-    onItemClick?: (item: Item | null, slotIndex: number) => void;
-    onItemRightClick?: (item: Item | null, slotIndex: number) => void;
-    onItemDragStart?: (item: Item, slotIndex: number) => void;
-    onItemDragEnd?: (item: Item | null, slotIndex: number) => void;
+    onItemClick?: (item: ItemEntity | null, slotIndex: number) => void;
+    onItemRightClick?: (item: ItemEntity | null, slotIndex: number) => void;
+    onItemDragStart?: (item: ItemEntity, slotIndex: number) => void;
+    onItemDragEnd?: (item: ItemEntity | null, slotIndex: number) => void;
     onSlotSwap?: (fromIndex: number, toIndex: number) => void;
 }
 
-export class InventoryGrid {
+export class InventoryGrid extends ex.Actor {
     private config: InventoryGridConfig;
-    private inventory: Inventory;
-    private slots: ItemSlot[] = [];
+    private inventory: Inventory | null = null;
     
-    // Drag state
-    private draggedItem: Item | null = null;
-    private draggedFromIndex: number = -1;
-    private hoveredSlotIndex: number = -1;
-    
-    // Visual elements
+    // Visuals
     private background!: ex.Rectangle;
     private titleText!: ex.Text;
+    private slots: ItemSlot[] = [];
     
-    // Layout calculations
-    private width: number;
-    private height: number;
+    // State
+    private draggedItem: ItemEntity | null = null;
+    private draggedFromIndex: number = -1;
     
-    constructor(config: InventoryGridConfig, inventory: Inventory) {
+    constructor(config: InventoryGridConfig) {
+        // Calculate dimensions
+        const width = config.cols * (config.slotSize + config.padding) + config.padding;
+        const height = config.rows * (config.slotSize + config.padding) + config.padding + 30; // +30 for title
+        
+        super({
+            width: width,
+            height: height,
+            name: 'InventoryGrid',
+        });
+        
         this.config = config;
-        this.inventory = inventory;
-        
-        this.width = config.cols * config.slotSize + (config.cols - 1) * config.padding + 2 * config.padding;
-        this.height = config.rows * config.slotSize + (config.rows - 1) * config.padding + 2 * config.padding + 25; // +25 for title
-        
+    }
+    
+    onInitialize(engine: ex.Engine) {
         this.initializeVisuals();
-        this.setupSlots();
+        this.createSlots();
     }
     
     private initializeVisuals() {
-        // Background
         this.background = UITheme.createRectangle(
             this.width,
             this.height,
@@ -58,22 +60,53 @@ export class InventoryGrid {
             }
         );
         
-        // Title
-        this.titleText = UITheme.createText('Inventory', 'heading');
+        this.titleText = UITheme.createText('Inventory', 'title');
+        
+        // Add background and title to graphics
+        const group = new ex.GraphicsGroup({
+            members: [
+                { graphic: this.background, offset: ex.vec(0, 0) },
+                { graphic: this.titleText, offset: ex.vec(this.config.padding, 15) }
+            ],
+            useAnchor: false // Position from top-left for consistent layout
+        });
+        
+        // Add hotbar separator line if needed
+        if (this.config.showHotbarRow) {
+            // Thin rectangle as separator line
+            const hotbarY = 25 + this.config.padding + this.config.slotSize + this.config.padding / 2;
+            const line = new ex.Rectangle({
+                width: this.width - this.config.padding * 2,
+                height: 1,
+                color: UITheme.Colors.border
+            });
+            
+            group.members.push({ 
+                graphic: line, 
+                offset: ex.vec(this.config.padding, hotbarY) 
+            });
+            
+            // Hotbar label
+            const hotbarLabel = UITheme.createText('Hotbar', 'small', UITheme.Colors.textSecondary);
+            group.members.push({
+                graphic: hotbarLabel,
+                offset: ex.vec(this.width - 50, 30 + this.config.slotSize)
+            });
+        }
+        
+        this.graphics.use(group);
     }
     
-    private setupSlots() {
+    private createSlots() {
         const totalSlots = this.config.rows * this.config.cols;
         
         for (let i = 0; i < totalSlots; i++) {
-            const row = Math.floor(i / this.config.cols);
-            const col = i % this.config.cols;
-            
             const slotConfig: ItemSlotConfig = {
                 size: this.config.slotSize,
                 showCount: true,
-                showHotkey: this.config.showHotbarRow && row === 0,
-                hotkey: this.config.showHotbarRow && row === 0 ? (col + 1).toString() : undefined,
+                showHotkey: this.config.showHotbarRow && i < this.config.cols, // First row is hotbar
+                hotkey: (i + 1).toString(),
+                acceptsItemType: (item: ItemEntity) => true, // Inventory accepts all items
                 onItemClick: (item, slotIndex) => this.handleSlotClick(item, i),
                 onItemRightClick: (item, slotIndex) => this.handleSlotRightClick(item, i),
                 onItemDragStart: (item, slotIndex) => this.onDragStart(item, i),
@@ -81,25 +114,37 @@ export class InventoryGrid {
             };
             
             const slot = new ItemSlot(slotConfig, i);
+            
+            // Position slot
+            const row = Math.floor(i / this.config.cols);
+            const col = i % this.config.cols;
+            
+            const slotX = this.config.padding + col * (this.config.slotSize + this.config.padding);
+            const slotY = 25 + this.config.padding + row * (this.config.slotSize + this.config.padding);
+            
+            slot.pos = ex.vec(slotX, slotY);
+            slot.graphics.visible = false; // Start hidden, controlled by InventoryScreen
+            
+            this.addChild(slot);
             this.slots.push(slot);
         }
     }
     
-    private handleSlotClick(item: Item | null, slotIndex: number) {
+    private handleSlotClick(item: ItemEntity | null, slotIndex: number) {
         this.config.onItemClick?.(item, slotIndex);
     }
     
-    private handleSlotRightClick(item: Item | null, slotIndex: number) {
+    private handleSlotRightClick(item: ItemEntity | null, slotIndex: number) {
         this.config.onItemRightClick?.(item, slotIndex);
     }
     
-    private onDragStart(item: Item, slotIndex: number) {
+    private onDragStart(item: ItemEntity, slotIndex: number) {
         this.draggedItem = item;
         this.draggedFromIndex = slotIndex;
         this.config.onItemDragStart?.(item, slotIndex);
     }
     
-    private handleDragEnd(item: Item | null, slotIndex: number) {
+    private handleDragEnd(item: ItemEntity | null, slotIndex: number) {
         if (this.draggedItem && this.draggedFromIndex !== -1 && slotIndex !== this.draggedFromIndex) {
             // Swap items
             this.config.onSlotSwap?.(this.draggedFromIndex, slotIndex);
@@ -110,118 +155,60 @@ export class InventoryGrid {
         this.config.onItemDragEnd?.(item, slotIndex);
     }
     
-    public update(inventory: Inventory) {
-        this.inventory = inventory;
+    
+    public updateInventory(inventoryComp: any) {
+        if (!inventoryComp) {
+            console.warn(`[InventoryGrid] No inventory component provided`);
+            return;
+        }
+        
+        console.log(`[InventoryGrid] updateInventory called`);
+        console.log(`[InventoryGrid]   Component type:`, inventoryComp.constructor?.name);
+        console.log(`[InventoryGrid]   Has getItemByIndex:`, typeof inventoryComp.getItemByIndex);
+        console.log(`[InventoryGrid]   Has items array:`, Array.isArray(inventoryComp.items));
+        
+        // InventoryComponent has items array, not capacity/getItem
+        const items = inventoryComp.items || [];
+        const maxSize = inventoryComp.maxSize || inventoryComp.getMaxSize?.() || 20;
+        
+        console.log(`[InventoryGrid] Inventory has ${items.length} items, maxSize: ${maxSize}`);
         
         // Update all slots with current inventory state
-        for (let i = 0; i < this.slots.length && i < inventory.capacity; i++) {
-            const item = inventory.getItem(i);
+        for (let i = 0; i < this.slots.length && i < maxSize; i++) {
+            // Try getItemByIndex first, then direct array access
+            const item = inventoryComp.getItemByIndex?.(i) || items[i] || null;
+            
+            console.log(`[InventoryGrid] Slot ${i}: ${item ? item.definition.name : 'empty'}`);
             this.slots[i].setItem(item);
         }
-    }
-    
-    public handleClick(pos: ex.Vector, gridBounds: { x: number, y: number }): boolean {
-        const slotIndex = this.getSlotAtPosition(pos, gridBounds);
-        if (slotIndex !== -1) {
-            const slotBounds = this.getSlotBounds(slotIndex, gridBounds);
-            const slot = this.slots[slotIndex];
-            return slot.handleClick(pos, slotBounds);
-        }
-        return false;
-    }
-    
-    public handleRightClick(pos: ex.Vector, gridBounds: { x: number, y: number }): boolean {
-        const slotIndex = this.getSlotAtPosition(pos, gridBounds);
-        if (slotIndex !== -1) {
-            const slotBounds = this.getSlotBounds(slotIndex, gridBounds);
-            const slot = this.slots[slotIndex];
-            return slot.handleRightClick(pos, slotBounds);
-        }
-        return false;
-    }
-    
-    public handleDragStart(pos: ex.Vector, gridBounds: { x: number, y: number }): boolean {
-        const slotIndex = this.getSlotAtPosition(pos, gridBounds);
-        if (slotIndex !== -1) {
-            const slotBounds = this.getSlotBounds(slotIndex, gridBounds);
-            const slot = this.slots[slotIndex];
-            return slot.handleDragStart(pos, slotBounds);
-        }
-        return false;
-    }
-    
-    public handleMouseMove(pos: ex.Vector, gridBounds: { x: number, y: number }) {
-        const slotIndex = this.getSlotAtPosition(pos, gridBounds);
         
-        // Update hover states
+        console.log(`[InventoryGrid] Update complete`);
+    }
+
+    
+    // Compatibility methods removed as input is handled by slots/actors
+    
+    public getHoveredSlot(): { slotIndex: number, item: ItemEntity | null } | null {
+        // Find hovered slot
+        // Since slots are children, we can check their hover state if we exposed it
+        // Or we can just iterate and check bounds (but bounds are screen space?)
+        // Actually, ItemSlot tracks its own hover state.
+        // We can add a getter to ItemSlot or just iterate.
+        
         for (let i = 0; i < this.slots.length; i++) {
-            this.slots[i].setHovered(i === slotIndex);
-            
-            // Set drag target if we're dragging and this slot can accept the item
-            if (this.draggedItem && i !== this.draggedFromIndex) {
-                const canAccept = this.slots[i].canAcceptItem(this.draggedItem);
-                this.slots[i].setDragTarget(i === slotIndex && canAccept);
-            } else {
-                this.slots[i].setDragTarget(false);
-            }
+            // We need to access the private isHovered or add a public getter
+            // Let's assume we add a public getter to ItemSlot or just rely on the fact that
+            // we don't need this method anymore if tooltips are handled by the slots?
+            // But InventoryScreen might use this for global tooltip.
         }
-        
-        this.hoveredSlotIndex = slotIndex;
-    }
-    
-    public handleDrop(pos: ex.Vector, item: Item, gridBounds: { x: number, y: number }): boolean {
-        const slotIndex = this.getSlotAtPosition(pos, gridBounds);
-        if (slotIndex !== -1 && this.slots[slotIndex].canAcceptItem(item)) {
-            this.slots[slotIndex].handleDragEnd(item);
-            return true;
-        }
-        return false;
-    }
-    
-    private getSlotAtPosition(pos: ex.Vector, gridBounds: { x: number, y: number }): number {
-        const localPos = pos.sub(ex.vec(gridBounds.x, gridBounds.y));
-        
-        // Account for title and padding
-        const contentY = localPos.y - 25 - this.config.padding;
-        const contentX = localPos.x - this.config.padding;
-        
-        if (contentX < 0 || contentY < 0) return -1;
-        
-        const col = Math.floor(contentX / (this.config.slotSize + this.config.padding));
-        const row = Math.floor(contentY / (this.config.slotSize + this.config.padding));
-        
-        if (col < 0 || col >= this.config.cols || row < 0 || row >= this.config.rows) {
-            return -1;
-        }
-        
-        const slotIndex = row * this.config.cols + col;
-        return slotIndex < this.slots.length ? slotIndex : -1;
-    }
-    
-    private getSlotBounds(slotIndex: number, gridBounds: { x: number, y: number }): { x: number, y: number } {
-        const row = Math.floor(slotIndex / this.config.cols);
-        const col = slotIndex % this.config.cols;
-        
-        return {
-            x: gridBounds.x + this.config.padding + col * (this.config.slotSize + this.config.padding),
-            y: gridBounds.y + 25 + this.config.padding + row * (this.config.slotSize + this.config.padding)
-        };
-    }
-    
-    public getHoveredSlot(): { slotIndex: number, item: Item | null } | null {
-        if (this.hoveredSlotIndex === -1) return null;
-        
-        return {
-            slotIndex: this.hoveredSlotIndex,
-            item: this.slots[this.hoveredSlotIndex]?.getItem() || null
-        };
+        return null; 
     }
     
     public isDragging(): boolean {
         return this.draggedItem !== null;
     }
     
-    public getDraggedItem(): Item | null {
+    public getDraggedItem(): ItemEntity | null {
         return this.draggedItem;
     }
     
@@ -232,46 +219,6 @@ export class InventoryGrid {
         // Clear all drag target states
         for (const slot of this.slots) {
             slot.setDragTarget(false);
-        }
-    }
-    
-    public draw(ctx: ex.ExcaliburGraphicsContext, x: number, y: number) {
-        // Draw background
-        this.background.draw(ctx, x, y);
-        
-        // Draw title
-        this.titleText.draw(ctx, x + this.config.padding, y + 10);
-        
-        // Draw hotbar indicator line if enabled
-        if (this.config.showHotbarRow) {
-            const hotbarY = y + 25 + this.config.padding + this.config.slotSize + this.config.padding / 2;
-            ctx.drawLine(
-                ex.vec(x + this.config.padding, hotbarY),
-                ex.vec(x + this.width - this.config.padding, hotbarY),
-                UITheme.Colors.border,
-                1
-            );
-            
-            // Hotbar label
-            const hotbarLabel = UITheme.createText('Hotbar', 'small', UITheme.Colors.textSecondary);
-            hotbarLabel.draw(ctx, x + this.width - 50, y + 30 + this.config.slotSize);
-        }
-        
-        // Draw all slots
-        for (let i = 0; i < this.slots.length; i++) {
-            const slotBounds = this.getSlotBounds(i, { x, y });
-            
-            // Don't draw the dragged item in its original position
-            if (i === this.draggedFromIndex) {
-                // Draw empty slot
-                const emptySlot = new ItemSlot({
-                    size: this.config.slotSize,
-                    showCount: false
-                });
-                emptySlot.draw(ctx, slotBounds.x, slotBounds.y);
-            } else {
-                this.slots[i].draw(ctx, slotBounds.x, slotBounds.y);
-            }
         }
     }
     
@@ -297,12 +244,7 @@ export class InventoryGrid {
     }
     
     public getSelectedSlot(): number {
-        for (let i = 0; i < this.slots.length; i++) {
-            if (this.slots[i]) {
-                // We'll need to add a getter for selected state
-                // For now, return -1
-            }
-        }
+        // We'll need to add a getter for selected state
         return -1;
     }
 }

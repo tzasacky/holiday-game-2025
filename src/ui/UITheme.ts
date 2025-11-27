@@ -113,22 +113,22 @@ export class UITheme {
     // Layout Constants
     static readonly Layout = {
         padding: {
-            small: 4,
-            medium: 8,
-            large: 12,
-            xlarge: 16
+            small: 8,
+            medium: 16,
+            large: 32,
+            xlarge: 64
         },
         
         borderRadius: {
-            small: 4,
-            medium: 6,
-            large: 8
+            small: 8,
+            medium: 16,
+            large: 32
         },
         
         borderWidth: {
-            thin: 1,
-            medium: 2,
-            thick: 3
+            thin: 2,
+            medium: 4,
+            thick: 8
         },
         
         spacing: {

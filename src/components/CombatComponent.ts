@@ -1,39 +1,65 @@
 import { ActorComponent } from './ActorComponent';
-import { GameEventNames, AttackEvent, DamageEvent } from '../core/GameEvents';
+import { GameEventNames, AttackEvent, DamageEvent, DamageDealtEvent, StatModifyEvent, DieEvent, LogEvent } from '../core/GameEvents';
 import { DamageType } from '../data/mechanics';
+import { StatsComponent } from './StatsComponent';
+import { EquipmentComponent } from './EquipmentComponent';
+import { GameActor } from './GameActor';
+import { EventBus } from '../core/EventBus';
+import { Logger } from '../core/Logger';
+import { TurnManager } from '../core/TurnManager';
 
 export class CombatComponent extends ActorComponent {
     private lastAttackTime = 0;
     
     protected setupEventListeners(): void {
         // Listen for combat commands
-        this.listen('combat:attack', (event) => {
-            if (event.attackerId === this.actor.entityId) {
-                this.handleAttack(event.targetId);
+        this.listen(GameEventNames.Attack, (event: AttackEvent) => {
+            // Check if we are the attacker (event.attacker is GameActor)
+            if (event.attacker === this.actor) {
+                // If the event is already fully formed with a target, we don't need to do anything
+                // But if this is a command to attack, we might need to handle it.
+                // Actually, AttackEvent seems to be the RESULT of an attack initiation.
+                // Let's assume we listen for a command or input that triggers handleAttack.
+                // But the original code listened for 'combat:attack' with attackerId.
+                // If we use strict events, we should probably have an AttackRequestEvent or similar.
+                // For now, let's keep the logic but check event properties.
+                
+                // If event.target is set, we're good.
             }
         });
         
-        this.listen('combat:take_damage', (event) => {
-            if (event.targetId === this.actor.entityId) {
-                this.handleTakeDamage(event.damage, event.damageType || DamageType.Physical, event.sourceId);
+        // We need a way to trigger attacks. Usually Input or AI triggers it.
+        // They should call handleAttack directly or emit an event.
+        
+        // Listen for damage requests (using a specific event name for requests if needed, or reusing DamageEvent if it's a request)
+        // Original code used 'combat:take_damage'. Let's use GameEventNames.Damage for the request/notification.
+        // But GameEventNames.Damage maps to DamageEvent which has a target.
+        this.listen(GameEventNames.Damage, (event: DamageEvent) => {
+            if (event.target === this.actor) {
+                this.handleTakeDamage(event.damage, event.type, event.source, event.isCounterAttack);
             }
         });
         
         // Listen for death events
-        this.listen('actor:death', (event) => {
-            if (this.isForThisActor(event)) {
+        this.listen(GameEventNames.Death, (event: DieEvent) => {
+            if (event.actor === this.actor) {
                 this.handleDeath();
             }
         });
     }
     
+    private getActorById(id: string): GameActor | undefined {
+        if (!this.actor.scene) return undefined;
+        return this.actor.scene.actors.find(a => (a as any).entityId === id || a.name === id) as GameActor;
+    }
+    
     private calculateDamage(): number {
         // Get base damage from actor's stats
-        const statsComp = this.actor.getGameComponent('stats') as any;
-        let baseDamage = statsComp ? (statsComp.strength || 10) : 10;
+        const statsComp = this.actor.getGameComponent<StatsComponent>('stats');
+        let baseDamage = statsComp ? (statsComp.getStat('strength') || 10) : 10;
         
         // Add equipment bonuses
-        const equipmentComp = this.actor.getGameComponent('equipment') as any;
+        const equipmentComp = this.actor.getGameComponent<EquipmentComponent>('equipment');
         if (equipmentComp) {
             const weapon = equipmentComp.getEquipment('weapon');
             if (weapon && weapon.definition.stats?.damage) {
@@ -48,31 +74,45 @@ export class CombatComponent extends ActorComponent {
         return Math.max(1, Math.floor(baseDamage * multiplier));
     }
     
-    private handleAttack(targetId: string): void {
+    // Public method to initiate attack
+    public attack(targetId: string, isCounterAttack: boolean = false): void {
+        this.handleAttack(targetId, isCounterAttack);
+    }
+    
+    private handleAttack(targetId: string, isCounterAttack: boolean = false): void {
         const now = Date.now();
-        if (now - this.lastAttackTime < 500) return; // Attack cooldown
-        this.lastAttackTime = now;
+        if (!isCounterAttack && now - this.lastAttackTime < 500) return; // Attack cooldown (skip for counter-attacks)
+        if (!isCounterAttack) this.lastAttackTime = now;
+        
+        // Resolve target
+        const target = this.getActorById(targetId);
+        if (!target) {
+            console.warn(`[CombatComponent] Could not find target ${targetId}`);
+            return;
+        }
         
         // Calculate damage
         const damage = this.calculateDamage();
         
         // Emit attack event
-        this.emit(GameEventNames.Attack, new AttackEvent(
+        EventBus.instance.emit(GameEventNames.Attack, new AttackEvent(
             this.actor,
-            { entityId: targetId } as any, // Target will be resolved by the system
-            damage
+            target,
+            damage,
+            isCounterAttack
         ));
         
         // Send damage to target
-        this.emit('combat:take_damage', {
-            targetId: targetId,
-            damage: damage,
-            damageType: DamageType.Physical,
-            sourceId: this.actor.entityId
-        });
+        EventBus.instance.emit(GameEventNames.Damage, new DamageEvent(
+            target,
+            damage,
+            DamageType.Physical,
+            this.actor,
+            isCounterAttack
+        ));
     }
     
-    private handleTakeDamage(amount: number, type: DamageType, sourceId?: string): void {
+    private handleTakeDamage(amount: number, type: DamageType, source?: GameActor, isCounterAttack: boolean = false): void {
         // Calculate final damage with defense
         let finalDamage = amount;
         if (type === DamageType.Physical) {
@@ -81,59 +121,68 @@ export class CombatComponent extends ActorComponent {
         }
         
         // Apply damage to HP
-        this.emit('stat:modify', {
-            actorId: this.actor.entityId,
-            stat: 'hp',
-            delta: -finalDamage
-        });
-        
-        // Emit damage event for UI/effects
-        this.emit(GameEventNames.Damage, new DamageEvent(
+        EventBus.instance.emit(GameEventNames.StatModify, new StatModifyEvent(
             this.actor,
-            finalDamage,
-            type,
-            sourceId ? { entityId: sourceId } as any : undefined
+            'hp',
+            -finalDamage,
+            'flat'
         ));
         
-        // Show damage visual effect
-        this.emit('vfx:damage_number', {
-            actorId: this.actor.entityId,
-            damage: finalDamage,
-            type: type
-        });
+        // Emit damage dealt event (result)
+        EventBus.instance.emit(GameEventNames.DamageDealt, new DamageDealtEvent(
+            this.actor,
+            finalDamage,
+            source,
+            type
+        ));
         
         // Check for death
-        const hp = this.actor.getComponent('stats')?.getStat('hp') ?? 0;
-        if (hp <= 0) {
-            this.emit('actor:death', {
-                actorId: this.actor.entityId,
-                killerId: sourceId
-            });
+        const statsComp = this.actor.getGameComponent<StatsComponent>('stats');
+        const hp = statsComp?.getStat('hp') ?? 0;
+        
+        if (hp - finalDamage <= 0) {
+             EventBus.instance.emit(GameEventNames.Death, new DieEvent(
+                this.actor,
+                source
+            ));
+        } else if (source && !isCounterAttack && type === DamageType.Physical) {
+            // Counter-attack logic
+            // Only counter if source is adjacent and it wasn't a counter-attack itself
+            const dist = this.actor.gridPos.distance(source.gridPos);
+            if (dist <= 1.5) {
+                Logger.debug(`[CombatComponent] ${this.actor.name} counter-attacking ${source.name}`);
+                this.attack(source.entityId, true);
+            }
         }
     }
     
     private handleDeath(): void {
-        this.emit(GameEventNames.Die, {
-            actor: this.actor,
-            killer: undefined // TODO: resolve killer
-        });
+        Logger.info(`[CombatComponent] Handling death for ${this.actor.name}`);
+        
+        // Visual cleanup
+        this.actor.actions.clearActions();
+        this.actor.graphics.opacity = 0.5; // Fade out effect
         
         // Remove actor after brief delay
         setTimeout(() => {
             this.actor.kill();
-        }, 100);
+            Logger.info(`[CombatComponent] Killed ${this.actor.name}`);
+        }, 500);
     }
     
     getTotalDamage(): number {
-        const statsComponent = this.actor.getComponent('stats');
+        const statsComponent = this.actor.getGameComponent<StatsComponent>('stats');
         if (!statsComponent) return 0;
         
         let damage = statsComponent.getStat('strength');
         
         // Add weapon damage
-        const weapon = this.actor.weapon; // Compatibility getter
-        if (weapon && weapon.getFinalStats) {
-            damage += weapon.getFinalStats().damage || 0;
+        const equipmentComp = this.actor.getGameComponent<EquipmentComponent>('equipment');
+        if (equipmentComp) {
+            const weapon = equipmentComp.getEquipment('weapon');
+            if (weapon && weapon.definition.stats?.damage) {
+                damage += weapon.definition.stats.damage;
+            }
         }
         
         // TODO: Add effect modifiers
@@ -141,16 +190,19 @@ export class CombatComponent extends ActorComponent {
     }
     
     getTotalDefense(): number {
-        const statsComponent = this.actor.getComponent('stats');
+        const statsComponent = this.actor.getGameComponent<StatsComponent>('stats');
         if (!statsComponent) return 0;
         
         let defense = statsComponent.getStat('defense');
         defense += statsComponent.getStat('dexterity') / 2;
         
         // Add armor defense
-        const armor = this.actor.armor; // Compatibility getter
-        if (armor && armor.getFinalStats) {
-            defense += armor.getFinalStats().defense || 0;
+        const equipmentComp = this.actor.getGameComponent<EquipmentComponent>('equipment');
+        if (equipmentComp) {
+            const armor = equipmentComp.getEquipment('armor');
+            if (armor && armor.definition.stats?.defense) {
+                defense += armor.definition.stats.defense;
+            }
         }
         
         return Math.max(0, defense);

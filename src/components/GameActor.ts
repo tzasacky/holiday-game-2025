@@ -2,7 +2,7 @@ import * as ex from 'excalibur';
 import { GameEntity } from '../core/GameEntity';
 import { ActorComponent } from './ActorComponent';
 import { EventBus } from '../core/EventBus';
-import { GameEventNames, ActorSpendTimeEvent } from '../core/GameEvents';
+import { GameEventNames, ActorSpendTimeEvent, ActorTurnEvent } from '../core/GameEvents';
 import { GraphicsManager } from '../data/graphics';
 import { ComponentType } from '../constants/RegistryKeys';
 import { Logger } from '../core/Logger';
@@ -109,11 +109,23 @@ export class GameActor extends GameEntity {
 
     // Turn system - ONLY method
     async act(): Promise<boolean> {
-        console.log('[GameActor] Emitting ActorTurn event for:', this.name);
-        EventBus.instance.emit(GameEventNames.ActorTurn, { 
-            actorId: this.entityId,
-            actor: this 
-        });
+        // If this is a player, check if we have input ready
+        if (this.isPlayer) {
+            const playerInput = this.getGameComponent(ComponentType.PLAYER_INPUT) as any;
+            if (playerInput && typeof playerInput.hasPendingAction === 'function') {
+                if (!playerInput.hasPendingAction()) {
+                    // Player needs to wait for input
+                    // We still emit ActorTurn to let listeners know it's their turn (e.g. to update UI)
+                    // But we return false to tell TurnManager to pause
+                    Logger.debug('[GameActor] Player waiting for input, returning false from act()');
+                    EventBus.instance.emit(GameEventNames.ActorTurn, new ActorTurnEvent(this));
+                    return false;
+                }
+            }
+        }
+
+        Logger.debug('[GameActor] Emitting ActorTurn event for:', this.name);
+        EventBus.instance.emit(GameEventNames.ActorTurn, new ActorTurnEvent(this));
         return true;
     }
     
@@ -132,5 +144,15 @@ export class GameActor extends GameEntity {
         
         // Listen for time spending events from components - use a more direct approach
         this.setupTimeEventListener();
+    }
+
+    private setupTimeEventListener(): void {
+        EventBus.instance.on(GameEventNames.ActorSpendTime, (event: ActorSpendTimeEvent) => {
+            // Check if this event is for us (by entityId or name)
+            if (event.actorId === this.entityId || event.actorId === this.name) {
+                this.time += event.time;
+                Logger.debug(`[GameActor] ${this.name} spent ${event.time} time. Total: ${this.time}`);
+            }
+        });
     }
 }

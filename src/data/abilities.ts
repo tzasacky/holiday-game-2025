@@ -1,79 +1,79 @@
-// TODO: Implement this system
-// import { AbilityID } from '../constants';
-// import { EffectID } from '../constants';
-// export enum AbilityType {
-//     HEALING = 'healing',
-//     DAMAGE = 'damage',
-//     BUFF = 'buff',
-//     DEBUFF = 'debuff',
-//     UTILITY = 'utility',
-//     MOVEMENT = 'movement',
-//     SUMMONING = 'summoning'
-// }
+import { AbilityID } from '../constants';
+import { EffectID } from '../constants';
 
-// export enum TargetType {
-//     SELF = 'self',
-//     SINGLE_ENEMY = 'single_enemy',
-//     SINGLE_ALLY = 'single_ally',
-//     SINGLE_ANY = 'single_any',
-//     ALL_ENEMIES = 'all_enemies',
-//     ALL_ALLIES = 'all_allies',
-//     AREA = 'area',
-//     LINE = 'line',
-//     NONE = 'none'
-// }
+export enum AbilityType {
+    HEALING = 'healing',
+    DAMAGE = 'damage',
+    BUFF = 'buff',
+    DEBUFF = 'debuff',
+    UTILITY = 'utility',
+    MOVEMENT = 'movement',
+    SUMMONING = 'summoning'
+}
 
-// export interface AbilityEffect {
-//     type: string; // AbilityID.Heal, 'damage', 'buff_stat', 'debuff_stat', 'apply_condition', etc.
-//     value: number;
-//     duration?: number;
-//     damageType?: string;
-//     statName?: string;
-//     conditionId?: string;
-//     scaling?: {
-//         stat: string; // What stat to scale with
-//         ratio: number; // Multiplier
-//     };
-// }
+export enum TargetType {
+    SELF = 'self',
+    SINGLE_ENEMY = 'single_enemy',
+    SINGLE_ALLY = 'single_ally',
+    SINGLE_ANY = 'single_any',
+    ALL_ENEMIES = 'all_enemies',
+    ALL_ALLIES = 'all_allies',
+    AREA = 'area',
+    LINE = 'line',
+    NONE = 'none'
+}
 
-// export interface AbilityCost {
-//     type: 'energy' | 'health' | 'warmth' | 'item';
-//     amount: number;
-//     itemId?: string;
-// }
+export interface AbilityEffect {
+    type: string; // AbilityID.Heal, 'damage', 'buff_stat', 'debuff_stat', 'apply_condition', etc.
+    value: number;
+    duration?: number;
+    damageType?: string;
+    statName?: string;
+    conditionId?: string;
+    scaling?: {
+        stat: string; // What stat to scale with
+        ratio: number; // Multiplier
+    };
+}
 
-// export interface AbilityDefinition {
-//     id: string;
-//     name: string;
-//     description: string;
-//     type: AbilityType;
-//     targetType: TargetType;
+export interface AbilityCost {
+    type: 'energy' | 'health' | 'warmth' | 'item';
+    amount: number;
+    itemId?: string;
+}
+
+export interface AbilityDefinition {
+    id: string;
+    name: string;
+    description: string;
+    type: AbilityType;
+    targetType: TargetType;
     
-//     // Costs and limitations
-//     costs: AbilityCost[];
-//     cooldown: number;
-//     range?: number;
-//     areaRadius?: number;
+    // Costs and limitations
+    costs: AbilityCost[];
+    cooldown: number;
+    range?: number;
+    areaRadius?: number;
     
-//     // Effects
-//     effects: AbilityEffect[];
+    // Effects
+    effects: AbilityEffect[];
     
-//     // Requirements
-//     requiredLevel?: number;
-//     requiredClass?: string;
-//     requiredItems?: string[];
+    // Requirements
+    requiredLevel?: number;
+    requiredClass?: string;
+    requiredItems?: string[];
     
-//     // Visual/Audio
-//     animation?: string;
-//     sound?: string;
-//     particleEffect?: string;
+    // Visual/Audio
+    animation?: string;
+    sound?: string;
+    particleEffect?: string;
     
-//     // Availability
-//     tags: string[];
-//     learnableByClasses?: string[];
-//     scrollable?: boolean; // Can be used from scroll
-//     artifactBound?: boolean; // Requires specific artifact
-// }
+    // Availability
+    tags: string[];
+    learnableByClasses?: string[];
+    scrollable?: boolean; // Can be used from scroll
+    artifactBound?: boolean; // Requires specific artifact
+}
 
 // // Data-driven ability definitions
 // export const AbilityDefinitions: Record<AbilityID, AbilityDefinition> = {

@@ -1,321 +1,245 @@
-import { EventBus } from '../core/EventBus';
-import { Logger } from '../core/Logger';
-import { CollisionSystem } from './CollisionSystem';
-import { Level } from '../dungeon/Level';
 import * as ex from 'excalibur';
+import { Logger } from '../core/Logger';
+import { Level } from '../dungeon/Level';
 
-export interface PathfindingRequest {
-  actorId: string;
-  start: ex.Vector;
-  goal: ex.Vector;
-  level: Level;
-  options?: {
+export interface PathOptions {
     maxDistance?: number;
-    avoidActors?: boolean;
     allowDiagonal?: boolean;
-    canInteract?: boolean;
-  };
-}
-
-export interface PathfindingResult {
-  actorId: string;
-  path: ex.Vector[];
-  success: boolean;
-  reason?: string;
-  cost: number;
 }
 
 interface PathNode {
-  position: ex.Vector;
-  gCost: number; // Distance from start
-  hCost: number; // Distance to goal (heuristic)
-  fCost: number; // gCost + hCost
-  parent?: PathNode;
+    position: ex.Vector;
+    gCost: number; // Distance from start
+    hCost: number; // Heuristic distance to goal
+    fCost: number; // gCost + hCost
+    parent?: PathNode;
 }
 
+/**
+ * Synchronous pathfinding system using A*
+ * No events, no async - just fast pathfinding
+ */
 export class PathfindingSystem {
-  private static _instance: PathfindingSystem;
+    private static _instance: PathfindingSystem;
 
-
-  public static get instance(): PathfindingSystem {
-    if (!PathfindingSystem._instance) {
-      PathfindingSystem._instance = new PathfindingSystem();
+    public static get instance(): PathfindingSystem {
+        if (!PathfindingSystem._instance) {
+            PathfindingSystem._instance = new PathfindingSystem();
+        }
+        return PathfindingSystem._instance;
     }
-    return PathfindingSystem._instance;
-  }
 
-  private constructor() {
-    this.setupEventListeners();
-  }
+    private constructor() {}
 
-  private setupEventListeners(): void {
-    EventBus.instance.on('pathfinding:request' as any, (event: PathfindingRequest) => {
-      this.handlePathfindingRequest(event);
-    });
-  }
+    /**
+     * Find a path from start to goal
+     * Returns array of positions (excluding start position) or null if no path
+     */
+    public findPath(
+        start: ex.Vector,
+        goal: ex.Vector,
+        level: Level,
+        actorId: string,
+        options: PathOptions = {}
+    ): ex.Vector[] | null {
+        const opts = {
+            maxDistance: options.maxDistance ?? 50,
+            allowDiagonal: options.allowDiagonal ?? false
+        };
 
-  private async handlePathfindingRequest(request: PathfindingRequest): Promise<void> {
-    const { actorId, start, goal, level, options = {} } = request;
-    
-    // Default options
-    const opts = {
-      maxDistance: 50,
-      avoidActors: true,
-      allowDiagonal: false,
-      canInteract: true,
-      ...options
-    };
-
-    try {
-      const path = await this.findPath(start, goal, level, actorId, opts);
-      
-      const result: PathfindingResult = {
-        actorId,
-        path,
-        success: path.length > 0,
-        cost: path.length,
-        reason: path.length === 0 ? 'No valid path found' : undefined
-      };
-
-      EventBus.instance.emit('pathfinding:result' as any, result);
-      
-    } catch (error) {
-      const result: PathfindingResult = {
-        actorId,
-        path: [],
-        success: false,
-        reason: `Pathfinding error: ${error}`,
-        cost: Infinity
-      };
-
-      EventBus.instance.emit('pathfinding:result' as any, result);
-    }
-  }
-
-  private async findPath(
-    start: ex.Vector, 
-    goal: ex.Vector, 
-    level: Level, 
-    actorId: string, 
-    options: any
-  ): Promise<ex.Vector[]> {
-    const openSet: PathNode[] = [];
-    const closedSet: Set<string> = new Set();
-    
-    const startNode: PathNode = {
-      position: start,
-      gCost: 0,
-      hCost: this.getDistance(start, goal),
-      fCost: 0
-    };
-    startNode.fCost = startNode.gCost + startNode.hCost;
-    
-    openSet.push(startNode);
-
-    while (openSet.length > 0) {
-      // Get node with lowest fCost
-      openSet.sort((a, b) => a.fCost - b.fCost);
-      const currentNode = openSet.shift()!;
-      
-      const posKey = `${currentNode.position.x},${currentNode.position.y}`;
-      closedSet.add(posKey);
-
-      // Check if we reached the goal
-      if (currentNode.position.equals(goal)) {
-        return this.reconstructPath(currentNode);
-      }
-
-      // Explore neighbors
-      const neighbors = this.getNeighbors(currentNode.position, options.allowDiagonal);
-      
-      for (const neighborPos of neighbors) {
-        const neighborKey = `${neighborPos.x},${neighborPos.y}`;
-        
-        if (closedSet.has(neighborKey)) {
-          continue;
+        // Early validation - don't even try to pathfind if start or goal is invalid
+        if (!level.inBounds(start.x, start.y) || !level.inBounds(goal.x, goal.y)) {
+            Logger.debug(`[PathfindingSystem] Start or goal out of bounds`);
+            return null;
         }
 
-        // Check if we can move to this neighbor using the collision system
-        const canMove = await this.canMoveToPosition(actorId, neighborPos, level, options);
-        if (!canMove) {
-          continue;
+        if (!level.isWalkable(goal.x, goal.y, actorId)) {
+            Logger.debug(`[PathfindingSystem] Goal position is not walkable`);
+            return null;
         }
 
-        const gCost = currentNode.gCost + this.getMovementCost(currentNode.position, neighborPos, level);
-        const hCost = this.getDistance(neighborPos, goal);
-        const fCost = gCost + hCost;
-
-        // Check if this path to neighbor is better
-        let existingNode = openSet.find(n => n.position.equals(neighborPos));
-        
-        if (!existingNode) {
-          existingNode = {
-            position: neighborPos,
-            gCost,
-            hCost,
-            fCost,
-            parent: currentNode
-          };
-          openSet.push(existingNode);
-        } else if (gCost < existingNode.gCost) {
-          existingNode.gCost = gCost;
-          existingNode.fCost = fCost;
-          existingNode.parent = currentNode;
+        // If start equals goal, return empty path
+        if (start.equals(goal)) {
+            return [];
         }
-      }
 
-      // Prevent infinite loops
-      if (closedSet.size > options.maxDistance * options.maxDistance) {
-        Logger.warn(`[PathfindingSystem] Pathfinding exceeded max iterations for actor ${actorId}`);
-        break;
-      }
-    }
+        // Run A*
+        const path = this.astar(start, goal, level, actorId, opts);
 
-    // No path found
-    return [];
-  }
-
-  private async canMoveToPosition(
-    actorId: string, 
-    position: ex.Vector, 
-    level: Level, 
-    options: any
-  ): Promise<boolean> {
-    try {
-      return await CollisionSystem.checkMovement(actorId, position, level, 'walk');
-    } catch (error) {
-      Logger.warn(`[PathfindingSystem] Collision check failed for ${actorId} at ${position}`);
-      return false;
-    }
-  }
-
-  private getNeighbors(position: ex.Vector, allowDiagonal: boolean): ex.Vector[] {
-    const neighbors: ex.Vector[] = [];
-    
-    // Cardinal directions
-    neighbors.push(
-      ex.vec(position.x + 1, position.y),
-      ex.vec(position.x - 1, position.y),
-      ex.vec(position.x, position.y + 1),
-      ex.vec(position.x, position.y - 1)
-    );
-
-    // Diagonal directions
-    if (allowDiagonal) {
-      neighbors.push(
-        ex.vec(position.x + 1, position.y + 1),
-        ex.vec(position.x + 1, position.y - 1),
-        ex.vec(position.x - 1, position.y + 1),
-        ex.vec(position.x - 1, position.y - 1)
-      );
-    }
-
-    return neighbors;
-  }
-
-  private getDistance(a: ex.Vector, b: ex.Vector): number {
-    // Manhattan distance for grid-based movement
-    return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
-  }
-
-  private getMovementCost(from: ex.Vector, to: ex.Vector, level: Level): number {
-    // Base cost
-    let cost = 1;
-
-    // Check terrain movement cost
-    const terrainType = level.terrainData[to.y]?.[to.x];
-    if (terrainType) {
-      // Query terrain cost from data definitions
-      // For now, use basic logic
-      switch (terrainType.toString()) {
-        case 'water':
-          cost = 2; // Slower movement through water
-          break;
-        case 'deep_snow':
-          cost = 2; // Slower movement through snow
-          break;
-        case 'ice':
-          cost = 1; // Normal movement but slippery
-          break;
-      }
-    }
-
-    // Diagonal movement costs more
-    if (Math.abs(from.x - to.x) + Math.abs(from.y - to.y) > 1) {
-      cost *= 1.4; // Diagonal cost multiplier
-    }
-
-    return cost;
-  }
-
-  private reconstructPath(endNode: PathNode): ex.Vector[] {
-    const path: ex.Vector[] = [];
-    let currentNode: PathNode | undefined = endNode;
-
-    while (currentNode) {
-      path.unshift(currentNode.position);
-      currentNode = currentNode.parent;
-    }
-
-    return path;
-  }
-
-  /**
-   * High-level pathfinding API
-   */
-  public static async findPath(
-    actorId: string,
-    start: ex.Vector,
-    goal: ex.Vector,
-    level: Level,
-    options?: any
-  ): Promise<ex.Vector[]> {
-    return new Promise((resolve, reject) => {
-      const handleResult = (result: PathfindingResult) => {
-        if (result.actorId === actorId) {
-          EventBus.instance.off('pathfinding:result' as any, handleResult);
-          
-          if (result.success) {
-            resolve(result.path);
-          } else {
-            reject(new Error(result.reason || 'Pathfinding failed'));
-          }
+        if (!path || path.length === 0) {
+            return null;
         }
-      };
 
-      EventBus.instance.on('pathfinding:result' as any, handleResult);
-
-      EventBus.instance.emit('pathfinding:request' as any, {
-        actorId,
-        start,
-        goal,
-        level,
-        options
-      } as PathfindingRequest);
-
-      // Timeout safety
-      setTimeout(() => {
-        EventBus.instance.off('pathfinding:result' as any, handleResult);
-        reject(new Error('Pathfinding timeout'));
-      }, 5000);
-    });
-  }
-
-  /**
-   * Simple API for checking if a path exists
-   */
-  public static async canReach(
-    actorId: string,
-    start: ex.Vector,
-    goal: ex.Vector,
-    level: Level,
-    maxDistance: number = 20
-  ): Promise<boolean> {
-    try {
-      const path = await this.findPath(actorId, start, goal, level, { maxDistance });
-      return path.length > 0;
-    } catch (error) {
-      return false;
+        // Remove start position from path (index 0)
+        return path.slice(1);
     }
-  }
+
+    /**
+     * Get next single step toward goal
+     * Useful for AI that only needs one step at a time
+     */
+    public getNextStep(
+        from: ex.Vector,
+        to: ex.Vector,
+        level: Level,
+        actorId: string
+    ): ex.Vector | null {
+        const path = this.findPath(from, to, level, actorId, { maxDistance: 20 });
+        return path?.[0] ?? null;
+    }
+
+    /**
+     * A* pathfinding algorithm
+     * Returns full path including start position
+     */
+    private astar(
+        start: ex.Vector,
+        goal: ex.Vector,
+        level: Level,
+        actorId: string,
+        options: Required<PathOptions>
+    ): ex.Vector[] | null {
+        const openSet: PathNode[] = [];
+        const closedSet = new Set<string>();
+
+        const startNode: PathNode = {
+            position: start.clone(),
+            gCost: 0,
+            hCost: this.heuristic(start, goal),
+            fCost: 0
+        };
+        startNode.fCost = startNode.gCost + startNode.hCost;
+
+        openSet.push(startNode);
+
+        let iterations = 0;
+        const maxIterations = options.maxDistance * options.maxDistance;
+
+        while (openSet.length > 0) {
+            iterations++;
+            if (iterations > maxIterations) {
+                Logger.warn(`[PathfindingSystem] Max iterations reached`);
+                return null;
+            }
+
+            // Get node with lowest fCost
+            openSet.sort((a, b) => a.fCost - b.fCost);
+            const current = openSet.shift()!;
+
+            const posKey = this.posKey(current.position);
+            closedSet.add(posKey);
+
+            // Check if we reached the goal
+            if (current.position.equals(goal)) {
+                return this.reconstructPath(current);
+            }
+
+            // Check neighbors
+            const neighbors = this.getNeighbors(current.position, options.allowDiagonal);
+
+            for (const neighborPos of neighbors) {
+                const nKey = this.posKey(neighborPos);
+
+                if (closedSet.has(nKey)) {
+                    continue;
+                }
+
+                // Check if neighbor is walkable (synchronous!)
+                if (!level.isWalkable(neighborPos.x, neighborPos.y, actorId)) {
+                    continue;
+                }
+
+                const gCost = current.gCost + this.getMovementCost(current.position, neighborPos, level);
+                const hCost = this.heuristic(neighborPos, goal);
+                const fCost = gCost + hCost;
+
+                // Check if this path to neighbor is better
+                let existing = openSet.find(n => n.position.equals(neighborPos));
+
+                if (!existing) {
+                    openSet.push({
+                        position: neighborPos,
+                        gCost,
+                        hCost,
+                        fCost,
+                        parent: current
+                    });
+                } else if (gCost < existing.gCost) {
+                    existing.gCost = gCost;
+                    existing.fCost = fCost;
+                    existing.parent = current;
+                }
+            }
+        }
+
+        // No path found
+        return null;
+    }
+
+    /**
+     * Get neighboring positions
+     */
+    private getNeighbors(pos: ex.Vector, allowDiagonal: boolean): ex.Vector[] {
+        const neighbors: ex.Vector[] = [
+            ex.vec(pos.x + 1, pos.y),
+            ex.vec(pos.x - 1, pos.y),
+            ex.vec(pos.x, pos.y + 1),
+            ex.vec(pos.x, pos.y - 1)
+        ];
+
+        if (allowDiagonal) {
+            neighbors.push(
+                ex.vec(pos.x + 1, pos.y + 1),
+                ex.vec(pos.x + 1, pos.y - 1),
+                ex.vec(pos.x - 1, pos.y + 1),
+                ex.vec(pos.x - 1, pos.y - 1)
+            );
+        }
+
+        return neighbors;
+    }
+
+    /**
+     * Manhattan distance heuristic
+     */
+    private heuristic(a: ex.Vector, b: ex.Vector): number {
+        return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+    }
+
+    /**
+     * Get movement cost between two adjacent positions
+     */
+    private getMovementCost(from: ex.Vector, to: ex.Vector, level: Level): number {
+        let cost = level.getMovementCost(to.x, to.y);
+
+        // Diagonal movement costs more
+        const isDiagonal = Math.abs(from.x - to.x) + Math.abs(from.y - to.y) > 1;
+        if (isDiagonal) {
+            cost *= 1.4;
+        }
+
+        return cost;
+    }
+
+    /**
+     * Reconstruct path from end node
+     */
+    private reconstructPath(endNode: PathNode): ex.Vector[] {
+        const path: ex.Vector[] = [];
+        let current: PathNode | undefined = endNode;
+
+        while (current) {
+            path.unshift(current.position.clone());
+            current = current.parent;
+        }
+
+        return path;
+    }
+
+    /**
+     * Position key for Set lookups
+     */
+    private posKey(pos: ex.Vector): string {
+        return `${pos.x},${pos.y}`;
+    }
 }

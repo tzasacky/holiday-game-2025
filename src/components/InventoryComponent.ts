@@ -1,6 +1,6 @@
 import { ActorComponent } from './ActorComponent';
 import { ItemEntity, ItemFactory } from '../factories/ItemFactory';
-import { GameEventNames } from '../core/GameEvents';
+import { GameEventNames, InventoryAddStartingItemsEvent, ItemPickupAttemptEvent, ItemPickupResultEvent, InventoryChangeEvent } from '../core/GameEvents';
 import { Logger } from '../core/Logger';
 
 export class InventoryComponent extends ActorComponent {
@@ -14,20 +14,23 @@ export class InventoryComponent extends ActorComponent {
     
     protected setupEventListeners(): void {
         // Listen for starting items
-        this.listen('inventory:add_starting_items', (event) => {
+        this.listen(GameEventNames.InventoryAddStartingItems, (event: InventoryAddStartingItemsEvent) => {
             if (this.isForThisActor(event)) {
-                this.addStartingItems(event.itemIds);
+                this.addStartingItems(event.items);
             }
         });
 
         // Listen for item pickup attempts
-        this.listen('item:pickup_attempt', (event) => {
+        this.listen(GameEventNames.ItemPickupAttempt, (event: ItemPickupAttemptEvent) => {
             if (this.isForThisActor(event)) {
-                this.handlePickupAttempt(event.itemEntity, event.worldPosition);
+                this.handlePickupAttempt(event.item, event.actor.pos); // Assuming actor pos is close enough to worldPosition
             }
         });
         
         // Listen for inventory commands
+        // TODO: Add these events to GameEvents.ts if they are needed externally
+        // For now, commenting out or we need to define them.
+        /*
         this.listen('inventory:add_item', (event) => {
             if (this.isForThisActor(event)) {
                 this.addItem(event.itemId, event.quantity || 1);
@@ -45,6 +48,7 @@ export class InventoryComponent extends ActorComponent {
                 this.useItem(event.itemId || event.index);
             }
         });
+        */
     }
 
     public addStartingItems(itemIds: string[]): void {
@@ -70,12 +74,12 @@ export class InventoryComponent extends ActorComponent {
     public handlePickupAttempt(itemEntity: ItemEntity, worldPosition: any): void {
         const success = this.addItemEntity(itemEntity);
         
-        this.emit('item:pickup_result', {
-            actorId: this.actor.entityId,
-            worldPosition: worldPosition,
-            success: success,
-            reason: success ? 'Success' : 'Inventory full'
-        });
+        this.emit(GameEventNames.ItemPickupResult, new ItemPickupResultEvent(
+            this.actor,
+            itemEntity,
+            success,
+            success ? 'Success' : 'Inventory full'
+        ));
 
         if (success) {
             this.emitInventoryChanged();
@@ -163,7 +167,7 @@ export class InventoryComponent extends ActorComponent {
         }
         
         // Use the item (this will emit events for EffectExecutor)
-        item.use(this.actor.entityId);
+        item.use(this.actor);
         
         // Remove consumed items
         if (item.count <= 0) {
@@ -228,11 +232,9 @@ export class InventoryComponent extends ActorComponent {
     }
 
     private emitInventoryChanged(): void {
-        this.emit('inventory:changed', {
-            actorId: this.actor.entityId,
-            items: this.getItems(),
-            size: this.getSize(),
-            maxSize: this.getMaxSize()
-        });
+        this.emit(GameEventNames.InventoryChange, new InventoryChangeEvent(
+            this, // Inventory object (this component acts as inventory)
+            'change'
+        ));
     }
 }

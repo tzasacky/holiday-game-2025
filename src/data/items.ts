@@ -41,6 +41,7 @@ export interface ItemEffect {
     value: number;
     duration?: number;
     condition?: string;
+    chance?: number;
 }
 
 export interface ItemDefinition {

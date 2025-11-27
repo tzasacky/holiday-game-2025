@@ -60,6 +60,12 @@ export class Spawner {
             position: pos
         };
 
+        // Check if position is valid and unoccupied
+        if (!this.isValidSpawnPosition(level, pos)) {
+            Logger.warn(`[Spawner] Cannot spawn at ${pos} - position invalid or occupied`);
+            return null;
+        }
+
         const spawnResult = SpawnTableExecutor.instance.rollSpawn(spawnRequest);
         
         if (!spawnResult) {
@@ -189,20 +195,16 @@ export class Spawner {
      * Check if a position is valid for spawning
      */
     private static isValidSpawnPosition(level: Level, pos: ex.Vector): boolean {
-        // Basic bounds check
-        if (pos.x < 0 || pos.x >= level.width || pos.y < 0 || pos.y >= level.height) {
+        // Use centralized collision API
+        // Don't exclude any actor ID since we want to ensure position is completely empty
+        if (!level.isWalkable(pos.x, pos.y)) {
             return false;
         }
-        
-        // Check if position is occupied by another actor
-        const existingActors = level.getEntitiesAt(pos.x, pos.y);
-        if (existingActors.length > 0) {
-            return false;
-        }
-        
-        // Check terrain (avoid walls)
-        const terrainType = level.terrainData[pos.y]?.[pos.x];
-        if (terrainType && terrainType === TerrainType.Wall) {
+
+        // Extra check: ensure no player at this position
+        const player = level.actors.find(a => a.isPlayer);
+        if (player && player.gridPos.equals(pos)) {
+            Logger.warn(`[Spawner] Position ${pos} occupied by player`);
             return false;
         }
         

@@ -36,7 +36,7 @@ export class InteractionSystem {
         if (def.requiresKey) {
             // Check if actor has key
             // const hasKey = actor.inventory.hasItem(def.requiresKey);
-            // if (!hasKey) { console.log("Locked!"); return false; }
+            // if (!hasKey) { Logger.debug("Locked!"); return false; }
             // For now, assume unlocked or handle later
         }
 

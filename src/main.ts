@@ -38,6 +38,9 @@ const game = new ex.Engine({
 game.showDebug(true);
 
 import { SpriteDebugScene } from './scenes/SpriteDebugScene';
+import { GameOverScene } from './scenes/GameOverScene';
+import { EventBus } from './core/EventBus';
+import { GameEventNames } from './core/GameEvents';
 
 game.start(loader).then(() => {
     Logger.info("Game Started! Resources Loaded.");
@@ -48,6 +51,15 @@ game.start(loader).then(() => {
         game.goToScene('debug');
         return;
     }
+
+    // Register Game Over Scene
+    game.add('gameover', new GameOverScene());
+    
+    // Listen for Game Over event
+    EventBus.instance.on(GameEventNames.GameOver, () => {
+        Logger.info("Game Over! Switching to game over scene.");
+        game.goToScene('gameover');
+    });
 
     // Systems
     const warmthSystem = new WarmthSystem();

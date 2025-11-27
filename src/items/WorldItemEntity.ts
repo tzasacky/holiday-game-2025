@@ -4,6 +4,7 @@ import { ItemEntity } from '../factories/ItemFactory';
 import { GameActor } from '../components/GameActor';
 import { EventBus } from '../core/EventBus';
 import { Logger } from '../core/Logger';
+import { GameEventNames, ItemPickupAttemptEvent, ItemPickupResultEvent } from '../core/GameEvents';
 
 /**
  * WorldItemEntity - Represents an item that exists in the world
@@ -43,15 +44,11 @@ export class WorldItemEntity extends GameEntity {
     this.logger.debug(`[WorldItemEntity] ${actor.name} interacting with ${this.item.getDisplayName()}`);
     
     // Emit pickup event for inventory system to handle
-    EventBus.instance.emit('item:pickup_attempt' as any, {
-      actorId: actor.entityId,
-      itemEntity: this.item,
-      worldPosition: this.gridPos
-    });
+    EventBus.instance.emit(GameEventNames.ItemPickupAttempt, new ItemPickupAttemptEvent(actor, this.item));
     
     // Listen for pickup result
-    const handlePickupResult = (event: any) => {
-      if (event.actorId === actor.entityId && event.worldPosition?.equals(this.gridPos)) {
+    const handlePickupResult = (event: ItemPickupResultEvent) => {
+      if (event.actor.entityId === actor.entityId && event.item.id === this.item.id) {
         if (event.success) {
           this.logger.info(`[WorldItemEntity] ${actor.name} picked up ${this.item.getDisplayName()}`);
           this.kill(); // Remove from world
@@ -60,11 +57,11 @@ export class WorldItemEntity extends GameEntity {
         }
         
         // Clean up listener
-        EventBus.instance.off('item:pickup_result' as any, handlePickupResult);
+        EventBus.instance.off(GameEventNames.ItemPickupResult, handlePickupResult);
       }
     };
     
-    EventBus.instance.on('item:pickup_result' as any, handlePickupResult);
+    EventBus.instance.on(GameEventNames.ItemPickupResult, handlePickupResult);
     
     return true; // Interaction was processed
   }

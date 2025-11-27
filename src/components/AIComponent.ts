@@ -1,6 +1,12 @@
 import { ActorComponent } from './ActorComponent';
 import { GameEventNames, ActorSpendTimeEvent } from '../core/GameEvents';
 import { EventBus } from '../core/EventBus';
+import { Logger } from '../core/Logger';
+import { GameScene } from '../scenes/GameScene';
+import { CombatComponent } from './CombatComponent';
+import { MovementSystem } from '../systems/MovementSystem';
+import { PathfindingSystem } from '../systems/PathfindingSystem';
+import { IMovementBehavior, DirectMoveBehavior, PathFollowBehavior } from '../systems/MovementBehavior';
 import * as ex from 'excalibur';
 
 export enum AIState {
@@ -21,8 +27,7 @@ export class AIComponent extends ActorComponent {
     private state: AIState = AIState.Wander;
     private viewDistance: number = 8;
     private lastKnownPlayerPos: ex.Vector | null = null;
-    private wanderTarget: ex.Vector | null = null;
-    private idleTurns: number = 0;
+    private currentBehavior: IMovementBehavior | null = null;
     
     constructor(actor: any, config: AIConfig = { type: 'basic' }) {
         super(actor);
@@ -33,43 +38,52 @@ export class AIComponent extends ActorComponent {
         // Listen for turns
         this.listen(GameEventNames.ActorTurn, (event) => {
             if (this.isForThisActor(event)) {
-                console.log('[AIComponent] Handling turn for:', this.actor.name);
+                Logger.debug('[AIComponent] Handling turn for:', this.actor.name);
                 this.handleTurn();
             }
         });
+    }
+    
+    private handleTurn(): void {
+        if (this.actor.isKilled()) {
+            Logger.debug('[AIComponent] Actor is dead, skipping turn');
+            return;
+        }
+
+        Logger.debug('[AIComponent] Making AI decision for:', this.actor.name);
         
-        // Listen for level/scene updates to get player position
-        this.listen('level:actor_positions', (event) => {
-            this.updatePlayerAwareness(event.actors);
-        });
-    }
-    
-    private async handleTurn(): Promise<void> {
-        console.log('[AIComponent] Making AI decision for:', this.actor.name);
-        // For now, just make a simple decision without complex level queries
-        this.makeDecision(null);
-    }
-    
-    private updatePlayerAwareness(actors: any[]): void {
-        // Find player
-        const player = actors.find((a: any) => a.isPlayer);
-        if (!player) {
-            this.makeDecision(null);
+        // Get level from scene
+        const scene = this.actor.scene as GameScene;
+        if (!scene || !scene.level) {
+            Logger.warn('[AIComponent] No level found, skipping turn');
+            this.spendTime(10);
             return;
         }
         
+        // Find player
+        const player = scene.level.actors.find(a => a.isPlayer);
+        
+        if (player) {
+            this.updatePlayerAwareness(player);
+        } else {
+            this.makeDecision(null, scene.level);
+        }
+    }
+    
+    private updatePlayerAwareness(player: any): void {
         // Check if can see player
         const dist = this.actor.gridPos.distance(player.gridPos);
-        const canSeePlayer = dist <= this.viewDistance && this.hasLineOfSight(player);
+        const canSeePlayer = dist <= this.viewDistance;
         
         if (canSeePlayer) {
             this.lastKnownPlayerPos = player.gridPos.clone();
         }
         
-        this.makeDecision(player);
+        const scene = this.actor.scene as GameScene;
+        this.makeDecision(player, scene.level);
     }
     
-    private makeDecision(player: any | null): void {
+    private makeDecision(player: any | null, level: any): void {
         const canSeePlayer = player && this.actor.gridPos.distance(player.gridPos) <= this.viewDistance;
         
         // State transitions
@@ -77,7 +91,6 @@ export class AIComponent extends ActorComponent {
             case AIState.Wander:
                 if (canSeePlayer) {
                     this.state = AIState.Chase;
-                    this.wanderTarget = null;
                 }
                 break;
                 
@@ -91,25 +104,26 @@ export class AIComponent extends ActorComponent {
         // Execute state actions
         switch (this.state) {
             case AIState.Wander:
-                this.executeWander();
+                this.executeWander(level);
                 break;
                 
             case AIState.Chase:
-                this.executeChase(player);
+                this.executeChase(player, level);
                 break;
                 
             case AIState.Attack:
                 this.executeAttack(player);
                 break;
         }
-        
-        // Spend turn time
-        const timeEvent = new ActorSpendTimeEvent(this.actor.entityId, 10);
-        console.log('[AIComponent] Emitting time event:', timeEvent);
+    }
+    
+    private spendTime(amount: number): void {
+        const timeEvent = new ActorSpendTimeEvent(this.actor.entityId, amount);
+        Logger.debug('[AIComponent] Emitting time event:', timeEvent);
         EventBus.instance.emit(GameEventNames.ActorSpendTime, timeEvent);
     }
     
-    private executeWander(): void {
+    private executeWander(level: any): void {
         // Simple random movement
         const directions = [
             ex.vec(0, 1), ex.vec(0, -1), 
@@ -117,50 +131,86 @@ export class AIComponent extends ActorComponent {
         ];
         const randomDir = directions[Math.floor(Math.random() * directions.length)];
         
-        this.emit('movement:request', {
-            actorId: this.actor.entityId,
-            direction: randomDir
-        });
+        const currentPos = this.actor.gridPos;
+        const toPos = currentPos.add(randomDir);
+        
+        // Create direct movement behavior
+        this.currentBehavior = new DirectMoveBehavior(randomDir, currentPos);
+        const nextMove = this.currentBehavior.getNextMove(this.actor, level);
+        
+        if (nextMove) {
+            const result = MovementSystem.instance.moveActor(this.actor, nextMove, level);
+            this.currentBehavior.onMoveResult(result.success, result.reason);
+        }
+        
+        this.currentBehavior = null; // Wander is always single-step
+        this.spendTime(10);
     }
     
-    private executeChase(player: any): void {
-        if (!player) return;
+    private executeChase(player: any, level: any): void {
+        const targetPos = player ? player.gridPos : this.lastKnownPlayerPos;
+        
+        if (!targetPos) {
+            this.state = AIState.Wander;
+            this.executeWander(level);
+            return;
+        }
         
         // Check if adjacent for attack
-        const dist = this.actor.gridPos.distance(player.gridPos);
-        if (dist <= 1.5) { // Adjacent
+        const dist = this.actor.gridPos.distance(targetPos);
+        if (dist <= 1.5 && player) { // Adjacent and player is visible
             this.state = AIState.Attack;
             this.executeAttack(player);
             return;
         }
         
-        // Move toward player
-        const direction = player.gridPos.sub(this.actor.gridPos).normalize();
-        const moveDir = ex.vec(
-            Math.round(direction.x),
-            Math.round(direction.y)
+        // Compute path synchronously
+        const path = PathfindingSystem.instance.findPath(
+            this.actor.gridPos,
+            targetPos,
+            level,
+            this.actor.entityId,
+            { maxDistance: 20 }
         );
         
-        this.emit('movement:request', {
-            actorId: this.actor.entityId,
-            direction: moveDir
-        });
+        if (!path || path.length === 0) {
+            // No path found, just wander
+            Logger.debug('[AIComponent] No path to player, wandering');
+            this.executeWander(level);
+            return;
+        }
+        
+        // Move one step toward player
+        const nextStep = path[0];
+        this.currentBehavior = new DirectMoveBehavior(
+            nextStep.sub(this.actor.gridPos),
+            this.actor.gridPos
+        );
+        
+        const nextMove = this.currentBehavior.getNextMove(this.actor, level);
+        if (nextMove) {
+            const result = MovementSystem.instance.moveActor(this.actor, nextMove, level);
+            this.currentBehavior.onMoveResult(result.success, result.reason);
+        }
+        
+        this.currentBehavior = null;
+        this.spendTime(10);
     }
     
     private executeAttack(player: any): void {
-        if (!player) return;
+        if (!player) {
+             this.spendTime(10);
+             return;
+        }
         
-        this.emit('combat:attack', {
-            attackerId: this.actor.entityId,
-            targetId: player.entityId
-        });
+        const combat = this.actor.getGameComponent('combat') as CombatComponent;
+        if (combat) {
+            combat.attack(player.entityId);
+        } else {
+            Logger.warn(`[AIComponent] Actor ${this.actor.name} tried to attack but has no CombatComponent`);
+        }
         
         this.state = AIState.Chase; // Return to chase after attack
-    }
-    
-    private hasLineOfSight(target: any): boolean {
-        // TODO: Implement proper line of sight
-        // For now, just return true within view distance
-        return true;
+        this.spendTime(10);
     }
 }

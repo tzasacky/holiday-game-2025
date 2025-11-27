@@ -1,7 +1,7 @@
 import { ActorComponent } from './ActorComponent';
 import { ItemType } from '../data/items';
 import { ItemEntity } from '../factories/ItemFactory';
-import { GameEventNames } from '../core/GameEvents';
+import { GameEventNames, ItemEquipEvent, ItemUnequipEvent, StatsRecalculateEvent, EquipmentUnequipRequestEvent } from '../core/GameEvents';
 import { Logger } from '../core/Logger';
 
 export class EquipmentComponent extends ActorComponent {
@@ -16,13 +16,13 @@ export class EquipmentComponent extends ActorComponent {
     }
 
     protected setupEventListeners(): void {
-        this.listen(GameEventNames.EquipmentEquipped, (event) => {
+        this.listen(GameEventNames.EquipmentEquipped, (event: ItemEquipEvent) => {
             if (this.isForThisActor(event)) {
                 this.equip(event.item);
             }
         });
 
-        this.listen(GameEventNames.EquipmentUnequipRequest, (event) => {
+        this.listen(GameEventNames.EquipmentUnequipRequest, (event: EquipmentUnequipRequestEvent) => {
             if (this.isForThisActor(event)) {
                 this.unequip(event.slot);
             }
@@ -46,17 +46,17 @@ export class EquipmentComponent extends ActorComponent {
         this.slots.set(slot, item);
         
         // Emit equipped event
-        this.emit(GameEventNames.EquipmentEquipped, {
-            actorId: this.actor.entityId,
-            item: item,
-            slot: slot
-        });
+        this.emit(GameEventNames.EquipmentEquipped, new ItemEquipEvent(
+            this.actor,
+            item,
+            slot
+        ));
         
         // Trigger stat recalculation
-        this.emit(GameEventNames.StatsRecalculate, {
-            actorId: this.actor.entityId,
-            reason: 'equipment_equipped'
-        });
+        this.emit(GameEventNames.StatsRecalculate, new StatsRecalculateEvent(
+            this.actor.entityId,
+            'equipment_equipped'
+        ));
 
         return true;
     }
@@ -68,17 +68,17 @@ export class EquipmentComponent extends ActorComponent {
         this.slots.set(slot, null);
         
         // Emit unequipped event (no direct method call)
-        this.emit(GameEventNames.EquipmentUnequipped, {
-            actorId: this.actor.entityId,
-            item: item,
-            slot: slot
-        });
+        this.emit(GameEventNames.EquipmentUnequipped, new ItemUnequipEvent(
+            this.actor,
+            item,
+            slot
+        ));
         
         // Trigger stat recalculation
-        this.emit(GameEventNames.StatsRecalculate, {
-            actorId: this.actor.entityId,
-            reason: 'equipment_unequipped'
-        });
+        this.emit(GameEventNames.StatsRecalculate, new StatsRecalculateEvent(
+            this.actor.entityId,
+            'equipment_unequipped'
+        ));
 
         return item;
     }

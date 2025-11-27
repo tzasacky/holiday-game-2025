@@ -5,6 +5,8 @@ import * as ex from 'excalibur';
 import { GraphicsManager } from '../data/graphics';
 import { Logger } from '../core/Logger';
 import { RegistryKey } from '../constants/RegistryKeys';
+import { GameEventNames, ItemUseEvent, ItemDestroyedEvent, ItemCreatedEvent } from '../core/GameEvents';
+import { GameActor } from '../components/GameActor';
 
 /**
  * ItemEntity - Data container for items (no logic)
@@ -40,24 +42,16 @@ export class ItemEntity {
     /**
      * Use the item - emits event for EffectExecutor to handle
      */
-    use(userId: string): void {
+    use(user: GameActor): void {
         Logger.debug(`[ItemEntity] Using ${this.definition.name}`);
         
-        EventBus.instance.emit('item:use' as any, {
-            itemId: this.id,
-            userId: userId,
-            effects: this.definition.effects,
-            definition: this.definition,
-            bonusStats: this.bonusStats
-        });
+        EventBus.instance.emit(GameEventNames.ItemUse, new ItemUseEvent(user, this));
         
         // Consumables are destroyed on use
         if (this.definition.type === ItemType.CONSUMABLE) {
             this.count--;
             if (this.count <= 0) {
-                EventBus.instance.emit('item:destroyed' as any, {
-                    itemId: this.id
-                });
+                EventBus.instance.emit(GameEventNames.ItemDestroyed, new ItemDestroyedEvent(this));
             }
         }
     }
@@ -129,10 +123,7 @@ export class ItemFactory {
             const item = new ItemEntity(defId, count);
             Logger.debug(`[ItemFactory] Created ${item.definition.name} x${count}`);
             
-            EventBus.instance.emit('item:created' as any, {
-                itemId: defId,
-                count: count
-            });
+            EventBus.instance.emit(GameEventNames.ItemCreated, new ItemCreatedEvent(item));
             
             return item;
         } catch (error) {

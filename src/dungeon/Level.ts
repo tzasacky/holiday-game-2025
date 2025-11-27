@@ -222,4 +222,88 @@ export class Level {
     public revealFutureEvents(actor: GameActor): void {
         Logger.info(`[Level] Revealing future events to ${actor.name} - TODO: Implement with UI system`);
     }
+    public getActorById(id: string): GameActor | undefined {
+        return this.actors.find(a => a.id.toString() === id || (a as any).entityId === id || a.name === id);
+    }
+
+    // ===== CENTRALIZED COLLISION API =====
+    // These methods provide synchronous, fast collision checks for movement and spawning
+
+    /**
+     * Check if position is within level bounds
+     */
+    public inBounds(x: number, y: number): boolean {
+        return x >= 0 && x < this.width && y >= 0 && y < this.height;
+    }
+
+    /**
+     * Get actor at specific grid position (fast lookup)
+     * @param x Grid X coordinate
+     * @param y Grid Y coordinate
+     * @returns GameActor at position or null
+     */
+    public getActorAt(x: number, y: number): GameActor | null {
+        for (const actor of this.actors) {
+            if (actor.gridPos.x === x && actor.gridPos.y === y) {
+                return actor;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Check if a position is walkable (not blocked by terrain or actors)
+     * @param x Grid X coordinate
+     * @param y Grid Y coordinate
+     * @param excludeActorId Optional actor ID to exclude from check (for self-movement)
+     * @returns true if position is walkable
+     */
+    public isWalkable(x: number, y: number, excludeActorId?: string): boolean {
+        // Check bounds
+        if (!this.inBounds(x, y)) {
+            return false;
+        }
+
+        // Check terrain - walls are always solid
+        const terrain = this.getTile(x, y);
+        if (terrain === TerrainType.Wall) {
+            return false;
+        }
+
+        // Check for actors at this position
+        const actorAtPos = this.getActorAt(x, y);
+        if (actorAtPos && actorAtPos.entityId !== excludeActorId) {
+            return false; // Position occupied by another actor
+        }
+
+        return true;
+    }
+
+    /**
+     * Get movement cost for a position (for pathfinding)
+     * @param x Grid X coordinate
+     * @param y Grid Y coordinate
+     * @returns Movement cost (1 = normal, higher = slower)
+     */
+    public getMovementCost(x: number, y: number): number {
+        if (!this.inBounds(x, y)) {
+            return Infinity; // Out of bounds
+        }
+
+        const terrain = this.getTile(x, y);
+
+        // Fallback costs for common terrain types
+        switch (terrain) {
+            case TerrainType.Wall:
+                return Infinity; // Impassable
+            case TerrainType.DeepSnow:
+                return 2; // Slow
+            case TerrainType.Water:
+                return 2; // Slow
+            case TerrainType.Ice:
+                return 1; // Normal speed but slippery
+            default:
+                return 1; // Normal movement
+        }
+    }
 }

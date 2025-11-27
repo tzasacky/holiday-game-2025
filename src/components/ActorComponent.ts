@@ -1,12 +1,13 @@
 import { Component } from '../core/Component';
+import type { GameActor } from './GameActor';
 
 /**
  * Base class for actor-specific components
  * Extends Component with actor-specific utilities
  */
 export abstract class ActorComponent extends Component {
-    protected get actor(): any {
-        return this.owner;
+    protected get actor(): GameActor {
+        return this.owner as GameActor;
     }
     
     /**

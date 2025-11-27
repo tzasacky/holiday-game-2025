@@ -2,6 +2,8 @@ import * as ex from 'excalibur';
 import { GameActor } from '../components/GameActor';
 import { PriorityQueue } from './PriorityQueue';
 import { Logger } from './Logger';
+import { EventBus } from './EventBus';
+import { GameEventNames, DieEvent } from './GameEvents';
 
 /**
  * TurnManager - Manages turn-based game loop using priority queue
@@ -19,8 +21,16 @@ export class TurnManager {
     public static get instance(): TurnManager {
         if (!this._instance) {
             this._instance = new TurnManager();
+            this._instance.initialize();
         }
         return this._instance;
+    }
+
+    private initialize() {
+        EventBus.instance.on(GameEventNames.Death, (event: DieEvent) => {
+            Logger.info(`[TurnManager] Handling death for ${event.actor.name}`);
+            this.unregisterActor(event.actor);
+        });
     }
 
     public registerActor(actor: GameActor) {

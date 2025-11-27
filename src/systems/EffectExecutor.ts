@@ -1,9 +1,12 @@
 import { EventBus } from '../core/EventBus';
-import { GameEventNames } from '../core/GameEvents';
+import { GameEventNames, ItemUseEvent, AbilityCastEvent, StatChangeEvent, DamageDealtEvent, BuffApplyEvent, ConditionApplyEvent, PermanentEffectApplyEvent, WarmthChangeEvent, LogEvent } from '../core/GameEvents';
 import { ItemEffect } from '../data/items';
 import { AbilityID } from '../constants';
 import { EffectID } from '../constants';
 import { Logger } from '../core/Logger';
+import { GameActor } from '../components/GameActor';
+import { DataManager } from '../core/DataManager';
+import { AbilityDefinition } from '../data/abilities';
 
 /**
  * EffectExecutor - Applies effects from data definitions
@@ -24,99 +27,112 @@ export class EffectExecutor {
     }
     
     private setupListeners(): void {
-        EventBus.instance.on('item:use' as any, (data: any) => {
-            this.handleItemUse(data);
+        EventBus.instance.on(GameEventNames.ItemUse, (event: ItemUseEvent) => {
+            this.handleItemUse(event);
         });
         
-        EventBus.instance.on('ability:cast' as any, (data: any) => {
-            this.handleAbilityCast(data);
-        });
-    }
-    
-    private handleItemUse(data: any): void {
-        const { userId, effects, definition } = data;
-        
-        if (!effects || effects.length === 0) {
-            Logger.debug(`[EffectExecutor] No effects for item ${definition.name}`);
-            return;
-        }
-        
-        Logger.debug(`[EffectExecutor] Applying ${effects.length} effects from ${definition.name} to ${userId}`);
-        
-        effects.forEach((effect: ItemEffect) => {
-            this.applyEffect(effect, userId);
+        EventBus.instance.on(GameEventNames.AbilityCast, (event: AbilityCastEvent) => {
+            this.handleAbilityCast(event);
         });
     }
     
-    private handleAbilityCast(data: any): void {
-        const { casterId, targetId, effects } = data;
+    private handleItemUse(event: ItemUseEvent): void {
+        const actor = event.actor;
+        const item = event.item;
+        const effects = item.definition.effects;
         
         if (!effects || effects.length === 0) {
+            Logger.debug(`[EffectExecutor] No effects for item ${item.getDisplayName()}`);
             return;
         }
         
+        Logger.debug(`[EffectExecutor] Applying ${effects.length} effects from ${item.getDisplayName()} to ${actor.name}`);
+        
         effects.forEach((effect: ItemEffect) => {
-            this.applyEffect(effect, targetId || casterId, casterId);
+            this.applyEffect(effect, actor);
+        });
+    }
+    
+    private handleAbilityCast(event: AbilityCastEvent): void {
+        const caster = event.actor;
+        const target = event.abilityTarget instanceof GameActor ? event.abilityTarget : caster; // Default to self if target is position or undefined
+        
+        // We need to get effects from AbilityDefinition since event doesn't carry them
+        const abilityDef = DataManager.instance.query<AbilityDefinition>('ability', event.abilityId);
+        
+        if (!abilityDef || !abilityDef.effects || abilityDef.effects.length === 0) {
+            return;
+        }
+        
+        abilityDef.effects.forEach((effect: any) => { // Type as any for now as AbilityEffect might differ from ItemEffect
+             // Map AbilityEffect to ItemEffect structure if needed
+             const itemEffect: ItemEffect = {
+                 type: effect.type,
+                 value: effect.value,
+                 duration: effect.duration,
+                 chance: 1
+             };
+            this.applyEffect(itemEffect, target, caster);
         });
     }
     
     /**
      * Apply a single effect to a target
      */
-    private applyEffect(effect: ItemEffect, targetId: string, sourceId?: string): void {
-        Logger.debug(`[EffectExecutor] Applying effect ${effect.type} (value: ${effect.value}) to ${targetId}`);
+    private applyEffect(effect: ItemEffect, target: GameActor, source?: GameActor): void {
+        Logger.debug(`[EffectExecutor] Applying effect ${effect.type} (value: ${effect.value}) to ${target.name}`);
         
         switch (effect.type) {
             case AbilityID.Heal:
-                this.applyHeal(targetId, effect.value);
+                this.applyHeal(target, effect.value, source);
                 break;
                 
             case 'damage':
-                this.applyDamage(targetId, effect.value, sourceId);
+                this.applyDamage(target, effect.value, source);
                 break;
                 
             case EffectID.WarmthRestore:
-                this.applyWarmth(targetId, effect.value);
+                this.applyWarmth(target, effect.value);
                 break;
                 
             case EffectID.StrengthBoost:
-                this.applyStatBoost(targetId, 'strength', effect.value, effect.duration);
+                this.applyStatBoost(target, 'strength', effect.value, effect.duration);
                 break;
                 
             case EffectID.DefenseBoost:
-                this.applyStatBoost(targetId, 'defense', effect.value, effect.duration);
+                this.applyStatBoost(target, 'defense', effect.value, effect.duration);
                 break;
                 
             case EffectID.SpeedBoost:
-                this.applyStatBoost(targetId, 'speed', effect.value, effect.duration);
+                this.applyStatBoost(target, 'speed', effect.value, effect.duration);
                 break;
                 
             case EffectID.Poison:
-                this.applyCondition(targetId, EffectID.Poison, effect.value, effect.duration);
+                this.applyCondition(target, EffectID.Poison, effect.value, effect.duration);
                 break;
                 
             case EffectID.Slow:
-                this.applyCondition(targetId, EffectID.Slow, effect.value, effect.duration);
+                this.applyCondition(target, EffectID.Slow, effect.value, effect.duration);
                 break;
                 
             case EffectID.Freeze:
-                this.applyCondition(targetId, EffectID.Freeze, effect.value, effect.duration);
+                this.applyCondition(target, EffectID.Freeze, effect.value, effect.duration);
                 break;
                 
             case 'light_radius':
-                this.applyPermanentEffect(targetId, 'light_radius', effect.value);
+                this.applyPermanentEffect(target, 'light_radius', effect.value);
                 break;
                 
             case 'luck':
-                this.applyPermanentEffect(targetId, 'luck', effect.value);
+                this.applyPermanentEffect(target, 'luck', effect.value);
                 break;
                 
             case 'warmth_generation':
-                this.applyPermanentEffect(targetId, 'warmth_generation', effect.value);
+                this.applyPermanentEffect(target, 'warmth_generation', effect.value);
                 break;
                 
             case AbilityID.ChristmasSpirit:
-                this.applyPermanentEffect(targetId, AbilityID.ChristmasSpirit, effect.value);
+                this.applyPermanentEffect(target, AbilityID.ChristmasSpirit, effect.value);
                 break;
                 
             default:
@@ -124,81 +140,83 @@ export class EffectExecutor {
         }
     }
     
-    private applyHeal(targetId: string, amount: number): void {
-        EventBus.instance.emit('stat:change' as any, {
-            actorId: targetId,
-            stat: 'hp',
-            delta: amount
-        });
+    private applyHeal(target: GameActor, amount: number, source?: GameActor): void {
+        EventBus.instance.emit(GameEventNames.StatModify, new StatChangeEvent(
+            target,
+            'hp',
+            0, 
+            0
+        ));
         
-        EventBus.instance.emit(GameEventNames.Log, {
-            text: `Restored ${amount} HP!`,
-            source: 'Effect',
-            color: 'green'
-        });
+        EventBus.instance.emit(GameEventNames.Log, new LogEvent(
+            `Restored ${amount} HP!`,
+            'Effect',
+            'green'
+        ));
     }
     
-    private applyDamage(targetId: string, amount: number, sourceId?: string): void {
-        EventBus.instance.emit('damage:dealt' as any, {
-            targetId: targetId,
-            sourceId: sourceId,
-            damage: amount,
-            damageType: EffectID.Physical
-        });
+    private applyDamage(target: GameActor, amount: number, source?: GameActor): void {
+        EventBus.instance.emit(GameEventNames.DamageDealt, new DamageDealtEvent(
+            target,
+            amount,
+            source,
+            EffectID.Physical as any // Cast to DamageType if needed
+        ));
     }
     
-    private applyWarmth(targetId: string, amount: number): void {
-        EventBus.instance.emit(GameEventNames.WarmthChange, {
-            actorId: targetId,
-            newValue: amount, // StatsComponent will handle clamping
-            delta: amount
-        });
+    private applyWarmth(target: GameActor, amount: number): void {
+        EventBus.instance.emit(GameEventNames.WarmthChange, new WarmthChangeEvent(
+            target,
+            0, // current placeholder
+            100, // max placeholder
+            amount
+        ));
         
-        EventBus.instance.emit(GameEventNames.Log, {
-            text: `Restored ${amount} warmth!`,
-            source: 'Effect',
-            color: 'cyan'
-        });
+        EventBus.instance.emit(GameEventNames.Log, new LogEvent(
+            `Restored ${amount} warmth!`,
+            'Effect',
+            'cyan'
+        ));
     }
     
-    private applyStatBoost(targetId: string, stat: string, value: number, duration?: number): void {
-        EventBus.instance.emit('buff:apply' as any, {
-            actorId: targetId,
-            buffId: `${stat}_boost`,
-            stat: stat,
-            value: value,
-            duration: duration || 50
-        });
+    private applyStatBoost(target: GameActor, stat: string, value: number, duration?: number): void {
+        EventBus.instance.emit(GameEventNames.BuffApply, new BuffApplyEvent(
+            target,
+            `${stat}_boost`,
+            duration || 50,
+            stat,
+            value
+        ));
         
-        EventBus.instance.emit(GameEventNames.Log, {
-            text: `+${value} ${stat}!`,
-            source: 'Effect',
-            color: 'yellow'
-        });
+        EventBus.instance.emit(GameEventNames.Log, new LogEvent(
+            `+${value} ${stat}!`,
+            'Effect',
+            'yellow'
+        ));
     }
     
-    private applyCondition(targetId: string, conditionId: string, value: number, duration?: number): void {
-        EventBus.instance.emit('condition:apply' as any, {
-            actorId: targetId,
-            conditionId: conditionId,
-            value: value,
-            duration: duration || 10
-        });
+    private applyCondition(target: GameActor, conditionId: string, value: number, duration?: number): void {
+        EventBus.instance.emit(GameEventNames.ConditionApply, new ConditionApplyEvent(
+            target,
+            conditionId,
+            duration || 10,
+            value
+        ));
         
-        EventBus.instance.emit(GameEventNames.Log, {
-            text: `Applied ${conditionId}!`,
-            source: 'Effect',
-            color: 'purple'
-        });
+        EventBus.instance.emit(GameEventNames.Log, new LogEvent(
+            `Applied ${conditionId}!`,
+            'Effect',
+            'purple'
+        ));
     }
     
-    private applyPermanentEffect(targetId: string, effectId: string, value: number): void {
-        EventBus.instance.emit('permanent_effect:apply' as any, {
-            actorId: targetId,
-            effectId: effectId,
-            value: value
-        });
+    private applyPermanentEffect(target: GameActor, effectId: string, value: number): void {
+        EventBus.instance.emit(GameEventNames.PermanentEffectApply, new PermanentEffectApplyEvent(
+            target,
+            effectId,
+            value
+        ));
         
-        Logger.info(`[EffectExecutor] Applied permanent effect ${effectId} = ${value} to ${targetId}`);
+        Logger.info(`[EffectExecutor] Applied permanent effect ${effectId} = ${value} to ${target.name}`);
     }
 }

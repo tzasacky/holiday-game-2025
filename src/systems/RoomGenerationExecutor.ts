@@ -396,6 +396,13 @@ export class RoomGenerationExecutor {
       position
     };
 
+    // Check for occupancy
+    const existingActors = level.getEntitiesAt(position.x, position.y);
+    if (existingActors.length > 0) {
+        Logger.warn(`[RoomGenerationExecutor] Cannot spawn at ${position} - occupied`);
+        return null;
+    }
+
     const spawnResult = SpawnTableExecutor.instance.rollSpawn(spawnRequest);
     
     if (!spawnResult) {

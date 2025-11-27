@@ -1,5 +1,6 @@
 import { ActorComponent } from './ActorComponent';
-import { GameEventNames, HealthChangeEvent, WarmthChangeEvent } from '../core/GameEvents';
+import { GameEventNames, HealthChangeEvent, WarmthChangeEvent, StatGetEvent, StatResponseEvent, StatModifyEvent, StatSetEvent, StatChangeEvent } from '../core/GameEvents';
+import { Logger } from '../core/Logger';
 
 export class StatsComponent extends ActorComponent {
     private stats = new Map<string, number>();
@@ -14,25 +15,26 @@ export class StatsComponent extends ActorComponent {
     
     protected setupEventListeners(): void {
         // Listen for stat queries
-        this.listen('stat:get', (event) => {
+        this.listen(GameEventNames.StatGet, (event: StatGetEvent) => {
             if (this.isForThisActor(event)) {
                 const value = this.stats.get(event.stat) ?? 0;
-                this.emit('stat:response', {
-                    actorId: this.actor.entityId,
-                    stat: event.stat,
-                    value: value
-                });
+                this.emit(GameEventNames.StatResponse, new StatResponseEvent(
+                    this.actor,
+                    event.stat,
+                    value,
+                    event.requestId
+                ));
             }
         });
         
         // Listen for stat modifications
-        this.listen('stat:modify', (event) => {
+        this.listen(GameEventNames.StatModify, (event: StatModifyEvent) => {
             if (this.isForThisActor(event)) {
-                this.modifyStat(event.stat, event.delta);
+                this.modifyStat(event.stat, event.value);
             }
         });
         
-        this.listen('stat:set', (event) => {
+        this.listen(GameEventNames.StatSet, (event: StatSetEvent) => {
             if (this.isForThisActor(event)) {
                 this.setStat(event.stat, event.value);
             }
@@ -46,15 +48,21 @@ export class StatsComponent extends ActorComponent {
     }
     
     setStat(name: string, value: number): void {
+        if (isNaN(value)) {
+            Logger.error(`[StatsComponent] Attempted to set stat ${name} to NaN! Actor: ${this.actor.name}`);
+            console.trace(); // Trace the call stack
+            return; // Prevent setting NaN
+        }
+
         const oldValue = this.stats.get(name) ?? 0;
         this.stats.set(name, value);
         
-        this.emit('stat:changed', {
-            actorId: this.actor.entityId,
-            stat: name,
-            oldValue: oldValue,
-            newValue: value
-        });
+        this.emit(GameEventNames.StatChange, new StatChangeEvent(
+            this.actor,
+            name,
+            oldValue,
+            value
+        ));
         
         // Emit specific events for UI
         if (name === 'hp' || name === 'maxHp') {
@@ -77,6 +85,11 @@ export class StatsComponent extends ActorComponent {
     }
     
     modifyStat(name: string, delta: number): void {
+        if (isNaN(delta)) {
+            Logger.error(`[StatsComponent] Attempted to modify stat ${name} by NaN! Actor: ${this.actor.name}`);
+            console.trace();
+            return;
+        }
         const current = this.getStat(name);
         this.setStat(name, current + delta);
     }

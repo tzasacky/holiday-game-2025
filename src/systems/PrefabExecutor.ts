@@ -9,6 +9,7 @@ import { PrefabDefinition, PrefabActorPlacement, PrefabInteractablePlacement, Pr
 import { TerrainType } from '../data/terrain';
 import { WorldItemEntity } from '../items/WorldItemEntity';
 import * as ex from 'excalibur';
+import { GameEventNames, PrefabPlaceRequestEvent, LevelGeneratedEvent, PrefabPlacedEvent, FactoryCreateEvent } from '../core/GameEvents';
 
 export interface PrefabPlacementRequest {
   prefabId: string;
@@ -45,12 +46,20 @@ export class PrefabExecutor {
   }
 
   private setupEventListeners(): void {
-    EventBus.instance.on('prefab:place_request' as any, (event: PrefabPlacementRequest) => {
-      this.handlePrefabPlacement(event);
+    EventBus.instance.on(GameEventNames.PrefabPlaceRequest, (event: PrefabPlaceRequestEvent) => {
+      // Map event to request interface
+      const request: PrefabPlacementRequest = {
+        prefabId: event.prefabId,
+        position: event.position,
+        level: event.level,
+        floorNumber: event.floorNumber,
+        room: event.room
+      };
+      this.handlePrefabPlacement(request);
     });
 
     // Reset placement tracking on new level
-    EventBus.instance.on('level:generated' as any, () => {
+    EventBus.instance.on(GameEventNames.LevelGenerated, (event: LevelGeneratedEvent) => {
       this.placedPrefabs.clear();
     });
   }
@@ -128,10 +137,10 @@ export class PrefabExecutor {
   private handlePrefabPlacement(request: PrefabPlacementRequest): void {
     const result = this.placePrefab(request);
     
-    EventBus.instance.emit('prefab:placed' as any, {
+    EventBus.instance.emit(GameEventNames.PrefabPlaced, new PrefabPlacedEvent(
       request,
       result
-    });
+    ));
   }
 
   private validatePlacement(prefab: PrefabDefinition, request: PrefabPlacementRequest): boolean {
@@ -166,7 +175,7 @@ export class PrefabExecutor {
   private shouldModifyTerrain(prefab: PrefabDefinition, request: PrefabPlacementRequest): boolean {
     // Only modify terrain if we're placing in an empty area or specifically requested
     // For now, assume prefabs that have special terrain should modify
-    return prefab.layout && prefab.legend && Object.keys(prefab.legend).length > 2; // More than just wall/floor
+    return !!(prefab.layout && prefab.legend && Object.keys(prefab.legend).length > 2); // More than just wall/floor
   }
 
   private applyTerrainLayout(prefab: PrefabDefinition, request: PrefabPlacementRequest): void {
@@ -237,11 +246,16 @@ export class PrefabExecutor {
       
       try {
         // Emit event for InteractableFactory to handle
-        EventBus.instance.emit('interactable:create' as any, {
-          interactableId: interactablePlacement.interactableId,
-          position: worldPos,
-          properties: interactablePlacement.properties || {}
-        });
+        // Using any cast for now as InteractableCreateEvent might not match exactly or we need to define it better
+        // But we should use GameEventNames
+        EventBus.instance.emit(GameEventNames.InteractableCreate, new FactoryCreateEvent(
+            interactablePlacement.interactableId,
+            { // Mocking instance or passing data for factory to create
+                position: worldPos,
+                properties: interactablePlacement.properties || {},
+                level: request.level
+            }
+        ));
         
         placed++;
         Logger.debug(`[PrefabExecutor] Requested interactable ${interactablePlacement.interactableId} at ${worldPos}`);

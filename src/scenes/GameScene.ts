@@ -6,16 +6,14 @@ import { GameActor } from '../components/GameActor';
 import { ActorFactory } from '../factories/ActorFactory';
 import { UnifiedSystemInit } from '../core/UnifiedSystemInit';
 import { Logger } from '../core/Logger';
+import { GameEventNames, DieEvent } from '../core/GameEvents';
+import { EventBus } from '../core/EventBus';
 
 export class GameScene extends ex.Scene {
     public level: Level | null = null;
     private hero: GameActor | null = null;
 
-    public onInitialize(engine: ex.Engine) {
-        // Initialize unified system
-        UnifiedSystemInit.initialize();
-        Logger.info('[GameScene] Unified system initialized');
-    }
+    public onInitialize(engine: ex.Engine) {}
     
     public onActivate(context: ex.SceneActivationContext<unknown>): void {
         // Add all level actors to the now-active scene
@@ -66,6 +64,21 @@ export class GameScene extends ex.Scene {
             // Start Turns
             TurnManager.instance.processTurns();
         }
+        
+        // Listen for death events to clean up level data
+        EventBus.instance.on(GameEventNames.Death, (event: DieEvent) => {
+             if (this.level) {
+                 const index = this.level.actors.indexOf(event.actor);
+                 if (index > -1) {
+                     this.level.actors.splice(index, 1);
+                     Logger.info(`[GameScene] Removed ${event.actor.name} from level actors`);
+                 }
+                 const mobIndex = this.level.mobs.indexOf(event.actor);
+                 if (mobIndex > -1) {
+                     this.level.mobs.splice(mobIndex, 1);
+                 }
+             }
+        });
     }
 
     public onPostUpdate(engine: ex.Engine, delta: number) {

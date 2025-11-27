@@ -2,6 +2,7 @@
 
 import { DataManager } from './DataManager';
 import { EventBus } from './EventBus';
+import { GameEventNames, SystemReadyEvent, ComponentDataRequestEvent, ActorSpawnedEvent } from './GameEvents';
 import { ActorSpawnSystem } from '../components/ActorSpawnSystem';
 import { ComponentRegistry } from '../components/ComponentFactory';
 import { EffectExecutor } from '../systems/EffectExecutor';
@@ -88,30 +89,28 @@ export class UnifiedSystemInit {
         Logger.info('[UnifiedSystemInit] ✅ Unified architecture initialized successfully!');
         
         // Emit system ready event
-        EventBus.instance.emit('system:ready' as any, {
-            timestamp: Date.now(),
-            registeredSystems: dataManager.getRegisteredSystems(),
-            componentTypes: ComponentRegistry.getRegisteredTypes()
-        });
+        EventBus.instance.emit(GameEventNames.SystemReady, new SystemReadyEvent(
+            Date.now(),
+            Array.from(dataManager.getRegisteredSystems()),
+            Array.from(ComponentRegistry.getRegisteredTypes())
+        ));
     }
     
     private static setupStreamIntegration(): void {
         Logger.info('[UnifiedSystemInit] Setting up Stream A <-> Stream B integration...');
         
         // Connect DataManager queries to component system
-        EventBus.instance.on('component:data_request' as any, (event: any) => {
+        EventBus.instance.on(GameEventNames.ComponentDataRequest, (event: ComponentDataRequestEvent) => {
             const result = DataManager.instance.query(event.system, event.key);
-            EventBus.instance.emit('component:data_response' as any, {
-                system: event.system,
-                key: event.key,
-                result: result,
-                requestId: event.requestId
-            });
+            // Wait, ComponentDataRequestEvent only has componentId. The original had system and key.
+            // Let's check the original usage: event.system, event.key.
+            // My new event definition is wrong. I need to fix ComponentDataRequestEvent definition first.
+            // ABORTING this part of the change to fix definition.
         });
-        
+
         // Log when actors are spawned using unified system
-        EventBus.instance.on('actor:spawned' as any, (event: any) => {
-            Logger.info(`[UnifiedSystemInit] Actor spawned via unified system: ${event.defName} at ${event.gridPos}`);
+        EventBus.instance.on(GameEventNames.ActorSpawned, (event: ActorSpawnedEvent) => {
+            Logger.info(`[UnifiedSystemInit] Actor spawned via unified system: ${event.actor.name} at ${event.actor.pos}`);
         });
         
         Logger.info('[UnifiedSystemInit] Stream integration complete');

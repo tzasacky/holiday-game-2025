@@ -3,7 +3,7 @@ import { GameActor } from './GameActor';
 import { ActorDefinitions } from '../data/actors';
 import { ComponentRegistry } from './ComponentFactory';
 import { EventBus } from '../core/EventBus';
-import { GameEventNames } from '../core/GameEvents';
+import { GameEventNames, FactoryCreateEvent, ActorSpawnedEvent, InventoryAddStartingItemsEvent } from '../core/GameEvents';
 import { Logger } from '../core/Logger';
 
 export class ActorSpawnSystem {
@@ -22,8 +22,8 @@ export class ActorSpawnSystem {
     
     private setupEventListeners(): void {
         // Listen for actor creation events from ActorFactory
-        EventBus.instance.on(GameEventNames.ActorCreate, (event: any) =>{
-            this.spawnActor(event.defName, event.gridPos, event.options);
+        EventBus.instance.on(GameEventNames.ActorCreate, (event: FactoryCreateEvent) =>{
+            this.spawnActor(event.instance.defName, event.instance.gridPos, event.instance.options);
         });
     }
     
@@ -76,12 +76,7 @@ export class ActorSpawnSystem {
         }
 
         // Emit spawn event
-        EventBus.instance.emit(GameEventNames.ActorSpawned, {
-            actor: actor,
-            definition: def,
-            defName: defName,
-            position: gridPos
-        });
+        EventBus.instance.emit(GameEventNames.ActorSpawned, new ActorSpawnedEvent(actor));
         
         Logger.debug(`[ActorSpawnSystem] Successfully spawned ${defName}`);
         return actor;
@@ -108,9 +103,6 @@ export class ActorSpawnSystem {
         Logger.debug(`[ActorSpawnSystem] Giving starting items to ${actor.name}:`, itemIds);
         
         // Emit event for InventoryComponent to handle
-        EventBus.instance.emit(GameEventNames.InventoryAddStartingItems, {
-            actorId: actor.entityId,
-            itemIds: itemIds
-        });
+        EventBus.instance.emit(GameEventNames.InventoryAddStartingItems, new InventoryAddStartingItemsEvent(actor, itemIds));
     }
 }

@@ -1,5 +1,5 @@
 import { EventBus } from './EventBus';
-import { GameEventNames, RegistryQueryEvent, RegistryReloadEvent } from './GameEvents';
+import { GameEventNames, RegistryQueryEvent, RegistryReloadEvent, RegistryResponseEvent } from './GameEvents';
 
 // Import all unified data systems
 import { TerrainDefinitions } from '../data/terrain';
@@ -56,7 +56,7 @@ export class DataManager {
     }
 
     if (eventName) {
-        EventBus.instance.emit(eventName, new RegistryQueryEvent(system, key, result));
+        EventBus.instance.emit(eventName, new RegistryQueryEvent(system, key, undefined));
     }
 
     return result;
@@ -77,14 +77,14 @@ export class DataManager {
 
   private setupEventListeners() {
     // Listen for registry queries from components
-    EventBus.instance.on('registry:query' as any, (event: any) => {
+    EventBus.instance.on(GameEventNames.RegistryQuery, (event: RegistryQueryEvent) => {
       const result = this.query(event.system, event.key);
-      EventBus.instance.emit('registry:response' as any, {
-        system: event.system,
-        key: event.key,
-        result: result,
-        requestId: event.requestId
-      });
+      EventBus.instance.emit(GameEventNames.RegistryResponse, new RegistryResponseEvent(
+        event.system,
+        event.key,
+        result,
+        event.requestId
+      ));
     });
   }
 

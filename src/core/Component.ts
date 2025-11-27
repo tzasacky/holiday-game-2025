@@ -1,4 +1,5 @@
 import { EventBus } from './EventBus';
+import { GameEventMap } from './GameEvents';
 
 /**
  * Base component class for all game components (Actor & UI)
@@ -19,17 +20,17 @@ export abstract class Component {
     /**
      * Helper to register an event listener that auto-cleans up on detach
      */
-    protected listen(eventName: string, handler: (data: any) => void): void {
+    protected listen<K extends keyof GameEventMap>(eventName: K, handler: (event: GameEventMap[K]) => void): void {
         const boundHandler = handler.bind(this);
         this.eventHandlers.push({ event: eventName, handler: boundHandler });
-        EventBus.instance.on(eventName as any, boundHandler);
+        EventBus.instance.on(eventName, boundHandler);
     }
     
     /**
      * Helper to emit events
      */
-    protected emit(eventName: string, data: any): void {
-        EventBus.instance.emit(eventName as any, data);
+    protected emit<K extends keyof GameEventMap>(eventName: K, event: GameEventMap[K]): void {
+        EventBus.instance.emit(eventName, event);
     }
     
     /**

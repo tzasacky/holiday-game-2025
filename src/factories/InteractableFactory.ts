@@ -5,6 +5,8 @@ import { InteractableDefinition } from '../data/interactables';
 import { GameEntity } from '../core/GameEntity';
 import { Level } from '../dungeon/Level';
 import * as ex from 'excalibur';
+import { GameEventNames, FactoryCreateEvent, InteractableCreatedEvent, InteractableInteractEvent } from '../core/GameEvents';
+import { GameActor } from '../components/GameActor';
 
 export class InteractableFactory {
   private static _instance: InteractableFactory;
@@ -22,17 +24,28 @@ export class InteractableFactory {
   }
 
   private setupEventListeners(): void {
-    EventBus.instance.on('interactable:create' as any, (event: any) => {
+    EventBus.instance.on(GameEventNames.InteractableCreate, (event: FactoryCreateEvent) => {
       this.createInteractable(event);
     });
   }
 
-  private createInteractable(event: any): void {
-    const { definitionId, definition, position, config, level } = event;
+  private createInteractable(event: FactoryCreateEvent): void {
+    // event.type is the definitionId
+    // event.instance contains { position, config, level }
+    const definitionId = event.type;
+    const { position, config, level } = event.instance;
+    
+    // Query definition if not passed (FactoryCreateEvent doesn't pass definition directly usually)
+    const definition = DataManager.instance.query<InteractableDefinition>('interactable', definitionId);
 
     if (!definition) {
       Logger.error(`[InteractableFactory] Missing definition for ${definitionId}`);
       return;
+    }
+
+    if (!level) {
+        Logger.error(`[InteractableFactory] Missing level for ${definitionId}`);
+        return;
     }
 
     // For now, create a placeholder interactable entity
@@ -43,11 +56,11 @@ export class InteractableFactory {
     
     Logger.debug(`[InteractableFactory] Created ${definitionId} at ${position.x}, ${position.y}`);
 
-    EventBus.instance.emit('interactable:created' as any, {
+    EventBus.instance.emit(GameEventNames.InteractableCreated, new InteractableCreatedEvent({
       entity: interactable,
       definition: definition,
       position: position
-    });
+    }));
   }
 }
 
@@ -90,14 +103,16 @@ class PlaceholderInteractable extends GameEntity {
     }
   }
 
-  public interact(actor: any): boolean {
-    EventBus.instance.emit('interactable:interact' as any, {
-      interactableId: this.definition.id,
-      definition: this.definition,
-      config: this.config,
-      actorId: actor.entityId,
-      position: this.gridPos
-    });
+  public interact(actor: GameActor): boolean {
+    EventBus.instance.emit(GameEventNames.InteractableInteract, new InteractableInteractEvent(
+      actor,
+      {
+        interactableId: this.definition.id,
+        definition: this.definition,
+        config: this.config,
+        position: this.gridPos
+      }
+    ));
     
     return true;
   }

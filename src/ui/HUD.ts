@@ -2,6 +2,7 @@ import { UIComponent } from './components/UIComponent';
 import { EventBus } from '../core/EventBus';
 import { GameEventNames, HealthChangeEvent, WarmthChangeEvent } from '../core/GameEvents';
 import { GameActor } from '../components/GameActor';
+import { Logger } from '../core/Logger';
 
 export class HUD extends UIComponent {
     private hpBar: HTMLElement | null = null;
@@ -41,7 +42,10 @@ export class HUD extends UIComponent {
         
         bus.on(GameEventNames.HealthChange, (event: HealthChangeEvent) => {
             if (event.actor === this.hero) {
+                Logger.debug(`[HUD] Received HealthChange for hero: ${event.current}/${event.max}`);
                 this.updateHealth(event.current, event.max);
+            } else {
+                // Logger.debug(`[HUD] Received HealthChange for other actor: ${event.actor.name}`);
             }
         });
 

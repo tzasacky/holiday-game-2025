@@ -15,6 +15,8 @@ import { AllSpawnTables } from '../data/spawnTables';
 import { RoomTemplateDefinitions } from '../data/roomTemplates';
 import { PrefabDefinitions } from '../data/prefabDefinitions';
 import { BiomeDefinitions } from '../data/biomes';
+import { RegistryKey } from '../constants/RegistryKeys';
+import { Logger } from './Logger';
 
 export class DataManager {
   private static _instance: DataManager;
@@ -92,68 +94,76 @@ export class DataManager {
   }
 
   private registerExistingSystems() {
-    // Register all unified data systems using ES6 imports
-    // Terrain system
-    this.registerRegistry('terrain', TerrainDefinitions);
-    
-    // Enchantment system
-    this.registerRegistry('enchantment', EnchantmentData);
-    this.registerRegistry('curse', CurseData);
-    
-    // Balance system
-    this.registerRegistry('difficulty', Difficulty);
-    this.registerRegistry('enemy_scaling', EnemyScaling);
-    this.registerRegistry('stat_requirements', StatRequirementsByFloor);
-    this.registerRegistry('resource_scaling', ResourceScaling);
-    this.registerRegistry('victory', VictoryConditions);
-    
-    // Actor definitions - UNIFIED
-    this.registerRegistry('actor', ActorDefinitions);
-    
-    // Item definitions - UNIFIED
-    this.registerRegistry('item', ItemDefinitions);
-    this.registerRegistry('item_categories', ItemCategories);
-    
-    // Interactable definitions - UNIFIED
-    this.registerRegistry('interactable', InteractableDefinitions);
-    this.registerRegistry('interactable_categories', InteractableCategories);
-    
-    // Loot definitions - UNIFIED
-    this.registerRegistry('loot_tables', LootTables);
-    this.registerRegistry('rarity_weights', RarityWeights);
-    this.registerRegistry('floor_scaling', FloorScaling);
-    
-    // Abilities definitions - UNIFIED (TODO: abilities.ts is currently commented out)
-    // this.registerRegistry('abilities', AbilityDefinitions);
-    // this.registerRegistry('ability_progression', AbilityProgression);
-    // this.registerRegistry('ability_categories', AbilityCategories);
-    
-    // Effects definitions - UNIFIED
-    this.registerRegistry('effects', EffectDefinitions);
-    this.registerRegistry('effect_categories', EffectCategories);
-    this.registerRegistry('effect_interactions', EffectInteractions);
-    
-    // Game mechanics - UNIFIED
-    this.registerRegistry('damage_types', DamageTypes);
-    this.registerRegistry('environmental_hazards', EnvironmentalHazards);
-    this.registerRegistry('combat_mechanics', CombatMechanics);
-    this.registerRegistry('progression_rules', ProgressionRules);
-    this.registerRegistry('status_mechanics', StatusMechanics);
-    this.registerRegistry('mechanics_helpers', MechanicsHelpers);
-    
-    // Spawn tables - UNIFIED (Phase 3)
-    this.registerRegistry('spawn_table', AllSpawnTables);
-    
-    // Room templates - UNIFIED (Phase 3)
-    this.registerRegistry('room_template', RoomTemplateDefinitions);
-    
-    // Prefab definitions - UNIFIED (Phase 3.6)
-    this.registerRegistry('prefab', PrefabDefinitions);
-    
-    // Biome definitions - UNIFIED (Phase 3.8)  
-    this.registerRegistry('biome', BiomeDefinitions);
-    
-    console.log('[DataManager] Registered unified data systems:', Array.from(this.registries.keys()));
+    // Import all unified data systems
+    try {
+        // Terrain system
+        this.registerRegistry(RegistryKey.TERRAIN, TerrainDefinitions);
+        
+        // Enchantment system
+        this.registerRegistry(RegistryKey.ENCHANTMENT, EnchantmentData);
+        this.registerRegistry(RegistryKey.CURSE, CurseData);
+        
+        // Balance system
+        this.registerRegistry(RegistryKey.DIFFICULTY, Difficulty);
+        this.registerRegistry(RegistryKey.ENEMY_SCALING, EnemyScaling);
+        this.registerRegistry(RegistryKey.STAT_REQUIREMENTS, StatRequirementsByFloor);
+        this.registerRegistry(RegistryKey.RESOURCE_SCALING, ResourceScaling);
+        this.registerRegistry(RegistryKey.VICTORY, VictoryConditions);
+        
+        // Actor definitions
+        this.registerRegistry(RegistryKey.ACTOR, ActorDefinitions);
+        
+        // Item definitions
+        this.registerRegistry(RegistryKey.ITEM, ItemDefinitions);
+        this.registerRegistry(RegistryKey.ITEM_CATEGORIES, ItemCategories);
+        
+        // Interactable definitions
+        this.registerRegistry(RegistryKey.INTERACTABLE, InteractableDefinitions);
+        this.registerRegistry(RegistryKey.INTERACTABLE_CATEGORIES, InteractableCategories);
+        
+        // Loot definitions
+        this.registerRegistry(RegistryKey.LOOT_TABLES, LootTables);
+        this.registerRegistry(RegistryKey.LOOT_TABLES, LootTables);
+        this.registerRegistry(RegistryKey.RARITY_WEIGHTS, RarityWeights);
+        this.registerRegistry(RegistryKey.FLOOR_SCALING, FloorScaling);
+        
+        // Abilities definitions - UNIFIED (TODO: abilities.ts is currently commented out)
+        // const { AbilityDefinitions, AbilityProgression, AbilityCategories } = require('../data/abilities');
+        // this.registerRegistry(RegistryKey.ABILITIES, AbilityDefinitions);
+        // this.registerRegistry(RegistryKey.ABILITY_PROGRESSION, AbilityProgression);
+        // this.registerRegistry(RegistryKey.ABILITY_CATEGORIES, AbilityCategories);
+        
+        // Effects definitions
+        this.registerRegistry(RegistryKey.EFFECTS, EffectDefinitions);
+        this.registerRegistry(RegistryKey.EFFECT_CATEGORIES, EffectCategories);
+        this.registerRegistry(RegistryKey.EFFECT_INTERACTIONS, EffectInteractions);
+        
+        // Game mechanics
+        this.registerRegistry(RegistryKey.DAMAGE_TYPES, DamageTypes);
+        this.registerRegistry(RegistryKey.DAMAGE_TYPES, DamageTypes);
+        this.registerRegistry(RegistryKey.ENVIRONMENTAL_HAZARDS, EnvironmentalHazards);
+        this.registerRegistry(RegistryKey.COMBAT_MECHANICS, CombatMechanics);
+        this.registerRegistry(RegistryKey.PROGRESSION_RULES, ProgressionRules);
+        this.registerRegistry(RegistryKey.STATUS_MECHANICS, StatusMechanics);
+        this.registerRegistry(RegistryKey.MECHANICS_HELPERS, MechanicsHelpers);
+        
+        // Spawn tables
+        this.registerRegistry(RegistryKey.SPAWN_TABLE, AllSpawnTables);
+        
+        // Room templates
+        this.registerRegistry(RegistryKey.ROOM_TEMPLATE, RoomTemplateDefinitions);
+        
+        // Prefabs
+        this.registerRegistry(RegistryKey.PREFAB, PrefabDefinitions);
+        
+        // Biomes
+        this.registerRegistry(RegistryKey.BIOME, BiomeDefinitions);
+        
+        Logger.info(`[DataManager] Registered unified data systems: ${this.getRegisteredSystems()}`);
+        
+    } catch (error) {
+        Logger.warn(`[DataManager] Error registering unified systems: ${error}`);
+    }
   }
 
   // Get all registered systems

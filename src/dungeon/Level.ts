@@ -58,7 +58,22 @@ export class Level {
         scene.add(this.objectMap);
     }
 
+    private tilesetSpriteSheet?: ex.SpriteSheet;
+
     public updateTileGraphics() {
+        // Initialize sprite sheet if needed
+        if (this.biome.visuals.tileset && !this.tilesetSpriteSheet) {
+            this.tilesetSpriteSheet = ex.SpriteSheet.fromImageSource({
+                image: this.biome.visuals.tileset,
+                grid: {
+                    rows: 3,
+                    columns: 8,
+                    spriteWidth: 32,
+                    spriteHeight: 32
+                }
+            });
+        }
+
         for (let x = 0; x < this.width; x++) {
             for (let y = 0; y < this.height; y++) {
                 const terrainType = this.terrainData[x][y];
@@ -71,7 +86,13 @@ export class Level {
                     
                     // Use floor graphics from biome
                     const floorGraphics = this.biome.visuals.tileGraphics[TerrainType.Floor];
-                    if (floorGraphics.color) {
+                    
+                    if (this.tilesetSpriteSheet && floorGraphics.spriteIndex !== undefined) {
+                         const col = floorGraphics.spriteIndex % 8;
+                         const row = Math.floor(floorGraphics.spriteIndex / 8);
+                         const sprite = this.tilesetSpriteSheet.getSprite(col, row);
+                         if (sprite) floorTile.addGraphic(sprite);
+                    } else if (floorGraphics.color) {
                         const rect = new ex.Rectangle({
                             width: 32,
                             height: 32,
@@ -89,7 +110,12 @@ export class Level {
                     
                     // Only add graphics for non-floor terrain
                     if (terrainType !== TerrainType.Floor && biomeGraphics) {
-                        if (biomeGraphics.color) {
+                        if (this.tilesetSpriteSheet && biomeGraphics.spriteIndex !== undefined) {
+                             const col = biomeGraphics.spriteIndex % 8;
+                             const row = Math.floor(biomeGraphics.spriteIndex / 8);
+                             const sprite = this.tilesetSpriteSheet.getSprite(col, row);
+                             if (sprite) objectTile.addGraphic(sprite);
+                        } else if (biomeGraphics.color) {
                             const rect = new ex.Rectangle({
                                 width: 32,
                                 height: 32,
@@ -112,7 +138,7 @@ export class Level {
         this.actors.push(mob);
         // Don't add to scene here - GameScene.onActivate will add all actors
         // Don't register with TurnManager here - GameScene will do it
-        console.log(`[Level] Added mob ${mob.name || 'unnamed'} to level mobs and actors lists`);
+        Logger.info(`[Level] Added mob ${mob.name || 'unnamed'} to level mobs and actors lists`);
     }
 
     public addItem(item: WorldItemEntity) {

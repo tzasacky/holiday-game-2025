@@ -1,7 +1,7 @@
 import { GameActor } from '../components/GameActor';
 import { ItemEntity } from '../factories/ItemFactory';
 import { EquipmentSystem } from './EquipmentSystem';
-import { ItemID } from '../constants/ItemIDs';
+import { Logger } from '../core/Logger';
 
 interface IdentificationProcess {
     item: ItemEntity;
@@ -34,7 +34,7 @@ export class IdentificationSystem {
 
     public startIdentification(actor: GameActor, item: ItemEntity): boolean {
         if (item.identified) {
-            console.log(`${item.getDisplayName()} is already identified.`);
+            Logger.info(`${item.getDisplayName()} is already identified.`);
             return false;
         }
 
@@ -50,7 +50,7 @@ export class IdentificationSystem {
         // Check for identification aids
         if (this.hasIdentificationAid(actor)) {
             identificationTime = Math.max(50, Math.floor(identificationTime * 0.6));
-            console.log('🔍 Your identification tools help focus your study!');
+            Logger.info('🔍 Your identification tools help focus your study!');
         }
 
         this.identificationQueue.set(itemKey, {
@@ -59,8 +59,8 @@ export class IdentificationSystem {
             actor
         });
 
-        console.log(`🤔 You begin carefully examining ${item.getDisplayName()}...`);
-        console.log(`📚 This will take approximately ${Math.floor(identificationTime / 10)} moves to complete.`);
+        Logger.info(`🤔 You begin carefully examining ${item.getDisplayName()}...`);
+        Logger.info(`📚 This will take approximately ${Math.floor(identificationTime / 10)} moves to complete.`);
         return true;
     }
 
@@ -70,10 +70,10 @@ export class IdentificationSystem {
         }
 
         EquipmentSystem.identifyItem(item);
-        console.log(`${item.getDisplayName()} has been instantly identified!`);
+        Logger.info(`${item.getDisplayName()} has been instantly identified!`);
         
         if (item.curses.length > 0 && this.isItemEquipped(actor, item)) {
-            console.log('The cursed item binds to you!');
+            Logger.warn('The cursed item binds to you!');
         }
 
         return true;
@@ -104,11 +104,11 @@ export class IdentificationSystem {
 
         const { item, actor } = identification;
         
-        console.log(`You finish studying ${item.getDisplayName()}...`);
+        Logger.info(`You finish studying ${item.getDisplayName()}...`);
         EquipmentSystem.identifyItem(item);
 
         if (item.curses.length > 0 && this.isItemEquipped(actor, item)) {
-            console.log('The cursed energy binds the item to your very soul!');
+            Logger.warn('The cursed energy binds the item to your very soul!');
             // Apply curse effects logic here if needed
         }
 

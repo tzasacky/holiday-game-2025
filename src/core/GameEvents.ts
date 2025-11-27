@@ -93,6 +93,7 @@ export enum GameEventNames {
     // Actor Spawning Events (added for event-driven architecture)
     ActorSpawned = 'actor:spawned',
     ActorTurn = 'actor:turn',
+    ActorSpendTime = 'actor:spend_time',
     
     // Item Spawn Events
     ItemSpawnRequest = 'item:spawn_request',
@@ -495,6 +496,16 @@ export class SoundPlayEvent extends ex.GameEvent<any> {
     }
 }
 
+// --- Actor Events ---
+export class ActorSpendTimeEvent extends ex.GameEvent<any> {
+    constructor(
+        public actorId: string,
+        public time: number
+    ) {
+        super();
+    }
+}
+
 // Event Map Type
 export type GameEventMap = {
     [GameEventNames.Attack]: AttackEvent;
@@ -507,6 +518,8 @@ export type GameEventMap = {
     [GameEventNames.ItemUse]: ItemUseEvent;
     [GameEventNames.ItemEquip]: ItemEquipEvent;
     [GameEventNames.ItemUnequip]: ItemUnequipEvent;
+    [GameEventNames.EquipmentEquipped]: ItemEquipEvent;
+    [GameEventNames.EquipmentUnequipped]: ItemUnequipEvent;
     [GameEventNames.InventoryChange]: InventoryChangeEvent;
     [GameEventNames.ItemDestroyed]: ex.GameEvent<any>;
     [GameEventNames.ItemCreated]: ex.GameEvent<any>;
@@ -561,5 +574,6 @@ export type GameEventMap = {
     [GameEventNames.LevelTransitionRequest]: LevelTransitionRequestEvent;
     
     [GameEventNames.SoundPlay]: SoundPlayEvent;
+    [GameEventNames.ActorSpendTime]: ActorSpendTimeEvent;
 };
 

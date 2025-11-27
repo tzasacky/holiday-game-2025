@@ -3,6 +3,8 @@ import { Resources } from '../config/resources';
 import { AppConfig } from '../main';
 import { ActorDefinitions } from './actors';
 import { ItemDefinitions } from './items';
+import { ItemID } from '../constants/ItemIDs';
+import { Logger } from '../core/Logger';
 
 // Unified graphics management system
 export class GraphicsManager {
@@ -17,7 +19,7 @@ export class GraphicsManager {
     
     // Actor graphics configuration
     public configureActor(actor: ex.Actor): void {
-        console.log(`[GraphicsManager] configureActor called for: ${actor.name}`);
+        Logger.debug(`[GraphicsManager] configureActor called for: ${actor.name}`);
         
         // Check if we should use fallback rendering
         if (AppConfig.UseFallbackRendering) {
@@ -27,7 +29,7 @@ export class GraphicsManager {
         
         const definition = ActorDefinitions[actor.name];
         if (!definition) {
-            console.warn(`[GraphicsManager] No definition for ${actor.name}, using fallback`);
+            Logger.warn(`[GraphicsManager] No definition for ${actor.name}, using fallback`);
             this.addFallbackActorGraphics(actor);
             return;
         }
@@ -39,10 +41,10 @@ export class GraphicsManager {
                 grid: config.grid
             });
             
-            console.log(`[GraphicsManager] SpriteSheet created for ${actor.name}, sprite count: ${spriteSheet.sprites.length}`);
+            Logger.debug(`[GraphicsManager] SpriteSheet created for ${actor.name}, sprite count: ${spriteSheet.sprites.length}`);
             
             if (spriteSheet.sprites.length === 0) {
-                console.warn(`[GraphicsManager] No sprites in sheet for ${actor.name}`);
+                Logger.warn(`[GraphicsManager] No sprites in sheet for ${actor.name}`);
                 this.addFallbackActorGraphics(actor);
                 return;
             }
@@ -62,7 +64,7 @@ export class GraphicsManager {
             actor.graphics.opacity = 1.0;
             
         } catch (error) {
-            console.error(`[GraphicsManager] Error configuring ${actor.name}:`, error);
+            Logger.error(`[GraphicsManager] Error configuring ${actor.name}:`, error);
             this.addFallbackActorGraphics(actor);
         }
     }
@@ -129,42 +131,42 @@ export class GraphicsManager {
     }
     
     // Item graphics system
-    private itemSpriteSheet!: ex.SpriteSheet; // Initialized lazily in initializeItemGraphics()
-    private itemSprites: Map<string, ex.Graphic> = new Map();
+    private itemSpriteSheets: Map<ex.ImageSource, ex.SpriteSheet> = new Map();
     
-    private initializeItemGraphics(): void {
-        if (this.itemSpriteSheet) return; // Already initialized
-        
-        this.itemSpriteSheet = ex.SpriteSheet.fromImageSource({
-            image: Resources.ItemsPng,
-            grid: {
-                rows: 8,
-                columns: 8,
-                spriteWidth: 32,
-                spriteHeight: 32
-            }
-        });
-        
-        // Register sprites from data definitions
-        Object.values(ItemDefinitions).forEach(item => {
-            if (item.graphics.spriteIndex !== undefined) {
-                const col = item.graphics.spriteIndex % 8;
-                const row = Math.floor(item.graphics.spriteIndex / 8);
-                const sprite = this.itemSpriteSheet.getSprite(col, row);
-                if (sprite) {
-                    this.itemSprites.set(item.id, sprite);
+    private getItemSpriteSheet(resource: ex.ImageSource): ex.SpriteSheet {
+        if (!this.itemSpriteSheets.has(resource)) {
+            this.itemSpriteSheets.set(resource, ex.SpriteSheet.fromImageSource({
+                image: resource,
+                grid: {
+                    rows: 8,
+                    columns: 8,
+                    spriteWidth: 32,
+                    spriteHeight: 32
                 }
-            }
-        });
-        
-        console.log(`[GraphicsManager] Item sprites registered: ${this.itemSprites.size}`);
+            }));
+        }
+        return this.itemSpriteSheets.get(resource)!;
     }
     
     public getItemSprite(itemId: string): ex.Graphic {
-        this.initializeItemGraphics();
+        const definition = ItemDefinitions[itemId as ItemID];
+        if (!definition) {
+            Logger.warn(`[GraphicsManager] No definition for item: ${itemId}`);
+            return new ex.Rectangle({ width: 32, height: 32, color: ex.Color.Magenta });
+        }
         
-        const sprite = this.itemSprites.get(itemId);
-        if (sprite) return sprite;
+        const { spriteIndex, resource } = definition.graphics;
+        
+        if (resource && spriteIndex !== undefined) {
+            const sheet = this.getItemSpriteSheet(resource);
+            const col = spriteIndex % 8;
+            const row = Math.floor(spriteIndex / 8);
+            const sprite = sheet.getSprite(col, row);
+            
+            if (sprite) return sprite;
+            
+            Logger.warn(`[GraphicsManager] Sprite not found for item ${itemId} at index ${spriteIndex}`);
+        }
         
         // Fallback
         return new ex.Rectangle({ width: 32, height: 32, color: ex.Color.Magenta });

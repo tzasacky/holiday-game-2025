@@ -3,6 +3,7 @@ import { GameEventNames } from '../core/GameEvents';
 import { ItemEntity } from '../factories/ItemFactory';
 import { GameActor } from '../components/GameActor';
 import { EnchantmentSystem } from './EnchantmentSystem';
+import { Logger } from '../core/Logger';
 
 export class EquipmentSystem {
     private static _instance: EquipmentSystem;
@@ -60,21 +61,21 @@ export class EquipmentSystem {
         if (item.identified) return;
         
         item.identified = true;
-        console.log(`${item.definition.name} has been identified!`);
+        Logger.info(`${item.definition.name} has been identified!`);
         
         if (item.enchantments.length > 0) {
-            console.log('Enchantments discovered:');
+            Logger.info('Enchantments discovered:');
             item.enchantments.forEach((ench: any) => {
-                console.log(`- ${ench.name}: ${ench.description}`);
+                Logger.info(`- ${ench.name}: ${ench.description}`);
             });
         }
         
         if (item.curses.length > 0) {
-            console.log('CURSES revealed:');
+            Logger.info('CURSES revealed:');
             item.curses.forEach((curse: any) => {
-                console.log(`- ${curse.name}: ${curse.description}`);
+                Logger.info(`- ${curse.name}: ${curse.description}`);
             });
-            console.log('WARNING: This cursed item may have negative effects!');
+            Logger.warn('WARNING: This cursed item may have negative effects!');
         }
     }
 

@@ -1,4 +1,6 @@
 import { ActorComponent } from './ActorComponent';
+import { GameEventNames, ActorSpendTimeEvent } from '../core/GameEvents';
+import { EventBus } from '../core/EventBus';
 import * as ex from 'excalibur';
 
 export enum AIState {
@@ -29,8 +31,9 @@ export class AIComponent extends ActorComponent {
     
     protected setupEventListeners(): void {
         // Listen for turns
-        this.listen('actor:turn', (event) => {
+        this.listen(GameEventNames.ActorTurn, (event) => {
             if (this.isForThisActor(event)) {
+                console.log('[AIComponent] Handling turn for:', this.actor.name);
                 this.handleTurn();
             }
         });
@@ -42,13 +45,9 @@ export class AIComponent extends ActorComponent {
     }
     
     private async handleTurn(): Promise<void> {
-        // Request current level state
-        this.emit('level:get_actors', {
-            requesterId: this.actor.entityId,
-            responseEvent: 'level:actor_positions'
-        });
-        
-        // AI decision will be made in updatePlayerAwareness
+        console.log('[AIComponent] Making AI decision for:', this.actor.name);
+        // For now, just make a simple decision without complex level queries
+        this.makeDecision(null);
     }
     
     private updatePlayerAwareness(actors: any[]): void {
@@ -105,10 +104,9 @@ export class AIComponent extends ActorComponent {
         }
         
         // Spend turn time
-        this.emit('actor:spend_time', {
-            actorId: this.actor.entityId,
-            time: 10
-        });
+        const timeEvent = new ActorSpendTimeEvent(this.actor.entityId, 10);
+        console.log('[AIComponent] Emitting time event:', timeEvent);
+        EventBus.instance.emit(GameEventNames.ActorSpendTime, timeEvent);
     }
     
     private executeWander(): void {

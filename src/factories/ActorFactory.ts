@@ -4,14 +4,10 @@ import { EventBus } from '../core/EventBus';
 import { GameEventNames } from '../core/GameEvents';
 import { ActorID } from '../constants/ActorIDs';
 import { Logger } from '../core/Logger';
+import { ActorSpawnSystem } from '../components/ActorSpawnSystem';
 
 export class ActorFactory {
     private static _instance: ActorFactory;
-    private pendingSpawns: Map<string, {
-        resolve: (actor: GameActor | null) => void;
-        reject: (error: Error) => void;
-        timeout: NodeJS.Timeout;
-    }> = new Map();
 
     public static get instance(): ActorFactory {
         if (!this._instance) {
@@ -21,61 +17,36 @@ export class ActorFactory {
     }
 
     private constructor() {
-        this.setupEventListeners();
+        // No event listeners needed for synchronous factory
     }
 
-    private setupEventListeners(): void {
-        // Listen for successful actor spawns
-        EventBus.instance.on(GameEventNames.ActorSpawned, (event: any) => {
-            const spawnId = `${event.defName}_${event.position.x}_${event.position.y}`;
-            const pending = this.pendingSpawns.get(spawnId);
-            
-            if (pending) {
-                clearTimeout(pending.timeout);
-                pending.resolve(event.actor);
-                this.pendingSpawns.delete(spawnId);
-            }
-        });
-    }
-
-    public createActor(type: string, pos: ex.Vector): Promise<GameActor | null> {
+    public createActor(type: string, pos: ex.Vector): GameActor | null {
         Logger.info(`[ActorFactory] Requesting spawn for ${type} at (${pos.x}, ${pos.y})`);
         
-        return new Promise((resolve, reject) => {
-            const spawnId = `${type}_${pos.x}_${pos.y}`;
-            
-            // Set timeout in case spawn fails
-            const timeout = setTimeout(() => {
-                Logger.error(`[ActorFactory] Spawn timeout for ${type}`);
-                this.pendingSpawns.delete(spawnId);
-                resolve(null);
-            }, 5000);
-            
-            this.pendingSpawns.set(spawnId, { resolve, reject, timeout });
-            
-            // Emit spawn request event
-            EventBus.instance.emit(GameEventNames.ActorCreate, {
-                defName: type,
-                gridPos: pos,
-                options: {}
-            });
-        });
+        try {
+            // Direct synchronous call to ActorSpawnSystem
+            const actor = ActorSpawnSystem.instance.spawnActor(type, pos);
+            return actor;
+        } catch (error) {
+            Logger.error(`[ActorFactory] Failed to create actor ${type}:`, error);
+            return null;
+        }
     }
 
     // Convenience methods that delegate to createActor
-    public async createHero(pos: ex.Vector): Promise<GameActor | null> {
+    public createHero(pos: ex.Vector): GameActor | null {
         return this.createActor(ActorID.HERO, pos);
     }
 
-    public async createSnowman(pos: ex.Vector): Promise<GameActor | null> {
+    public createSnowman(pos: ex.Vector): GameActor | null {
         return this.createActor(ActorID.SNOWMAN, pos);
     }
 
-    public async createSnowSprite(pos: ex.Vector): Promise<GameActor | null> {
+    public createSnowSprite(pos: ex.Vector): GameActor | null {
         return this.createActor(ActorID.SNOW_SPRITE, pos);
     }
 
-    public async createKrampus(pos: ex.Vector): Promise<GameActor | null> {
+    public createKrampus(pos: ex.Vector): GameActor | null {
         return this.createActor(ActorID.KRAMPUS, pos);
     }
 }

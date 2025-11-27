@@ -5,6 +5,8 @@ import { InteractableDefinition, InteractableType } from '../data/interactables'
 import { LootSystem } from './LootSystem';
 import { EventBus } from '../core/EventBus';
 import { GameEventNames } from '../core/GameEvents';
+import { Logger } from '../core/Logger';
+import { RegistryKey } from '../constants/RegistryKeys';
 
 export class InteractionSystem {
     private static _instance: InteractionSystem;
@@ -20,7 +22,7 @@ export class InteractionSystem {
         // Assume target is an interactable entity
         // We use target.name as the ID for now, or we should have a component storing the ID
         const interactableId = target.name; 
-        const def = DataManager.instance.query<InteractableDefinition>('interactable', interactableId);
+        const def = DataManager.instance.query<InteractableDefinition>(RegistryKey.INTERACTABLE, interactableId);
         
         if (!def) {
             // It might be an actor (NPC)
@@ -28,7 +30,7 @@ export class InteractionSystem {
             return false;
         }
 
-        console.log(`${actor.name} interacts with ${def.name}`);
+        Logger.info(`${actor.name} interacts with ${def.name}`);
 
         // Check conditions (key required, etc.)
         if (def.requiresKey) {
@@ -58,20 +60,20 @@ export class InteractionSystem {
         // We need state on the target entity.
         // For now, assume if it exists, it's closed (and we destroy/change it after open)
         
-        console.log(`Opening ${def.name}...`);
+        Logger.info(`Opening ${def.name}...`);
         
         // Generate loot
         const loot = LootSystem.instance.generateContainerLoot(def.id);
         
         if (loot.length > 0) {
-            console.log(`Found ${loot.length} items!`);
+            Logger.info(`Found ${loot.length} items!`);
             EventBus.instance.emit(GameEventNames.LootGenerated, {
                 items: loot,
                 position: target.gridPos.clone(),
                 sourceId: target.entityId
             });
         } else {
-            console.log("It's empty.");
+            Logger.info("It's empty.");
         }
 
         // Change state to open or destroy
@@ -87,7 +89,7 @@ export class InteractionSystem {
     }
 
     private handleDoor(actor: GameActor, target: GameActor, def: InteractableDefinition): boolean {
-        console.log(`Opening door...`);
+        Logger.info(`Opening door...`);
         // Play open animation
         // Remove collision
         // For now, just kill it to "open" it (simplest migration)
@@ -97,14 +99,14 @@ export class InteractionSystem {
     }
 
     private handlePortal(actor: GameActor, target: GameActor, def: InteractableDefinition): boolean {
-        console.log(`Using portal...`);
+        Logger.info(`Using portal...`);
         // Trigger level change or teleport
         // EventBus.emit(GameEventNames.LevelChange, ...);
         return true;
     }
 
     private handleCrafting(actor: GameActor, target: GameActor, def: InteractableDefinition): boolean {
-        console.log(`Using ${def.name} for crafting...`);
+        Logger.info(`Using ${def.name} for crafting...`);
         // Open crafting UI
         return true;
     }
@@ -113,7 +115,7 @@ export class InteractionSystem {
         if (def.effects) {
             def.effects.forEach(effect => {
                 // Apply effect
-                console.log(`Applied effect: ${effect.type}`);
+                Logger.info(`Applied effect: ${effect.type}`);
             });
             return true;
         }

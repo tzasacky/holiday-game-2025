@@ -9,6 +9,7 @@ import { LootTableID } from '../constants/LootTableIDs';
 import { ActorID } from '../constants/ActorIDs';
 import { ActorDefinition } from '../data/actors';
 import { InteractableDefinition } from '../data/interactables';
+import { Logger } from '../core/Logger';
 
 export interface GeneratedLoot {
     itemId: string;
@@ -64,7 +65,7 @@ export class LootSystem {
     public generateLoot(tableId: string, floor: number = 1, quantity: number = 1): GeneratedLoot[] {
         const lootTable = this.dataManager.query<LootTable>('loot_tables', tableId);
         if (!lootTable) {
-            console.warn(`[LootSystem] No loot table found for ID: ${tableId}`);
+            Logger.warn(`[LootSystem] No loot table found for ID: ${tableId}`);
             return [];
         }
 
@@ -139,7 +140,7 @@ export class LootSystem {
     private generateLootFromEntry(entry: LootTableEntry, floor: number): GeneratedLoot | null {
         const itemDef = this.dataManager.query<ItemDefinition>('item', entry.itemId);
         if (!itemDef) {
-            console.warn(`[LootSystem] No item definition found for: ${entry.itemId}`);
+            Logger.warn(`[LootSystem] No item definition found for: ${entry.itemId}`);
             return null;
         }
 

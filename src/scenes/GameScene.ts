@@ -5,6 +5,7 @@ import { UIManager } from '../ui/UIManager';
 import { GameActor } from '../components/GameActor';
 import { ActorFactory } from '../factories/ActorFactory';
 import { UnifiedSystemInit } from '../core/UnifiedSystemInit';
+import { Logger } from '../core/Logger';
 
 export class GameScene extends ex.Scene {
     public level: Level | null = null;
@@ -13,13 +14,13 @@ export class GameScene extends ex.Scene {
     public onInitialize(engine: ex.Engine) {
         // Initialize unified system
         UnifiedSystemInit.initialize();
-        console.log('[GameScene] Unified system initialized');
+        Logger.info('[GameScene] Unified system initialized');
     }
     
     public onActivate(context: ex.SceneActivationContext<unknown>): void {
         // Add all level actors to the now-active scene
         if (this.level) {
-            console.log(`[GameScene] Adding ${this.level.actors.length} actors from level to scene`);
+            Logger.info(`[GameScene] Adding ${this.level.actors.length} actors from level to scene`);
             this.level.actors.forEach(actor => {
                 if (!this.actors.includes(actor)) {
                     this.add(actor);

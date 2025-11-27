@@ -58,3 +58,17 @@ export enum RegistryKey {
     // Biome definitions
     BIOME = 'biome'
 }
+
+/**
+ * Component type constants for GameActor components
+ * Use these instead of magic strings when registering/accessing components
+ */
+export enum ComponentType {
+    STATS = 'stats',
+    COMBAT = 'combat',
+    PLAYER_INPUT = 'player_input',
+    AI = 'ai',
+    INVENTORY = 'inventory',
+    MOVEMENT = 'movement',
+    EQUIPMENT = 'equipment'
+}

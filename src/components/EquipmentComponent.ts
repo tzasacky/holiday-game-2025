@@ -2,6 +2,7 @@ import { ActorComponent } from './ActorComponent';
 import { ItemType } from '../data/items';
 import { ItemEntity } from '../factories/ItemFactory';
 import { GameEventNames } from '../core/GameEvents';
+import { Logger } from '../core/Logger';
 
 export class EquipmentComponent extends ActorComponent {
     private slots: Map<string, ItemEntity | null> = new Map([
@@ -36,7 +37,7 @@ export class EquipmentComponent extends ActorComponent {
         if (currentItem) {
             // Check if item is cursed and can't be unequipped
             if (currentItem.definition.cursed) {
-                console.log(`Cannot unequip ${currentItem.getDisplayName()} - it's cursed!`);
+                Logger.warn(`Cannot unequip ${currentItem.getDisplayName()} - it's cursed!`);
                 return false;
             }
             this.unequip(slot);

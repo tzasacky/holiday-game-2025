@@ -1,6 +1,7 @@
 import { GameActor } from '../components/GameActor';
 import { EventBus } from '../core/EventBus';
 import { GameEventNames, LevelUpEvent, XpGainEvent } from '../core/GameEvents';
+import { Logger } from '../core/Logger';
 
 export class ProgressionSystem {
     private static _instance: ProgressionSystem;
@@ -23,7 +24,7 @@ export class ProgressionSystem {
         stats.setStat('xp', newXp);
         
         EventBus.instance.emit(GameEventNames.XpGain, new XpGainEvent(actor, amount));
-        console.log(`${actor.name} gained ${amount} XP! (${newXp}/${xpToNextLevel})`);
+        Logger.info(`${actor.name} gained ${amount} XP! (${newXp}/${xpToNextLevel})`);
 
         if (newXp >= xpToNextLevel) {
             this.levelUp(actor);
@@ -53,7 +54,7 @@ export class ProgressionSystem {
         const strength = stats.getStat('strength');
         stats.setStat('strength', strength + 1);
 
-        console.log(`${actor.name} reached Level ${newLevel}!`);
+        Logger.info(`${actor.name} reached Level ${newLevel}!`);
         EventBus.instance.emit(GameEventNames.LevelUp, new LevelUpEvent(actor, newLevel));
     }
 }

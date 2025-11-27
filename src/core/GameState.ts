@@ -3,6 +3,7 @@ import { Level } from '../dungeon/Level';
 import { EventBus } from './EventBus';
 import { GameEventNames, LogEvent } from './GameEvents';
 import * as ex from 'excalibur';
+import { Logger } from './Logger';
 
 // Serialization Interfaces
 export interface SerializedItem {
@@ -93,18 +94,18 @@ export class GameState {
     // --- Serialization Methods (TO BE REIMPLEMENTED FOR COMPONENT SYSTEM) ---
 
     public save(): void {
-        console.warn('[GameState] Save system needs reimplementation for component-based architecture');
-        console.warn('[GameState] TODO: Implement component serialization protocol');
-        console.warn('[GameState] TODO: Serialize gameComponents map with each component providing its own saveState() method');
+        Logger.warn('[GameState] Save system needs reimplementation for component-based architecture');
+        Logger.warn('[GameState] TODO: Implement component serialization protocol');
+        Logger.warn('[GameState] TODO: Serialize gameComponents map with each component providing its own saveState() method');
         
         // For now, just acknowledge the request
         EventBus.instance.emit(GameEventNames.Log, new LogEvent('Save system pending migration', 'System', 'yellow'));
     }
 
     public load(): void {
-        console.warn('[GameState] Load system needs reimplementation for component-based architecture');
-        console.warn('[GameState] TODO: Implement component deserialization with ActorFactory');
-        console.warn('[GameState] TODO: Components should provide loadState(data) method');
+        Logger.warn('[GameState] Load system needs reimplementation for component-based architecture');
+        Logger.warn('[GameState] TODO: Implement component deserialization with ActorFactory');
+        Logger.warn('[GameState] TODO: Components should provide loadState(data) method');
         
         // For now, just acknowledge the request
         EventBus.instance.emit(GameEventNames.Log, new LogEvent('Load system pending migration', 'System', 'yellow'));

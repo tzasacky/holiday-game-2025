@@ -1,3 +1,5 @@
+import { Logger } from '../../core/Logger';
+
 export abstract class UIComponent {
     protected element: HTMLElement | null = null;
     protected visible: boolean = true;
@@ -5,7 +7,7 @@ export abstract class UIComponent {
     constructor(protected selector: string) {
         this.element = document.querySelector(selector);
         if (!this.element) {
-            console.warn(`[UIComponent] Element not found: ${selector}`);
+            Logger.warn(`[UIComponent] Element not found: ${selector}`);
         }
     }
 

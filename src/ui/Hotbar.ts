@@ -5,6 +5,7 @@ import { SpriteMapper } from './SpriteMapper';
 import { GameActor } from '../components/GameActor';
 import { InventoryComponent } from '../components/InventoryComponent';
 import { ItemEntity } from '../factories/ItemFactory';
+import { Logger } from '../core/Logger';
 
 export class Hotbar extends UIComponent {
     private slots: HTMLElement[] = [];
@@ -122,7 +123,7 @@ export class Hotbar extends UIComponent {
         const item = this.hotbarItems[index];
         
         if (item) {
-            console.log(`[Hotbar] Using item from slot ${index + 1}: ${item.definition.name}`);
+            Logger.info(`[Hotbar] Using item from slot ${index + 1}: ${item.definition.name}`);
             this.useHotbarItem(index);
         }
     }
@@ -198,7 +199,7 @@ export class Hotbar extends UIComponent {
                     // If inventory full, put back in hotbar
                     this.hotbarItems[index] = item;
                     this.updateSlots();
-                    console.warn('[Hotbar] Cannot return item to inventory - inventory full');
+                    Logger.warn('[Hotbar] Cannot return item to inventory - inventory full');
                     return null;
                 }
             }

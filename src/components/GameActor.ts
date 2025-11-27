@@ -2,8 +2,10 @@ import * as ex from 'excalibur';
 import { GameEntity } from '../core/GameEntity';
 import { ActorComponent } from './ActorComponent';
 import { EventBus } from '../core/EventBus';
-import { GameEventNames } from '../core/GameEvents';
+import { GameEventNames, ActorSpendTimeEvent } from '../core/GameEvents';
 import { GraphicsManager } from '../data/graphics';
+import { ComponentType } from '../constants/RegistryKeys';
+import { Logger } from '../core/Logger';
 
 /**
  * GameActor - Minimal actor container with component-based architecture
@@ -80,7 +82,7 @@ export class GameActor extends GameEntity {
     
     // Queue action for PlayerInputComponent
     queueAction(actionType: any): void {
-        const playerInputComp = this.getGameComponent('playerInput');
+        const playerInputComp = this.getGameComponent(ComponentType.PLAYER_INPUT);
         if (playerInputComp) {
             (playerInputComp as any).queueAction(actionType);
         }
@@ -107,7 +109,8 @@ export class GameActor extends GameEntity {
 
     // Turn system - ONLY method
     async act(): Promise<boolean> {
-        EventBus.instance.emit('actor:turn' as any, { 
+        console.log('[GameActor] Emitting ActorTurn event for:', this.name);
+        EventBus.instance.emit(GameEventNames.ActorTurn, { 
             actorId: this.entityId,
             actor: this 
         });
@@ -126,5 +129,8 @@ export class GameActor extends GameEntity {
         super.onInitialize(engine);
         // Use unified graphics system
         GraphicsManager.instance.configureActor(this);
+        
+        // Listen for time spending events from components - use a more direct approach
+        this.setupTimeEventListener();
     }
 }

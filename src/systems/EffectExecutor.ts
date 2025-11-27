@@ -3,6 +3,7 @@ import { GameEventNames } from '../core/GameEvents';
 import { ItemEffect } from '../data/items';
 import { AbilityID } from '../constants';
 import { EffectID } from '../constants';
+import { Logger } from '../core/Logger';
 
 /**
  * EffectExecutor - Applies effects from data definitions
@@ -36,11 +37,11 @@ export class EffectExecutor {
         const { userId, effects, definition } = data;
         
         if (!effects || effects.length === 0) {
-            console.log(`[EffectExecutor] No effects for item ${definition.name}`);
+            Logger.debug(`[EffectExecutor] No effects for item ${definition.name}`);
             return;
         }
         
-        console.log(`[EffectExecutor] Applying ${effects.length} effects from ${definition.name} to ${userId}`);
+        Logger.debug(`[EffectExecutor] Applying ${effects.length} effects from ${definition.name} to ${userId}`);
         
         effects.forEach((effect: ItemEffect) => {
             this.applyEffect(effect, userId);
@@ -63,7 +64,7 @@ export class EffectExecutor {
      * Apply a single effect to a target
      */
     private applyEffect(effect: ItemEffect, targetId: string, sourceId?: string): void {
-        console.log(`[EffectExecutor] Applying effect ${effect.type} (value: ${effect.value}) to ${targetId}`);
+        Logger.debug(`[EffectExecutor] Applying effect ${effect.type} (value: ${effect.value}) to ${targetId}`);
         
         switch (effect.type) {
             case AbilityID.Heal:
@@ -119,7 +120,7 @@ export class EffectExecutor {
                 break;
                 
             default:
-                console.warn(`[EffectExecutor] Unknown effect type: ${effect.type}`);
+                Logger.warn(`[EffectExecutor] Unknown effect type: ${effect.type}`);
         }
     }
     
@@ -198,6 +199,6 @@ export class EffectExecutor {
             value: value
         });
         
-        console.log(`[EffectExecutor] Applied permanent effect ${effectId} = ${value} to ${targetId}`);
+        Logger.info(`[EffectExecutor] Applied permanent effect ${effectId} = ${value} to ${targetId}`);
     }
 }

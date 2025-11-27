@@ -8,6 +8,7 @@ import { BSPGenerator, BSPNode } from './BSPGenerator';
 import { RoomGenerationExecutor } from '../../systems/RoomGenerationExecutor';
 import { getRoomTemplatesForFloor } from '../../data/roomTemplates';
 import { LevelGenerator } from './LevelGenerator';
+import { Logger } from '../../core/Logger';
 
 export class AdvancedLevelGenerator implements LevelGenerator {
     private rooms: Room[] = [];
@@ -161,7 +162,7 @@ export class AdvancedLevelGenerator implements LevelGenerator {
                 this.placeRiver(level, context, feature);
                 break;
             default:
-                console.log(`[AdvancedLevelGenerator] Unknown biome feature: ${feature.type}`);
+                Logger.warn(`[AdvancedLevelGenerator] Unknown biome feature: ${feature.type}`);
         }
     }
 
@@ -237,7 +238,7 @@ export class AdvancedLevelGenerator implements LevelGenerator {
         // 2. RoomGenerationExecutor (room-specific loot)
         // 3. LootSystem (data-driven loot tables)
         
-        console.log('[AdvancedLevelGenerator] Item spawning moved to data-driven systems');
+        Logger.info('[AdvancedLevelGenerator] Item spawning moved to data-driven systems');
         
         // TODO: Remove this method entirely once new system is fully integrated
     }

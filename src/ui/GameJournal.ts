@@ -1,6 +1,7 @@
 import { UIComponent } from './components/UIComponent';
 import { EventBus } from '../core/EventBus';
-import { GameEventNames, LogEvent, AttackEvent, DamageEvent, DieEvent, ItemPickupEvent, ItemUseEvent, LevelUpEvent } from '../core/GameEvents';
+import { GameEventNames, LogEvent, AttackEvent, DamageEvent, DieEvent, ItemPickupEvent, ItemUseEvent, LevelUpEvent, HealEvent, ItemEquipEvent, ItemUnequipEvent } from '../core/GameEvents';
+import { getFlavorText } from '../data/flavorText';
 
 export enum LogCategory {
     Combat = 'Combat',
@@ -41,36 +42,73 @@ export class GameJournal extends UIComponent {
 
         // Listen for game events and auto-log them
         bus.on(GameEventNames.Attack, (event: AttackEvent) => {
+            const params = {
+                attacker: event.attacker.name,
+                target: event.target.name,
+                damage: event.damage.toString()
+            };
+            const message = getFlavorText(GameEventNames.Attack, params);
+            
             if (event.attacker.isPlayer) {
-                this.addEntry(`You attack ${event.target.name} for ${event.damage} damage!`, LogCategory.Combat);
+                this.addEntry(message, LogCategory.Combat);
             } else if (event.target.isPlayer) {
-                this.addEntry(`${event.attacker.name} attacks you for ${event.damage} damage!`, LogCategory.Combat, '#ff6b6b');
+                this.addEntry(message, LogCategory.Combat, '#ff6b6b');
             }
         });
 
         bus.on(GameEventNames.Die, (event: DieEvent) => {
+            const params = { actor: event.actor.name };
+            const message = getFlavorText(GameEventNames.Die, params);
+            
             if (event.actor.isPlayer) {
-                this.addEntry(`You have died!`, LogCategory.System, '#ff0000');
+                this.addEntry(message, LogCategory.System, '#ff0000');
             } else {
-                this.addEntry(`${event.actor.name} dies!`, LogCategory.Combat, '#ffd93d');
+                this.addEntry(message, LogCategory.Combat, '#ffd93d');
             }
         });
 
         bus.on(GameEventNames.ItemPickup, (event: ItemPickupEvent) => {
             if (event.actor.isPlayer) {
-                this.addEntry(`You picked up ${event.item.getDisplayName()}.`, LogCategory.Items);
+                const params = { item: event.item.getDisplayName() };
+                this.addEntry(getFlavorText(GameEventNames.ItemPickup, params), LogCategory.Items);
             }
         });
 
         bus.on(GameEventNames.ItemUse, (event: ItemUseEvent) => {
             if (event.actor.isPlayer) {
-                this.addEntry(`You used ${event.item.getDisplayName()}.`, LogCategory.Items);
+                const params = { item: event.item.getDisplayName() };
+                this.addEntry(getFlavorText(GameEventNames.ItemUse, params), LogCategory.Items);
             }
         });
 
         bus.on(GameEventNames.LevelUp, (event: LevelUpEvent) => {
             if (event.actor.isPlayer) {
-                this.addEntry(`Level Up! You are now level ${event.newLevel}.`, LogCategory.System, '#74c0fc');
+                const params = { level: event.newLevel.toString() };
+                this.addEntry(getFlavorText(GameEventNames.LevelUp, params), LogCategory.System, '#74c0fc');
+            }
+        });
+
+        bus.on(GameEventNames.Heal, (event: HealEvent) => {
+            if (event.target.isPlayer || (event.source && event.source.isPlayer)) {
+                const params = { 
+                    target: event.target.name,
+                    amount: event.amount.toString()
+                };
+                this.addEntry(getFlavorText(GameEventNames.Heal, params), LogCategory.Combat, '#40c057');
+            }
+        });
+
+        bus.on(GameEventNames.EquipmentEquipped, (event: ItemEquipEvent) => {
+            if (event.actor.isPlayer) {
+                const params = { item: event.item.getDisplayName() };
+                this.addEntry(getFlavorText(GameEventNames.EquipmentEquipped, params), LogCategory.Items);
+            }
+        });
+
+        bus.on(GameEventNames.EquipmentUnequipped, (event: ItemUnequipEvent) => {
+            if (event.actor.isPlayer) {
+                const params = { item: event.item.getDisplayName() };
+                this.addEntry(getFlavorText(GameEventNames.EquipmentUnequipped, params), LogCategory.Items);
             }
         });
     }

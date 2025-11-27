@@ -1,5 +1,7 @@
 import { ActorComponent } from './ActorComponent';
 import { InputManager, GameActionType } from '../core/InputManager';
+import { GameEventNames, ActorSpendTimeEvent } from '../core/GameEvents';
+import { EventBus } from '../core/EventBus';
 import * as ex from 'excalibur';
 
 export interface PlayerAction {
@@ -14,11 +16,16 @@ export class PlayerInputComponent extends ActorComponent {
     private actionQueue: PlayerAction[] = [];
     
     protected setupEventListeners(): void {
-        this.inputManager = InputManager.instance;
+        // InputManager might not be initialized yet, so we'll get it lazily
         
         // Listen for turns
-        this.listen('actor:turn', (event) => {
+        this.listen(GameEventNames.ActorTurn, (event) => {
             if (this.isForThisActor(event)) {
+                console.log('[PlayerInputComponent] Handling turn for:', this.actor.name);
+                // Ensure inputManager is available when we need it
+                if (!this.inputManager) {
+                    this.inputManager = InputManager.instance;
+                }
                 this.handleTurn();
             }
         });
@@ -45,7 +52,7 @@ export class PlayerInputComponent extends ActorComponent {
         
         // If no queued action, check for click target or wait
         if (!action) {
-            const clickTarget = this.inputManager.getClickTarget();
+            const clickTarget = this.inputManager?.getClickTarget();
             if (clickTarget) {
                 action = {
                     type: GameActionType.MoveNorth, // Will be calculated based on direction
@@ -68,10 +75,9 @@ export class PlayerInputComponent extends ActorComponent {
         }
         
         // Spend turn time
-        this.emit('actor:spend_time', {
-            actorId: this.actor.entityId,
-            time: 10
-        });
+        const timeEvent = new ActorSpendTimeEvent(this.actor.entityId, 10);
+        console.log('[PlayerInputComponent] Emitting time event:', timeEvent);
+        EventBus.instance.emit(GameEventNames.ActorSpendTime, timeEvent);
     }
     
     private processAction(action: PlayerAction): void {

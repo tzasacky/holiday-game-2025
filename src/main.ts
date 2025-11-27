@@ -21,7 +21,7 @@ export const AppConfig = {
 };
 
 // Set log level (change to LogLevel.DEBUG for verbose logging)  
-Logger.setLevel(LogLevel.INFO);
+Logger.setLevel(LogLevel.DEBUG);
 
 Logger.info("AppConfig:", AppConfig);
 Logger.info("Initializing Game Engine...");
@@ -40,10 +40,10 @@ game.showDebug(true);
 import { SpriteDebugScene } from './scenes/SpriteDebugScene';
 
 game.start(loader).then(() => {
-    console.log("Game Started! Resources Loaded.");
+    Logger.info("Game Started! Resources Loaded.");
 
     if (AppConfig.DebugSprites) {
-        console.log("Starting Sprite Debug Mode");
+        Logger.info("Starting Sprite Debug Mode");
         game.add('debug', new SpriteDebugScene());
         game.goToScene('debug');
         return;
@@ -85,12 +85,12 @@ game.start(loader).then(() => {
     
     const hero = ActorFactory.instance.createHero(spawn);
     if (!hero) {
-        console.error('[main] Failed to create hero with unified system');
+        Logger.error('[main] Failed to create hero with unified system');
         return;
     }
     
     level.addActor(hero);
-    console.log('[main] Hero created with unified system, components:', Array.from(hero.components.keys()));
+    Logger.info('[main] Hero created with unified system, components:', Array.from(hero.gameComponents.keys()));
     
     // Camera - set zoom BEFORE going to scene
     game.currentScene.camera.zoom = 1.5; // Much more reasonable zoom
@@ -148,7 +148,7 @@ game.start(loader).then(() => {
     // 1. Hero starting equipment (defined in ActorDefinitions)
     // 2. Loot generation (handled by LootSystem via room templates)
     // 3. World items (handled by RoomGenerationExecutor)
-    console.log('[main] Item spawning is now data-driven via room templates and actor definitions');
+    Logger.info('[main] Item spawning is now data-driven via room templates and actor definitions');
 
     // Input handling for TurnManager (if needed globally)
     // TurnManager is singleton, Hero calls it.

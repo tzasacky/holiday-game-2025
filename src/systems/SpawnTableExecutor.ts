@@ -2,6 +2,7 @@ import { DataManager } from '../core/DataManager';
 import { Logger } from '../core/Logger';
 import { ActorID } from '../constants/ActorIDs';
 import { SpawnTableDefinition, SpawnEntry } from '../data/spawnTables';
+import { RegistryKey } from '../constants/RegistryKeys';
 import * as ex from 'excalibur';
 
 export interface SpawnResult {
@@ -38,7 +39,7 @@ export class SpawnTableExecutor {
    * Roll for a spawn from a table with optional filtering
    */
   public rollSpawn(request: SpawnRequest): SpawnResult | null {
-    const table = DataManager.instance.query<SpawnTableDefinition>('spawn_table', request.tableId);
+    const table = DataManager.instance.query<SpawnTableDefinition>(RegistryKey.SPAWN_TABLE, request.tableId);
     
     if (!table) {
       Logger.warn(`SpawnTableExecutor: Table '${request.tableId}' not found`);

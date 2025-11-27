@@ -1,0 +1,65 @@
+- file: items/items_consumables.png
+  output: public/assets/items/items_consumables.png
+  generate: false
+  spec:
+    cols: 8
+    rows: 8
+  expectedTotal: 64
+  prompt: |
+    ITEM ICONS SPRITESHEET - CONSUMABLES
+    SOLID COLOR BACKGROUND WITH NO GRIDLINES OR TEXT
+    STYLE: Pixel art. Vibrant and detailed. Christmas and holiday themed. 32x32.
+
+    LAYOUT: 8x8 Grid.
+
+    ROW 1 (Food & Drink):
+    - Col 0: Hot Cocoa (steaming mug)
+    - Col 1: Fruitcake (dense brown cake)
+    - Col 2: Star Cookie (golden star shape)
+    - Col 3: Santa's Cookie (legendary cookie)
+    - Col 4: Meat/Food (generic roast)
+    - Col 5: [Empty]
+    - Col 6: [Empty]
+    - Col 7: [Empty]
+
+    ROW 2 (Potions):
+    - Col 0: Unlabeled Potion (mystery bottle)
+    - Col 1: Liquid Courage (red potion)
+    - Col 2: Potion (Blue)
+    - Col 3: Potion (Green)
+    - Col 4: [Empty]
+    - Col 5: [Empty]
+    - Col 6: [Empty]
+    - Col 7: [Empty]
+
+    ROW 3 (Projectiles):
+    - Col 0: Snowball (white round)
+    - Col 1: Packed Snowball (dense white)
+    - Col 2: Iceball (crystal sphere)
+    - Col 3: Yellow Snowball (suspicious yellow)
+    - Col 4: Coal Snowball (black chunks)
+    - Col 5: Glass Ornament Grenade (shiny bauble)
+    - Col 6: Gold Ornament Grenade (luxurious gold)
+    - Col 7: [Empty]
+
+    ROW 4 (Scrolls 1):
+    - Col 0: Scroll of Enchantment (glowing rune)
+    - Col 1: Scroll of Mapping (map icon)
+    - Col 2: Scroll of Identify (magnifying glass icon)
+    - Col 3: Scroll of Remove Curse (broken chain icon)
+    - Col 4: Scroll of Teleport (swirl icon)
+    - Col 5: Santa's Route Map (magical map)
+    - Col 6: Christmas Carol Sheet (musical notes)
+    - Col 7: Jack Frost's Decree (frozen scroll)
+
+    ROW 5 (Scrolls 2):
+    - Col 0: Scroll of Santa's Blessing (holy parchment)
+    - Col 1: [Empty]
+    - Col 2: [Empty]
+    - Col 3: [Empty]
+    - Col 4: [Empty]
+    - Col 5: [Empty]
+    - Col 6: [Empty]
+    - Col 7: [Empty]
+
+    ROWS 6-8: [Empty/Reserved]

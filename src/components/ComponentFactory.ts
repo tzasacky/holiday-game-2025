@@ -6,6 +6,7 @@ import { AIComponent } from './AIComponent';
 import { InventoryComponent } from './InventoryComponent';
 import { MovementComponent } from './MovementComponent';
 import { EquipmentComponent } from './EquipmentComponent';
+import { ComponentType } from '../constants/RegistryKeys';
 
 export type ComponentFactory = (actor: any, config?: any) => ActorComponent;
 
@@ -30,10 +31,10 @@ export class ComponentRegistry {
 }
 
 // Register all component types
-ComponentRegistry.register('stats', (actor, config) => new StatsComponent(actor, config));
-ComponentRegistry.register('combat', (actor, config) => new CombatComponent(actor));
-ComponentRegistry.register('player_input', (actor, config) => new PlayerInputComponent(actor));
-ComponentRegistry.register('ai', (actor, config) => new AIComponent(actor, config));
-ComponentRegistry.register('inventory', (actor, config) => new InventoryComponent(actor, config));
-ComponentRegistry.register('movement', (actor, config) => new MovementComponent(actor));
-ComponentRegistry.register('equipment', (actor, config) => new EquipmentComponent(actor));
+ComponentRegistry.register(ComponentType.STATS, (actor, config) => new StatsComponent(actor, config));
+ComponentRegistry.register(ComponentType.COMBAT, (actor, config) => new CombatComponent(actor));
+ComponentRegistry.register(ComponentType.PLAYER_INPUT, (actor, config) => new PlayerInputComponent(actor));
+ComponentRegistry.register(ComponentType.AI, (actor, config) => new AIComponent(actor, config));
+ComponentRegistry.register(ComponentType.INVENTORY, (actor, config) => new InventoryComponent(actor, config));
+ComponentRegistry.register(ComponentType.MOVEMENT, (actor, config) => new MovementComponent(actor));
+ComponentRegistry.register(ComponentType.EQUIPMENT, (actor, config) => new EquipmentComponent(actor));

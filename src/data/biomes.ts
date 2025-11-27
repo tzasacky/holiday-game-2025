@@ -1,6 +1,7 @@
 import * as ex from 'excalibur';
 import { TerrainType } from './terrain';
 import { DamageType } from './mechanics';
+import { Resources } from '../config/resources';
 
 // Unified Biome/Theme system - combines visual themes with gameplay properties
 export interface BiomeDefinition {
@@ -10,6 +11,7 @@ export interface BiomeDefinition {
   
   // Visual properties (formerly "theme")
   visuals: {
+    tileset?: ex.ImageSource;
     // Terrain tile graphics mapping
     tileGraphics: Record<TerrainType, {
       spriteIndex?: number;
@@ -71,17 +73,18 @@ export const BiomeDefinitions: Record<string, BiomeDefinition> = {
     description: 'A festive winter village covered in snow and holiday decorations.',
     
     visuals: {
+      tileset: Resources.SnowyVillageTilesPng,
       tileGraphics: {
-        [TerrainType.Wall]: { color: ex.Color.fromHex('#D3D3D3'), fallbackText: '█' },
-        [TerrainType.Floor]: { color: ex.Color.fromHex('#FFFAFA'), fallbackText: '·' },
-        [TerrainType.Water]: { color: ex.Color.fromHex('#87CEEB'), fallbackText: '≋' },
-        [TerrainType.Chasm]: { color: ex.Color.fromHex('#2F4F4F'), fallbackText: '▓' },
-        [TerrainType.Ice]: { color: ex.Color.fromHex('#B0E0E6'), fallbackText: '≡' },
-        [TerrainType.DeepSnow]: { color: ex.Color.fromHex('#F0F8FF'), fallbackText: '❄' },
-        [TerrainType.Fireplace]: { color: ex.Color.fromHex('#FF6347'), fallbackText: '♨' },
-        [TerrainType.Decoration]: { color: ex.Color.fromHex('#32CD32'), fallbackText: '♦' },
-        [TerrainType.StairsDown]: { color: ex.Color.fromHex('#8B4513'), fallbackText: '>' },
-        [TerrainType.Bridge]: { color: ex.Color.fromHex('#DEB887'), fallbackText: '=' }
+        [TerrainType.Wall]: { spriteIndex: 16, color: ex.Color.fromHex('#D3D3D3'), fallbackText: '█' },
+        [TerrainType.Floor]: { spriteIndex: 0, color: ex.Color.fromHex('#FFFAFA'), fallbackText: '·' },
+        [TerrainType.Water]: { spriteIndex: 5, color: ex.Color.fromHex('#87CEEB'), fallbackText: '≋' },
+        [TerrainType.Chasm]: { spriteIndex: 4, color: ex.Color.fromHex('#2F4F4F'), fallbackText: '▓' },
+        [TerrainType.Ice]: { spriteIndex: 2, color: ex.Color.fromHex('#B0E0E6'), fallbackText: '≡' },
+        [TerrainType.DeepSnow]: { spriteIndex: 1, color: ex.Color.fromHex('#F0F8FF'), fallbackText: '❄' },
+        [TerrainType.Fireplace]: { spriteIndex: 21, color: ex.Color.fromHex('#FF6347'), fallbackText: '♨' },
+        [TerrainType.Decoration]: { color: ex.Color.fromHex('#32CD32'), fallbackText: '♦' }, // Decor needs separate sheet handling
+        [TerrainType.StairsDown]: { color: ex.Color.fromHex('#8B4513'), fallbackText: '>' }, // Common tiles
+        [TerrainType.Bridge]: { color: ex.Color.fromHex('#DEB887'), fallbackText: '=' } // Common tiles
       },
       lighting: 'normal',
       particleEffects: ['snow_fall', 'sparkles'],

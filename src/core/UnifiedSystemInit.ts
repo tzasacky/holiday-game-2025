@@ -12,6 +12,7 @@ import { InteractableFactory } from '../factories/InteractableFactory';
 import { PrefabExecutor } from '../systems/PrefabExecutor';
 import { CollisionSystem } from '../systems/CollisionSystem';
 import { PathfindingSystem } from '../systems/PathfindingSystem';
+import { Logger } from './Logger';
 // import { AbilityExecutor } from '../systems/AbilityExecutor'; // DEFERRED: Abilities are vaporware
 
 export class UnifiedSystemInit {
@@ -19,58 +20,58 @@ export class UnifiedSystemInit {
     
     public static initialize(): void {
         if (this._initialized) {
-            console.warn('[UnifiedSystemInit] System already initialized');
+            Logger.warn('[UnifiedSystemInit] System already initialized');
             return;
         }
         
-        console.log('[UnifiedSystemInit] Initializing unified architecture...');
+        Logger.info('[UnifiedSystemInit] Initializing unified architecture...');
         
         // 1. Initialize DataManager (Stream A)
-        console.log('[UnifiedSystemInit] Initializing DataManager...');
+        Logger.info('[UnifiedSystemInit] Initializing DataManager...');
         const dataManager = DataManager.instance;
-        console.log('[UnifiedSystemInit] DataManager registered systems:', dataManager.getRegisteredSystems());
+        Logger.info(`[UnifiedSystemInit] DataManager registered systems: ${Array.from(dataManager.getRegisteredSystems()).join(', ')}`);
         
         // 2. Initialize ActorSpawnSystem (Stream B)
-        console.log('[UnifiedSystemInit] Initializing ActorSpawnSystem...');
+        Logger.info('[UnifiedSystemInit] Initializing ActorSpawnSystem...');
         const spawnSystem = ActorSpawnSystem.instance;
-        console.log('[UnifiedSystemInit] ActorSpawnSystem ready');
+        Logger.info('[UnifiedSystemInit] ActorSpawnSystem ready');
         
         // 3. Initialize EffectExecutor (Phase 1 Complete!)
-        console.log('[UnifiedSystemInit] Initializing EffectExecutor...');
+        Logger.info('[UnifiedSystemInit] Initializing EffectExecutor...');
         const effectExecutor = EffectExecutor.instance;
-        console.log('[UnifiedSystemInit] EffectExecutor ready');
+        Logger.info('[UnifiedSystemInit] EffectExecutor ready');
         
         // 4. Initialize SpawnTableExecutor (Phase 3)
-        console.log('[UnifiedSystemInit] Initializing SpawnTableExecutor...');
+        Logger.info('[UnifiedSystemInit] Initializing SpawnTableExecutor...');
         const spawnTableExecutor = SpawnTableExecutor.instance;
-        console.log('[UnifiedSystemInit] SpawnTableExecutor ready');
+        Logger.info('[UnifiedSystemInit] SpawnTableExecutor ready');
         
         // 5. Initialize RoomGenerationExecutor (Phase 3)  
-        console.log('[UnifiedSystemInit] Initializing RoomGenerationExecutor...');
+        Logger.info('[UnifiedSystemInit] Initializing RoomGenerationExecutor...');
         const roomExecutor = RoomGenerationExecutor.instance;
-        console.log('[UnifiedSystemInit] RoomGenerationExecutor ready');
+        Logger.info('[UnifiedSystemInit] RoomGenerationExecutor ready');
         
         // 6. ItemSpawner functionality moved to RoomGenerationExecutor and LootSystem
         
         // 7. Initialize InteractableFactory (Phase 3)
-        console.log('[UnifiedSystemInit] Initializing InteractableFactory...');
+        Logger.info('[UnifiedSystemInit] Initializing InteractableFactory...');
         const interactableFactory = InteractableFactory.instance;
-        console.log('[UnifiedSystemInit] InteractableFactory ready');
+        Logger.info('[UnifiedSystemInit] InteractableFactory ready');
         
         // 8. Initialize PrefabExecutor (Phase 3.6)
-        console.log('[UnifiedSystemInit] Initializing PrefabExecutor...');
+        Logger.info('[UnifiedSystemInit] Initializing PrefabExecutor...');
         const prefabExecutor = PrefabExecutor.instance;
-        console.log('[UnifiedSystemInit] PrefabExecutor ready');
+        Logger.info('[UnifiedSystemInit] PrefabExecutor ready');
         
         // 9. Initialize CollisionSystem (Phase 3.8) 
-        console.log('[UnifiedSystemInit] Initializing CollisionSystem...');
+        Logger.info('[UnifiedSystemInit] Initializing CollisionSystem...');
         const collisionSystem = CollisionSystem.instance;
-        console.log('[UnifiedSystemInit] CollisionSystem ready');
+        Logger.info('[UnifiedSystemInit] CollisionSystem ready');
         
         // 10. Initialize PathfindingSystem (Phase 3.8)
-        console.log('[UnifiedSystemInit] Initializing PathfindingSystem...');
+        Logger.info('[UnifiedSystemInit] Initializing PathfindingSystem...');
         const pathfindingSystem = PathfindingSystem.instance;
-        console.log('[UnifiedSystemInit] PathfindingSystem ready');
+        Logger.info('[UnifiedSystemInit] PathfindingSystem ready');
         
         // 11. AbilityExecutor - DEFERRED (abilities are vaporware, sprites too costly)
         // console.log('[UnifiedSystemInit] Initializing AbilityExecutor...');
@@ -78,13 +79,13 @@ export class UnifiedSystemInit {
         // console.log('[UnifiedSystemInit] AbilityExecutor ready');
         
         // 12. Log available component types (Stream B)
-        console.log('[UnifiedSystemInit] Available component types:', ComponentRegistry.getRegisteredTypes());
+        Logger.info(`[UnifiedSystemInit] Available component types: ${Array.from(ComponentRegistry.getRegisteredTypes()).join(', ')}`);
         
         // 13. Set up integration between Stream A and Stream B
         this.setupStreamIntegration();
         
         this._initialized = true;
-        console.log('[UnifiedSystemInit] ✅ Unified architecture initialized successfully!');
+        Logger.info('[UnifiedSystemInit] ✅ Unified architecture initialized successfully!');
         
         // Emit system ready event
         EventBus.instance.emit('system:ready' as any, {
@@ -95,7 +96,7 @@ export class UnifiedSystemInit {
     }
     
     private static setupStreamIntegration(): void {
-        console.log('[UnifiedSystemInit] Setting up Stream A <-> Stream B integration...');
+        Logger.info('[UnifiedSystemInit] Setting up Stream A <-> Stream B integration...');
         
         // Connect DataManager queries to component system
         EventBus.instance.on('component:data_request' as any, (event: any) => {
@@ -110,14 +111,10 @@ export class UnifiedSystemInit {
         
         // Log when actors are spawned using unified system
         EventBus.instance.on('actor:spawned' as any, (event: any) => {
-            console.log('[UnifiedSystemInit] Actor spawned via unified system:', {
-                defName: event.defName,
-                position: event.gridPos,
-                components: Array.from(event.actor.components.keys())
-            });
+            Logger.info(`[UnifiedSystemInit] Actor spawned via unified system: ${event.defName} at ${event.gridPos}`);
         });
         
-        console.log('[UnifiedSystemInit] Stream integration complete');
+        Logger.info('[UnifiedSystemInit] Stream integration complete');
     }
     
     public static isInitialized(): boolean {

@@ -1,6 +1,7 @@
 import { DataManager } from '../core/DataManager';
 import { Logger } from '../core/Logger';
 import { EventBus } from '../core/EventBus';
+import { GameEventNames } from '../core/GameEvents';
 import { SpawnTableExecutor } from './SpawnTableExecutor';
 import { ActorFactory } from '../factories/ActorFactory';
 import { Level } from '../dungeon/Level';
@@ -8,6 +9,7 @@ import { Room } from '../dungeon/Room';
 import { RoomTemplate, InteractablePlacement, SpawnPointConfig } from '../data/roomTemplates';
 import { Spawner, SpawnConfig } from '../dungeon/Spawner';
 import { TerrainType } from '../data/terrain';
+import { RegistryKey } from '../constants/RegistryKeys';
 import * as ex from 'excalibur';
 
 export interface RoomPopulationRequest {
@@ -89,7 +91,7 @@ export class RoomGenerationExecutor {
           
           const spawnType = guaranteedSpawn.type === 'guardian' ? 'elite' : guaranteedSpawn.type as 'normal' | 'elite' | 'boss' | 'pack';
           const mob = Spawner.spawnMobAt(level, spawnPoint, floorNumber, spawnType);
-          if (mob) {
+          if (mob !== null) {
             Logger.debug(`[RoomGenerationExecutor] Spawned guaranteed ${guaranteedSpawn.type} at ${spawnPoint}`);
           }
         }
@@ -423,7 +425,7 @@ export class RoomGenerationExecutor {
   }
 
   private spawnLootItem(itemId: string, position: ex.Vector, level: Level, count: number = 1): boolean {
-    EventBus.instance.emit('item:spawn_request' as any, {
+    EventBus.instance.emit(GameEventNames.ItemSpawnRequest, {
       itemId: itemId,
       position: position,
       level: level,
@@ -438,7 +440,7 @@ export class RoomGenerationExecutor {
    * Validate that room templates are properly configured
    */
   public validateRoomTemplates(): boolean {
-    const allTemplates = DataManager.instance.getAllData('roomTemplate');
+    const allTemplates = DataManager.instance.getAllData(RegistryKey.ROOM_TEMPLATE);
     let isValid = true;
 
     Object.entries(allTemplates).forEach(([id, template]) => {

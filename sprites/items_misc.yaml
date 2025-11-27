@@ -1,0 +1,45 @@
+- file: items/items_misc.png
+  output: public/assets/items/items_misc.png
+  generate: false
+  spec:
+    cols: 8
+    rows: 8
+  expectedTotal: 64
+  prompt: |
+    ITEM ICONS SPRITESHEET - MISC & KEYS
+    SOLID COLOR BACKGROUND WITH NO GRIDLINES OR TEXT
+    STYLE: Pixel art. Vibrant and detailed. Christmas and holiday themed. 32x32.
+
+    LAYOUT: 8x8 Grid.
+
+    ROW 1 (Keys & Currency):
+    - Col 0: Gold Coin (shiny coin)
+    - Col 1: Gold Coins (pile)
+    - Col 2: Christmas Key (festive design)
+    - Col 3: Silver Key (elegant silver)
+    - Col 4: Gold Key (ornate gold)
+    - Col 5: Bone Key (spooky white)
+    - Col 6: [Empty]
+    - Col 7: [Empty]
+
+    ROW 2 (Quest & Special):
+    - Col 0: Coal (black lump)
+    - Col 1: Naughty List (dark scroll)
+    - Col 2: Christmas Candle (eternal flame)
+    - Col 3: New Year's Clock (ornate timepiece)
+    - Col 4: Champagne Flute (crystal glass)
+    - Col 5: Countdown Calendar (numbered pages)
+    - Col 6: Christmas Wish Bone (turkey wishbone)
+    - Col 7: Wrapped Gift (colorful present)
+
+    ROW 3 (More Special):
+    - Col 0: Magic Stocking (Santa's stocking)
+    - Col 1: Frozen Heart (icy crystal heart)
+    - Col 2: Krampus Horn (dark horn)
+    - Col 3: Gem (shiny gem)
+    - Col 4: [Empty]
+    - Col 5: [Empty]
+    - Col 6: [Empty]
+    - Col 7: [Empty]
+
+    ROWS 4-8: [Empty/Reserved]

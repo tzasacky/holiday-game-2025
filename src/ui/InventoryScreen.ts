@@ -5,6 +5,7 @@ import { SpriteMapper } from './SpriteMapper';
 import { GameActor } from '../components/GameActor';
 import { InventoryComponent } from '../components/InventoryComponent';
 import { ItemEntity } from '../factories/ItemFactory';
+import { Logger } from '../core/Logger';
 
 export class InventoryScreen extends UIComponent {
     private equipmentPanel: HTMLElement | null = null;
@@ -144,7 +145,7 @@ export class InventoryScreen extends UIComponent {
                     e.preventDefault();
                     inventoryComp.removeItem(itemEntity.id); // Drop logic needs to spawn item in world too
                     // For now just remove from inventory
-                    console.log('Drop item not fully implemented in UI yet');
+                    Logger.warn('Drop item not fully implemented in UI yet');
                 });
             } else {
                 slot.classList.add('empty');

@@ -3,6 +3,8 @@ import { DataManager } from '../core/DataManager';
 import { EventBus } from '../core/EventBus';
 import * as ex from 'excalibur';
 import { GraphicsManager } from '../data/graphics';
+import { Logger } from '../core/Logger';
+import { RegistryKey } from '../constants/RegistryKeys';
 
 /**
  * ItemEntity - Data container for items (no logic)
@@ -20,7 +22,7 @@ export class ItemEntity {
     public tier: number = 1;
     
     constructor(defId: string, count: number = 1) {
-        const def = DataManager.instance.query<ItemDefinition>('item', defId);
+        const def = DataManager.instance.query<ItemDefinition>(RegistryKey.ITEM, defId);
         if (!def) {
             throw new Error(`[ItemEntity] Unknown item definition: ${defId}`);
         }
@@ -39,7 +41,7 @@ export class ItemEntity {
      * Use the item - emits event for EffectExecutor to handle
      */
     use(userId: string): void {
-        console.log(`[ItemEntity] Using ${this.definition.name}`);
+        Logger.debug(`[ItemEntity] Using ${this.definition.name}`);
         
         EventBus.instance.emit('item:use' as any, {
             itemId: this.id,
@@ -125,7 +127,7 @@ export class ItemFactory {
     create(defId: string, count: number = 1): ItemEntity | null {
         try {
             const item = new ItemEntity(defId, count);
-            console.log(`[ItemFactory] Created ${item.definition.name} x${count}`);
+            Logger.debug(`[ItemFactory] Created ${item.definition.name} x${count}`);
             
             EventBus.instance.emit('item:created' as any, {
                 itemId: defId,
@@ -134,7 +136,7 @@ export class ItemFactory {
             
             return item;
         } catch (error) {
-            console.error(`[ItemFactory] Failed to create item ${defId}:`, error);
+            Logger.error(`[ItemFactory] Failed to create item ${defId}:`, error);
             return null;
         }
     }

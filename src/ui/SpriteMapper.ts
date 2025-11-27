@@ -1,4 +1,4 @@
-import { ItemEntity } from '../items/ItemFactory';
+import { ItemEntity } from '../factories/ItemFactory';
 import { ItemDefinition } from '../data/items';
 import { ItemID } from '../constants';
 

@@ -26,7 +26,7 @@ export interface InteractableSpawnResult {
 
 export class RoomGenerationExecutor {
   private static _instance: RoomGenerationExecutor;
-  private logger = Logger.instance;
+
 
   public static get instance(): RoomGenerationExecutor {
     if (!RoomGenerationExecutor._instance) {
@@ -43,7 +43,7 @@ export class RoomGenerationExecutor {
   public populateRoom(request: RoomPopulationRequest): void {
     const { room, template, floorNumber, level } = request;
     
-    this.logger.debug(`[RoomGenerationExecutor] Populating room '${template.name}' on floor ${floorNumber}`);
+    Logger.debug(`[RoomGenerationExecutor] Populating room '${template.name}' on floor ${floorNumber}`);
     
     // 1. Spawn actors based on template
     this.populateActors(room, template, floorNumber, level);
@@ -54,7 +54,7 @@ export class RoomGenerationExecutor {
     // 3. Spawn loot items based on template
     this.populateLoot(room, template, level);
     
-    this.logger.info(`[RoomGenerationExecutor] Successfully populated ${template.type} room: ${template.name}`);
+    Logger.info(`[RoomGenerationExecutor] Successfully populated ${template.type} room: ${template.name}`);
   }
 
   /**
@@ -73,7 +73,7 @@ export class RoomGenerationExecutor {
     );
     
     if (roomSpawnPoints.length === 0) {
-      this.logger.warn(`[RoomGenerationExecutor] No spawn points found in room ${template.name}`);
+      Logger.warn(`[RoomGenerationExecutor] No spawn points found in room ${template.name}`);
       return;
     }
 
@@ -90,7 +90,7 @@ export class RoomGenerationExecutor {
           const spawnType = guaranteedSpawn.type === 'guardian' ? 'elite' : guaranteedSpawn.type as 'normal' | 'elite' | 'boss' | 'pack';
           const mob = Spawner.spawnMobAt(level, spawnPoint, floorNumber, spawnType);
           if (mob) {
-            this.logger.debug(`[RoomGenerationExecutor] Spawned guaranteed ${guaranteedSpawn.type} at ${spawnPoint}`);
+            Logger.debug(`[RoomGenerationExecutor] Spawned guaranteed ${guaranteedSpawn.type} at ${spawnPoint}`);
           }
         }
       }
@@ -116,7 +116,7 @@ export class RoomGenerationExecutor {
         const mob = this.spawnMobFromTable(level, spawnPoint, tableId, floorNumber);
         
         if (mob) {
-          this.logger.debug(`[RoomGenerationExecutor] Spawned ${mob.name} at ${spawnPoint}`);
+          Logger.debug(`[RoomGenerationExecutor] Spawned ${mob.name} at ${spawnPoint}`);
         }
       }
     }
@@ -134,7 +134,7 @@ export class RoomGenerationExecutor {
     }
     
     const successCount = results.filter(r => r.spawned).length;
-    this.logger.debug(`[RoomGenerationExecutor] Placed ${successCount}/${results.length} interactables in room`);
+    Logger.debug(`[RoomGenerationExecutor] Placed ${successCount}/${results.length} interactables in room`);
   }
 
   /**
@@ -151,7 +151,7 @@ export class RoomGenerationExecutor {
     const floorPositions = this.getFloorPositions(room, level);
     
     if (floorPositions.length === 0) {
-      this.logger.warn(`[RoomGenerationExecutor] No floor positions available for loot in room`);
+      Logger.warn(`[RoomGenerationExecutor] No floor positions available for loot in room`);
       return;
     }
     
@@ -174,7 +174,7 @@ export class RoomGenerationExecutor {
       if (lootConfig.tableId) {
         // Use loot system to generate items
         // TODO: This will be implemented when we integrate LootSystem
-        this.logger.debug(`[RoomGenerationExecutor] Would spawn loot from table ${lootConfig.tableId} at ${position}`);
+        Logger.debug(`[RoomGenerationExecutor] Would spawn loot from table ${lootConfig.tableId} at ${position}`);
       }
     }
   }
@@ -409,7 +409,7 @@ export class RoomGenerationExecutor {
       if (spawnResult.floorScaling) {
         // This would apply scaling similar to Spawner.applyFloorScaling
         // For now, just log it
-        this.logger.debug(`[RoomGenerationExecutor] Would apply floor scaling to ${spawnResult.actorId}`);
+        Logger.debug(`[RoomGenerationExecutor] Would apply floor scaling to ${spawnResult.actorId}`);
       }
     }
     
@@ -418,7 +418,7 @@ export class RoomGenerationExecutor {
 
   private createInteractable(type: string, position: ex.Vector, level: Level): boolean {
     // TODO: This will be implemented when InteractableGenerator is updated
-    this.logger.debug(`[RoomGenerationExecutor] Would create ${type} interactable at ${position}`);
+    Logger.debug(`[RoomGenerationExecutor] Would create ${type} interactable at ${position}`);
     return true; // Placeholder
   }
 
@@ -430,7 +430,7 @@ export class RoomGenerationExecutor {
       count: count
     });
     
-    this.logger.debug(`[RoomGenerationExecutor] Spawned ${count}x ${itemId} at ${position}`);
+    Logger.debug(`[RoomGenerationExecutor] Spawned ${count}x ${itemId} at ${position}`);
     return true;
   }
 
@@ -448,24 +448,24 @@ export class RoomGenerationExecutor {
       
       // Basic validation
       if (!roomTemplate.name || !roomTemplate.type) {
-        this.logger.error(`[RoomGenerationExecutor] Invalid room template '${id}': missing name or type`);
+        Logger.error(`[RoomGenerationExecutor] Invalid room template '${id}': missing name or type`);
         isValid = false;
       }
 
       if (roomTemplate.minSize.width <= 0 || roomTemplate.minSize.height <= 0) {
-        this.logger.error(`[RoomGenerationExecutor] Invalid room template '${id}': invalid minSize`);
+        Logger.error(`[RoomGenerationExecutor] Invalid room template '${id}': invalid minSize`);
         isValid = false;
       }
 
       if (roomTemplate.maxSize.width < roomTemplate.minSize.width || 
           roomTemplate.maxSize.height < roomTemplate.minSize.height) {
-        this.logger.error(`[RoomGenerationExecutor] Invalid room template '${id}': maxSize smaller than minSize`);
+        Logger.error(`[RoomGenerationExecutor] Invalid room template '${id}': maxSize smaller than minSize`);
         isValid = false;
       }
     });
 
     if (isValid) {
-      this.logger.info('RoomGenerationExecutor: All room templates validated successfully');
+      Logger.info('RoomGenerationExecutor: All room templates validated successfully');
     }
 
     return isValid;

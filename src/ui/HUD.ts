@@ -26,7 +26,7 @@ export class HUD extends UIComponent {
             // GameActor doesn't have direct hp/maxHp properties anymore, they are in StatsComponent.
             // However, for now, let's assume the stats are accessible or we wait for an event.
             // Actually, we should query the stats component.
-            const stats = this.hero.components.get('stats') as any; // Temporary cast until StatsComponent is fully typed/imported
+            const stats = this.hero.getGameComponent('stats') as any; // Temporary cast until StatsComponent is fully typed/imported
             if (stats) {
                  this.updateHealth(stats.getStat('hp'), stats.getStat('maxHp'));
                  this.updateWarmth(stats.getStat('warmth'), stats.getStat('maxWarmth'));

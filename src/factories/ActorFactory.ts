@@ -4,6 +4,7 @@ import { DataManager } from '../core/DataManager';
 import { ActorSpawnSystem } from '../components/ActorSpawnSystem';
 import { EventBus } from '../core/EventBus';
 import { GameEventNames, FactoryCreateEvent } from '../core/GameEvents';
+import { ActorID } from '../constants/ActorIDs';
 
 export class ActorFactory {
     private static _instance: ActorFactory;
@@ -36,18 +37,18 @@ export class ActorFactory {
 
     // Convenience methods that delegate to ActorSpawnSystem
     public createHero(pos: ex.Vector): GameActor | null {
-        return this.createActor('Hero', pos);
+        return this.createActor(ActorID.HERO, pos);
     }
 
     public createSnowman(pos: ex.Vector): GameActor | null {
-        return this.createActor('Snowman', pos);
+        return this.createActor(ActorID.SNOWMAN, pos);
     }
 
     public createSnowSprite(pos: ex.Vector): GameActor | null {
-        return this.createActor('Snow Sprite', pos);
+        return this.createActor(ActorID.SNOW_SPRITE, pos);
     }
 
     public createKrampus(pos: ex.Vector): GameActor | null {
-        return this.createActor('Krampus', pos);
+        return this.createActor(ActorID.KRAMPUS, pos);
     }
 }

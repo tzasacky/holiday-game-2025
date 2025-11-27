@@ -5,7 +5,7 @@
 ### Current System Status
 
 ```
-✅ = Fully Implemented
+✅ = Fully Implemented & Working
 ⚠️ = Partially Implemented
 ❌ = Not Implemented
 🔄 = In Progress
@@ -22,39 +22,44 @@
 │ ✅ EventBus              │ Central event dispatcher      │
 │ ✅ GameEvents            │ Event type definitions        │
 │ ✅ DataManager           │ Unified data registry         │
-│ ⚠️ Component             │ Base component (needs fix)    │
+│ ✅ Component             │ Base component system         │
 │ ✅ GameEntity            │ Excalibur entity base         │
 │ ✅ TurnManager           │ Turn-based game loop          │
 │ ⚠️ GameState             │ Save/load (needs update)      │
 │ ✅ Logger                │ Logging utility               │
+│ ✅ UnifiedSystemInit     │ Initializes all systems      │
 └─────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Data Definitions
+## Data Definitions (Pure Data - No Logic)
 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                 DATA LAYER (/src/data/)                 │
 ├─────────────────────────────────────────────────────────┤
-│ ✅ actors.ts             │ 4 actors defined              │
-│ ✅ items.ts              │ 8+ items defined              │
-│ ✅ abilities.ts          │ 10+ abilities defined         │
-│ ✅ effects.ts            │ Complete effect system        │
+│ ✅ actors.ts             │ Actor definitions             │
+│ ✅ items.ts              │ 154+ item definitions         │
+│ ✅ abilities.ts          │ Ability definitions           │
+│ ✅ effects.ts            │ Effect definitions            │
 │ ✅ enchantments.ts       │ Enchantment + curse data      │
-│ ✅ mechanics.ts          │ Combat/damage mechanics       │
+│ ✅ mechanics.ts          │ DamageType + combat rules     │
+│ ✅ terrain.ts            │ TerrainType + properties      │
 │ ✅ loot.ts               │ Loot tables & scaling         │
-│ ✅ interactables.ts      │ Doors, chests, NPCs           │
-│ ✅ terrain.ts            │ Terrain type definitions      │
+│ ✅ interactables.ts      │ Interactable definitions      │
 │ ✅ balance.ts            │ Difficulty & scaling          │
 │ ✅ graphics.ts           │ GraphicsManager               │
+│ ✅ spawnTables.ts        │ Floor-based spawn tables      │
+│ ✅ roomTemplates.ts      │ Room generation templates     │
+│ ✅ prefabDefinitions.ts  │ Special room prefabs          │
+│ ✅ biomes.ts             │ Unified biome/theme system    │
 └─────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Component System
+## Component System (Event-Driven)
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -67,7 +72,8 @@
 │ ✅ MovementComponent.ts  │ Pathfinding, movement         │
 │ ✅ AIComponent.ts        │ Enemy AI behaviors            │
 │ ✅ PlayerInputComponent  │ Keyboard/mouse input          │
-│ ✅ InventoryComponent.ts │ Item storage                  │
+│ ✅ InventoryComponent.ts │ Data-driven item storage      │
+│ ✅ EquipmentComponent.ts │ Equipment management          │
 │ ✅ ActorSpawnSystem.ts   │ Component assembly system     │
 │ ✅ ComponentFactory.ts   │ Component registry            │
 └─────────────────────────────────────────────────────────┘
@@ -75,81 +81,123 @@
 
 ---
 
-## Factories & Systems
+## Factories & Executors (Data → Logic)
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│         FACTORIES & SYSTEMS                              │
+│         FACTORIES (/src/factories/)                     │
 ├─────────────────────────────────────────────────────────┤
-│ FACTORIES                                                │
-│ ✅ ActorFactory          │ Create actors from defs       │
-│ ❌ ItemFactory (data)    │ Needs rewrite for data system │
-│                                                          │
-│ SYSTEMS (TO BE CREATED)                                  │
-│ ❌ EffectExecutor        │ Apply effects from defs       │
-│ ❌ AbilityExecutor       │ Cast abilities from defs      │
-│ ❌ LootGenerator         │ Generate loot from tables     │
-│ ❌ EnchantmentApplicator │ Apply enchantments to items   │
+│ ✅ ActorFactory.ts       │ Create actors from data       │
+│ ✅ ItemFactory.ts        │ Create items from data        │
+│ ✅ InteractableFactory.ts│ Create interactables events   │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│         SYSTEMS (/src/systems/)                         │
+├─────────────────────────────────────────────────────────┤
+│ ✅ EffectExecutor.ts     │ Apply effects from data       │
+│ ✅ SpawnTableExecutor.ts │ Data-driven spawning          │
+│ ✅ RoomGenerationExec.ts │ Template-based rooms          │
+│ ✅ PrefabExecutor.ts     │ Special room placement        │
+│ ✅ ItemSpawner.ts        │ Loot → world items            │
+│ ✅ CollisionSystem.ts    │ Event-based collision         │
+│ ✅ PathfindingSystem.ts  │ Event-based pathfinding       │
+│ ✅ EnchantmentSystem.ts  │ Data-driven enchantments      │
+│ ✅ LootSystem.ts         │ Data-driven loot generation   │
+│ ⚠️ EquipmentSystem.ts    │ Needs ItemEntity integration  │
+│ ✅ WarmthSystem.ts       │ Event-driven warmth           │
+│ ⚠️ IdentificationSystem  │ Needs ItemEntity integration  │
 └─────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Legacy Systems (Need Migration)
+## Dungeon Generation (Data-Driven)
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│         MECHANICS (/src/mechanics/) - LEGACY             │
+│           DUNGEON (/src/dungeon/)                       │
 ├─────────────────────────────────────────────────────────┤
-│ ❌ Ability.ts            │ Class-based → needs executor  │
-│ ❌ Effect.ts             │ Class-based → needs executor  │
-│ ✅ EnchantmentSystem     │ Moved to systems, data-driven │
-│ ⚠️ EquipmentSystem       │ Needs ItemDefinition support  │
-│ ✅ LootSystem            │ Moved to systems, data-driven │
-│ ❌ IdentificationSystem  │ Needs new item integration    │
-│ ✅ GameBalance           │ Can read from data/balance.ts │
-│ ✅ WarmthSystem          │ Event-driven, OK              │
-│ ❌ Interactable.ts       │ Base class → needs executor   │
+│ CORE STRUCTURES                                         │
+│ ✅ Level.ts              │ Level data structure          │
+│ ✅ Room.ts               │ Room data structure           │
+│ ✅ Spawner.ts            │ Data-driven mob spawning      │
+│                                                         │
+│ ALGORITHMS (/src/dungeon/algorithms/)                   │
+│ ✅ LevelGenerator.ts     │ Abstract interface            │
+│ ✅ AdvancedLevelGen.ts   │ BSP + data-driven population  │
+│ ✅ BSPGenerator.ts       │ Binary space partitioning     │
+│ ✅ GenerationContext.ts  │ Generation state management   │
 └─────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Content (To Be Deleted)
+## Items System (Fully Data-Driven)
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│       CONTENT (/src/content/) - TO BE DELETED            │
+│              ITEMS (/src/items/)                        │
 ├─────────────────────────────────────────────────────────┤
-│ ✅ enemies/              │ DELETED (3 files)             │
-│ ❌ items/consumables/    │ 8 files to migrate            │
-│ ❌ items/weapons/        │ 6 files to migrate            │
-│ ❌ items/armor/          │ 4 files to migrate            │
-│ ❌ items/artifacts/      │ 3 files to migrate            │
-│ ❌ items/misc/           │ 1 file to migrate             │
-│ ✅ items/ItemIDs.ts      │ KEEP (constants)              │
+│ ✅ WorldItemEntity.ts    │ Items in world (uses ItemEntity) │
+│ ✅ Inventory.ts          │ Inventory system (data-driven)   │
+│                                                         │
+│ LEGACY CLASSES DELETED                                  │
+│ ✅ Item.ts               │ ❌ DELETED (was OOP base)        │
+│ ✅ Equipable.ts          │ ❌ DELETED (was OOP base)        │
+│ ✅ Weapon.ts             │ ❌ DELETED (was OOP class)       │
+│ ✅ Armor.ts              │ ❌ DELETED (was OOP class)       │
+│ ✅ Consumable.ts         │ ❌ DELETED (was OOP class)       │
+│ ✅ Artifact.ts           │ ❌ DELETED (was OOP class)       │
+│ ✅ EnhancedEquipment.ts  │ ❌ DELETED (was legacy hybrid)   │
 └─────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Dungeon System
+## Legacy Systems Cleaned Up
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│           DUNGEON (/src/dungeon/)                        │
+│         MECHANICS (/src/mechanics/) - MINIMAL           │
 ├─────────────────────────────────────────────────────────┤
-│ ⚠️ Level.ts              │ Uses GameActor, needs type fix│
-│ ❌ Spawner.ts            │ Needs ActorSpawnSystem update │
-│ ❌ LevelGenerator.ts     │ Needs ActorFactory update     │
-│ ❌ BSPGenerator.ts       │ Needs ActorFactory update     │
-│ ❌ AdvancedLevelGen.ts   │ Needs ActorFactory update     │
-│ ❌ FeatureGenerator.ts   │ Needs update                  │
-│ ❌ InteractableGen.ts    │ Needs InteractableDef update  │
-│ ✅ Room.ts               │ OK                            │
-│ ✅ FloorTheme.ts         │ OK (uses terrain defs)        │
-│ ✅ Terrain.ts            │ OK (data-driven)              │
-│ ✅ Trap.ts               │ OK                            │
+│ ⚠️ EquipmentSystem.ts    │ Needs ItemEntity integration  │
+│ ✅ WarmthSystem.ts       │ Event-driven, working         │
+│                                                         │
+│ DELETED LEGACY CLASSES                                  │
+│ ✅ Ability.ts            │ ❌ DELETED (OOP → data)          │
+│ ✅ Effect.ts             │ ❌ DELETED (OOP → data)          │
+│ ✅ Interactable.ts       │ ❌ DELETED (OOP → data)          │
+│ ✅ IdentificationSys.ts  │ ✅ MOVED to /systems/            │
+│ ✅ GameBalance.ts        │ ✅ MOVED to /systems/            │
+│ ✅ ProgressionManager.ts │ ✅ MOVED to /systems/            │
+│ ✅ LightSystem.ts        │ ✅ MOVED to /systems/            │
+│ ✅ Trigger.ts            │ ✅ MOVED to /core/               │
+│ ✅ InteractionManager.ts │ ❌ DELETED (→ event-driven)      │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Deleted Legacy Dungeon Classes
+
+```
+┌─────────────────────────────────────────────────────────┐
+│       DELETED LEGACY (/src/dungeon/) - CLEANED          │
+├─────────────────────────────────────────────────────────┤
+│ ✅ Biome.ts              │ ❌ DELETED (→ data/biomes.ts)    │
+│ ✅ FloorTheme.ts         │ ❌ DELETED (→ data/biomes.ts)    │
+│ ✅ Prefab.ts             │ ❌ DELETED (→ data/prefabs.ts)   │
+│ ✅ Trap.ts               │ ❌ DELETED (traps are interact.) │
+│ ✅ Wreath.ts             │ ❌ DELETED (decorations)         │
+│ ✅ interactables/        │ ❌ DELETED (OOP → data)          │
+│ ✅ decorators/           │ ❌ DELETED (→ room templates)    │
+│ ✅ features/             │ ❌ DELETED (→ biome features)    │
+│ ✅ hazards/              │ ❌ DELETED (→ biome hazards)     │
+│ ✅ themes/               │ ❌ DELETED (→ data/biomes.ts)    │
+│ ✅ biomes/               │ ❌ DELETED (→ data/biomes.ts)    │
+│ ✅ FeatureGenerator.ts   │ ❌ DELETED (→ biome features)    │
+│ ✅ InteractableGen.ts    │ ❌ DELETED (→ RoomGenerationExec)│
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -163,7 +211,7 @@
 ├─────────────────────────────────────────────────────────┤
 │ ✅ UIManager.ts          │ Main UI coordinator           │
 │ ⚠️ HUD.ts                │ Needs StatsComponent events   │
-│ ⚠️ InventoryScreen.ts    │ Needs ItemDefinition support  │
+│ ⚠️ InventoryScreen.ts    │ Needs new ItemEntity support  │
 │ ⚠️ Hotbar.ts             │ Needs AbilityDefinition       │
 │ ⚠️ GameJournal.ts        │ Event-driven, needs more      │
 │ ✅ Tooltip.ts            │ OK                            │
@@ -173,310 +221,159 @@
 
 ---
 
-## Game Loop Integration
+## Architecture Transformation Complete
 
-```
-main.ts
-  └─ GameScene.onInitialize()
-      ├─ UnifiedSystemInit.initialize()
-      │   └─ DataManager registers all data
-      └─ Creates level
-
-  └─ GameScene.onActivate()
-      ├─ Adds actors to scene
-      ├─ Registers actors with TurnManager
-      └─ TurnManager.processTurns()
-          └─ Calls actor.act()
-              └─ Components handle logic via events
-```
-
-### Event Flow
-
-```
-User Input
-    ↓
-PlayerInputComponent emits 'input:attack'
-    ↓
-CombatComponent listens, calculates damage
-    ↓
-CombatComponent emits 'damage:dealt'
-    ↓
-StatsComponent listens, reduces HP
-    ↓
-StatsComponent emits 'stat:changed'
-    ↓
-HUD listens, updates display
-```
-
----
-
-## Critical Dependencies
-
-### Must Complete in Order
-
-```
-1. Phase 0: Fix Component Base Class
-   └─ Everything depends on this
-
-2. Phase 0: Fix Type References
-   └─ Required for compilation
-
-3. Phase 1: ItemFactory + EffectExecutor
-   └─ Required for item system
-
-4. Phase 2: AbilityExecutor
-   └─ Required for combat
-
-5. Phase 3: Dungeon Generator Updates
-   └─ Required for spawning
-```
-
----
-
-## File References Matrix
-
-### What Needs What
-
-| File                   | Uses                        | Needs Migration If               |
-| ---------------------- | --------------------------- | -------------------------------- |
-| `GameScene.ts`         | `GameActor`, `ActorFactory` | ✅ Already updated               |
-| `Level.ts`             | `GameActor`                 | ⚠️ Type refs wrong               |
-| `Spawner.ts`           | Old `Actor` classes         | ❌ Needs `ActorSpawnSystem`      |
-| `LevelGenerator.ts`    | Old `Hero`, `Mob`           | ❌ Needs `ActorFactory`          |
-| `ItemFactory.ts`       | Item classes                | ❌ Needs `ItemDefinitions`       |
-| `InventoryScreen.ts`   | `Item.getSprite()`          | ⚠️ Needs new `ItemFactory`       |
-| `HUD.ts`               | `Actor.hp`, `Actor.maxHp`   | ⚠️ Needs `StatsComponent` events |
-| `EnchantmentSystem.ts` | `ENCHANTMENT_DATA`          | ⚠️ Has data, needs cleanup       |
-| `LootSystem.ts`        | Hardcoded logic             | ⚠️ Partially migrated            |
-
----
-
-## Import Path Changes
-
-### Old Imports (BROKEN)
-
+### OLD WAY (Deleted)
 ```typescript
-❌
-❌ import { Hero } from '../actors/Hero';
-❌ import { Mob } from '../actors/Mob';
-❌ import { ActorRegistry } from '../config/ActorRegistry';
-❌ import { ItemRegistry } from '../config/ItemRegistry';
+❌ new SnowGolem(position);
+❌ FireplaceRoomDecorator.decorate(room);  
+❌ SnowyVillageTheme.getTile(x, y);
+❌ if (pathfinding.canMove(x, y)) { ... }
+❌ const damage = weapon.minDamage;
 ```
 
-### New Imports (WORKING)
-
+### NEW WAY (Data-Driven Events)
 ```typescript
-✅ import { GameActor } from '../components/GameActor';
-✅ import { ActorFactory } from '../factories/ActorFactory';
-✅ import { ActorSpawnSystem } from '../components/ActorSpawnSystem';
-✅ import { ActorDefinitions } from '../data/actors';
-✅ import { ItemDefinitions } from '../data/items';
-✅ import { DataManager } from '../core/DataManager';
+✅ SpawnTableExecutor.rollSpawn('snow_golem', floor);
+✅ RoomGenerationExecutor.populateRoom(template);
+✅ const biome = DataManager.query('biome', 'snowy_village');
+✅ CollisionSystem.checkMovement(actorId, pos, level);
+✅ const weapon = DataManager.query('item', 'candy_cane_spear');
 ```
 
 ---
 
-## Quick Start: Adding New Content
+## Event Flow Examples
+
+### Combat Flow
+```
+User Input → PlayerInputComponent 
+    ↓ emits 'action:attack'
+CombatComponent → calculates damage from data
+    ↓ emits 'damage:deal' 
+StatsComponent → applies damage
+    ↓ emits 'stat:changed'
+HUD → updates display
+```
+
+### Item Usage Flow  
+```
+User Input → InventoryComponent
+    ↓ emits 'item:use'
+EffectExecutor → reads ItemDefinition effects
+    ↓ emits 'effect:apply'
+StatsComponent → applies healing/buffs
+    ↓ emits 'stat:changed'
+HUD → updates display
+```
+
+### Spawning Flow
+```
+LevelGenerator → requests spawn
+    ↓ emits 'spawn:request' 
+SpawnTableExecutor → rolls from data tables
+    ↓ emits 'actor:create'
+ActorFactory → assembles components from data
+    ↓ emits 'actor:spawned'
+Level → adds to game world
+```
+
+### Collision Flow
+```
+MovementComponent → requests movement
+    ↓ emits 'collision:check'
+CollisionSystem → checks terrain + actors
+    ↓ emits 'damage:deal' (if chasm fall)
+    ↓ emits 'level:transition' (if chasm)
+    ↓ emits 'effect:apply' (if slippery ice)
+Multiple systems → handle consequences
+```
+
+---
+
+## Directory Structure (Final)
+
+```
+src/
+├── core/                   # Engine core (EventBus, DataManager, Logger)
+├── data/                   # Pure data definitions (no logic)
+├── components/             # Event-driven game components  
+├── factories/              # Data → object creation
+├── systems/                # Game logic executors
+├── dungeon/                # Level generation (minimal, organized)
+│   ├── Level.ts, Room.ts, Spawner.ts
+│   └── algorithms/         # Generation algorithms
+├── items/                  # World items, inventory (uses data)
+├── ui/                     # User interface
+├── scenes/                 # Game scenes
+└── constants/              # Enum definitions
+```
+
+---
+
+## Quick Reference: Adding New Content
 
 ### Add New Item
-
-1. Add to `/src/data/items.ts`:
-
 ```typescript
+// 1. Add to /src/data/items.ts
 ItemDefinitions["candy_cane"] = {
-  id: "candy_cane",
-  name: "Candy Cane",
-  type: ItemType.CONSUMABLE,
-  graphics: { spriteIndex: 25 },
+  id: "candy_cane", name: "Candy Cane",
+  type: ItemType.CONSUMABLE, rarity: ItemRarity.COMMON,
   effects: [{ type: "heal", value: 10 }],
-  tags: ["consumable", "festive"],
+  graphics: { spriteIndex: 25 }
 };
+
+// 2. Use anywhere
+const item = ItemFactory.instance.create('candy_cane');
 ```
 
-2. Done! No code changes needed.
-
-### Add New Enemy
-
-1. Add to `/src/data/actors.ts`:
-
+### Add New Enemy  
 ```typescript
-ActorDefinitions["Grinch"] = {
-  graphics: createStandardGraphics(Resources.GrinchPng),
+// 1. Add to /src/data/actors.ts
+ActorDefinitions["grinch"] = {
   baseStats: { hp: 150, maxHp: 150, strength: 15 },
-  components: [
-    { type: "stats" },
-    { type: "combat" },
-    { type: "movement" },
-    { type: "ai", config: { type: "aggressive_boss" } },
-  ],
-  ai: { type: "aggressive_boss", viewDistance: 10 },
-  tags: ["enemy", "boss", "grinch"],
+  components: ["stats", "combat", "movement", "ai"],
+  ai: { type: "aggressive_boss", viewDistance: 10 }
+};
+
+// 2. Add to spawn table /src/data/spawnTables.ts
+{ actorId: 'grinch', weight: 5, minFloor: 8, tags: ['boss'] }
+
+// 3. Spawns automatically via SpawnTableExecutor
+```
+
+### Add New Room Type
+```typescript  
+// Add to /src/data/roomTemplates.ts
+RoomTemplateDefinitions["grinch_lair"] = {
+  type: 'boss', name: 'Grinch Lair',
+  spawns: { spawnTable: 'boss_room', guaranteedSpawns: [
+    { type: 'boss', actorId: 'grinch', count: 1 }
+  ]},
+  interactables: [{ type: 'treasure_chest', probability: 1.0 }]
 };
 ```
 
-2. Spawn it:
+---
 
-```typescript
-ActorFactory.instance.createActor("Grinch", pos);
-```
+## Migration Status: ✅ PHASE 3 COMPLETE
 
-3. Done!
+**What's Working:**
+- ✅ Pure data-driven architecture
+- ✅ Event-based collision & pathfinding  
+- ✅ Unified biome/theme system
+- ✅ Complete dungeon generation pipeline
+- ✅ All factories use data definitions
+- ✅ Massive legacy code cleanup
 
-### Add New Ability
+**Remaining Work:**
+- ⚠️ UI integration with new ItemEntity
+- ⚠️ Save/load system update
+- ⚠️ Equipment system ItemEntity integration
 
-1. Add to `/src/data/abilities.ts`:
-
-```typescript
-AbilityDefinitions["snowball"] = {
-  id: "snowball",
-  name: "Snowball",
-  description: "Throw a snowball",
-  type: AbilityType.DAMAGE,
-  targetType: TargetType.SINGLE_ENEMY,
-  costs: [{ type: "energy", amount: 5 }],
-  cooldown: 3,
-  range: 4,
-  effects: [{ type: "damage", value: 8, damageType: "ice" }],
-  tags: ["damage", "ice", "basic"],
-};
-```
-
-2. Done! (Once AbilityExecutor is implemented)
+**The core architecture transformation is COMPLETE!** 🎯
 
 ---
 
-## Debugging Checklist
-
-### Game Won't Compile
-
-- [ ] Check for deleted class imports (`Actor`, `Hero`, `Mob`)
-- [ ] Check for old registry imports (`ActorRegistry`, `ItemRegistry`)
-- [ ] Run: `npm run build` to see all errors
-
-### Actor Won't Spawn
-
-- [ ] Verify definition exists in `ActorDefinitions`
-- [ ] Check console for `[ActorSpawnSystem]` logs
-- [ ] Verify all components in definition are registered in `ComponentRegistry`
-- [ ] Check EventBus for `actor:spawned` event
-
-### Item Won't Show
-
-- [ ] Verify definition exists in `ItemDefinitions`
-- [ ] Check `graphics.spriteIndex` is valid
-- [ ] Verify `GraphicsManager` has item sprites loaded
-- [ ] Check `ItemFactory` is using new definitions
-
-### Combat Not Working
-
-- [ ] Verify both actors have `CombatComponent`
-- [ ] Check EventBus for `damage:dealt` events
-- [ ] Verify `StatsComponent` is listening to damage events
-- [ ] Check console logs for component errors
-
-### UI Not Updating
-
-- [ ] Verify UI component is listening to correct events
-- [ ] Check EventBus emission with console.log
-- [ ] Verify event data has correct actorId
-- [ ] Check `UIManager.instance.showUI()` was called
-
----
-
-## Team Workflow
-
-### Working on Items (Phase 1)
-
-```bash
-# 1. Create ItemFactory (data-driven)
-# Edit: /src/items/ItemFactory.ts
-
-# 2. Add missing item definitions
-# Edit: /src/data/items.ts
-
-# 3. Test with one consumable
-npm run dev
-
-# 4. Migrate remaining items
-# Edit each item class → add to ItemDefinitions
-
-# 5. Delete old classes
-rm -rf src/content/items/consumables/*.ts
-```
-
-### Working on Mechanics (Phase 2)
-
-```bash
-# 1. Create EffectExecutor
-# Create: /src/systems/EffectExecutor.ts
-
-# 2. Create AbilityExecutor
-# Create: /src/systems/AbilityExecutor.ts
-
-# 3. Update EnchantmentSystem
-# Edit: /src/systems/EnchantmentSystem.ts
-
-# 4. Test all systems
-npm run dev
-```
-
-### Working on Dungeon (Phase 3)
-
-```bash
-# 1. Fix Level.ts types
-# Edit: /src/dungeon/Level.ts
-
-# 2. Update Spawner
-# Edit: /src/dungeon/Spawner.ts
-
-# 3. Update generators
-# Edit: /src/dungeon/LevelGenerator.ts
-# Edit: /src/dungeon/generators/*.ts
-
-# 4. Test dungeon generation
-npm run dev
-```
-
----
-
-## Common Pitfalls
-
-### ❌ Don't Do This
-
-```typescript
-// Hardcoding values
-const damage = 10;
-
-// Direct component access
-actor.statsComponent.hp -= damage;
-
-// Synchronous logic
-actor.takeDamage(damage);
-```
-
-### ✅ Do This Instead
-
-```typescript
-// Use data
-const itemDef = DataManager.instance.query("item", "fruitcake");
-const damage = itemDef.effects[0].value;
-
-// Use events
-EventBus.instance.emit("damage:dealt", {
-  targetId: actor.entityId,
-  damage: damage,
-  damageType: "physical",
-});
-
-// Components handle it asynchronously
-```
-
----
-
-**Last Updated:** 2025-11-26
-
-**Quick Links:**
-
-- [Full Migration Checklist](MIGRATION_CHECKLIST.md)
-- [Architecture Guide](ARCHITECTURE.md)
-- [Parallel Work Plan](PARALLEL_ARCHITECTURE_PLAN.md)
+**Last Updated:** 2025-11-27  
+**Phase 3 Status:** ✅ COMPLETE

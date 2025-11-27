@@ -1,6 +1,6 @@
 import * as ex from 'excalibur';
 import { Level } from '../dungeon/Level';
-import { TerrainType } from '../dungeon/Terrain';
+import { TerrainType } from '../data/terrain';
 import { Logger } from './Logger';
 
 export interface PathfindingOptions {

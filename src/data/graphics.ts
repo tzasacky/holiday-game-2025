@@ -74,7 +74,6 @@ export class GraphicsManager {
             'Krampus': ex.Color.Red,
             'Snow Sprite': ex.Color.Cyan,
             'Elite Snow Sprite': ex.Color.Chartreuse,
-            'Merchant': ex.Color.Yellow
         };
         
         const color = colors[actor.name] || ex.Color.Gray;

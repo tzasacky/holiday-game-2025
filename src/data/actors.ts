@@ -102,7 +102,7 @@ function createStandardGraphics(resource: ex.ImageSource, defaultAnim: string = 
 
 // Clean, data-first actor definitions
 export const ActorDefinitions: Record<string, ActorDefinition> = {
-    [ActorID.Hero]: {
+    [ActorID.HERO]: {
         graphics: createStandardGraphics(Resources.HeroSpriteSheetPng),
         baseStats: {
             hp: 100,
@@ -122,14 +122,14 @@ export const ActorDefinitions: Record<string, ActorDefinition> = {
             { type: 'inventory', config: { size: 20 } },
             { type: 'equipment' }
         ],
-        tags: ['player', ActorID.Hero],
+        tags: ['player', ActorID.HERO],
         inventory: { 
             size: 20,
             startingItems: [ItemID.HotCocoa, ItemID.CandyCaneSpear]
         }
     },
     
-    [ActorID.Snowman]: {
+    [ActorID.SNOWMAN]: {
         graphics: createStandardGraphics(Resources.SnowmanPng),
         baseStats: {
             hp: 20,
@@ -154,7 +154,7 @@ export const ActorDefinitions: Record<string, ActorDefinition> = {
         dropChance: 0.15
     },
     
-    [ActorID.SnowSprite]: {
+    [ActorID.SNOW_SPRITE]: {
         graphics: createStandardGraphics(Resources.SnowSpritePng),
         baseStats: {
             hp: 10,
@@ -180,7 +180,7 @@ export const ActorDefinitions: Record<string, ActorDefinition> = {
         dropChance: 0.12
     },
     
-    [ActorID.Krampus]: {
+    [ActorID.KRAMPUS]: {
         graphics: createStandardGraphics(Resources.KrampusPng),
         baseStats: {
             hp: 200,

@@ -4,7 +4,7 @@ import { GameEventNames, InventoryChangeEvent, ItemEquipEvent, ItemUnequipEvent 
 import { SpriteMapper } from './SpriteMapper';
 import { GameActor } from '../components/GameActor';
 import { InventoryComponent } from '../components/InventoryComponent';
-import { ItemEntity } from '../items/ItemFactory';
+import { ItemEntity } from '../factories/ItemFactory';
 
 export class InventoryScreen extends UIComponent {
     private equipmentPanel: HTMLElement | null = null;

@@ -1,5 +1,5 @@
 import * as ex from 'excalibur';
-import { Hero } from '../actors/Hero';
+import { GameActor } from '../components/GameActor';
 import { HUD } from './HUD';
 import { Hotbar } from './Hotbar';
 import { GameJournal, LogCategory } from './GameJournal';
@@ -23,7 +23,7 @@ export class UIManager {
         return this._instance;
     }
 
-    public initialize(hero: Hero) {
+    public initialize(hero: GameActor) {
         // Initialize DOM components
         this.hud = new HUD(hero);
         this.hotbar = new Hotbar(hero, () => this.toggleInventory());
@@ -45,6 +45,10 @@ export class UIManager {
         if (this.inventoryScreen) {
             this.inventoryScreen.toggle();
         }
+    }
+
+    public getHotbar(): Hotbar | null {
+        return this.hotbar;
     }
 
     public get isInventoryVisible(): boolean {

@@ -73,6 +73,13 @@ export class InputManager {
                 return;
             }
             
+            // Handle hotbar keys (1-5)
+            if (evt.key === ex.Keys.Digit1) { this.useHotbarSlot(1); return; }
+            if (evt.key === ex.Keys.Digit2) { this.useHotbarSlot(2); return; }
+            if (evt.key === ex.Keys.Digit3) { this.useHotbarSlot(3); return; }
+            if (evt.key === ex.Keys.Digit4) { this.useHotbarSlot(4); return; }
+            if (evt.key === ex.Keys.Digit5) { this.useHotbarSlot(5); return; }
+            
             // Process movement keys immediately for turn-based gameplay
             let action: GameActionType | null = null;
             
@@ -120,6 +127,18 @@ export class InputManager {
         // Access the scene's inventory toggle method
         if ((this.gameScene as any).toggleInventory) {
             (this.gameScene as any).toggleInventory();
+        }
+    }
+    
+    private useHotbarSlot(slotNumber: number) {
+        if (!this.gameScene) return;
+        
+        Logger.debug(`[InputManager] Using hotbar slot ${slotNumber}`);
+        // Access UIManager to get hotbar
+        const uiManager = UIManager.instance;
+        const hotbar = uiManager.getHotbar();
+        if (hotbar) {
+            hotbar.useSlot(slotNumber);
         }
     }
 

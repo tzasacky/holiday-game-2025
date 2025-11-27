@@ -77,6 +77,14 @@ export class GameActor extends GameEntity {
         }
     }
     
+    // Queue action for PlayerInputComponent
+    queueAction(actionType: any): void {
+        const playerInputComp = this.getGameComponent('playerInput');
+        if (playerInputComp) {
+            (playerInputComp as any).queueAction(actionType);
+        }
+    }
+    
     // Equipment helpers
     equip(item: any): boolean {
         const equipmentComponent = this.getGameComponent('equipment') as any;

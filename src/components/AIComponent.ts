@@ -1,6 +1,13 @@
 import { ActorComponent } from './ActorComponent';
 import * as ex from 'excalibur';
 
+export enum AIState {
+    Wander = 'wander',
+    Chase = 'chase',
+    Attack = 'attack',
+    Idle = 'idle'
+}
+
 export interface AIConfig {
     type: string;
     viewDistance?: number;

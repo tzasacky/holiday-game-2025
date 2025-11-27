@@ -150,6 +150,10 @@ export class DataManager {
       const { PrefabDefinitions } = require('../data/prefabDefinitions');
       this.registerRegistry('prefab', PrefabDefinitions);
       
+      // Biome definitions - UNIFIED (Phase 3.8)  
+      const { BiomeDefinitions } = require('../data/biomes');
+      this.registerRegistry('biome', BiomeDefinitions);
+      
       console.log('[DataManager] Registered unified data systems:', Array.from(this.registries.keys()));
     } catch (error) {
       console.warn('[DataManager] Error registering unified systems:', error);

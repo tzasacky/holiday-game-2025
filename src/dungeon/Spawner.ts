@@ -15,7 +15,7 @@ export interface SpawnConfig {
 }
 
 export class Spawner {
-    private static logger = Logger.getInstance();
+    // Logger used via static methods
 
     /**
      * Data-driven mob spawning for a level
@@ -27,7 +27,7 @@ export class Spawner {
         const availableSpawns = level.spawnPoints.slice(1);
         
         if (availableSpawns.length === 0) {
-            this.logger.warn('[Spawner] No spawn points available for mob spawning');
+            Logger.warn('[Spawner] No spawn points available for mob spawning');
             return;
         }
 
@@ -35,7 +35,7 @@ export class Spawner {
         const roomArea = config.roomArea || (level.width * level.height) * 0.6; // Estimate if not provided
         const targetSpawnCount = SpawnTableExecutor.instance.calculateSpawnCount(roomArea, spawnDensity);
         
-        this.logger.debug(`[Spawner] Spawning ${targetSpawnCount} mobs on floor ${floorNumber} (density: ${spawnDensity})`);
+        Logger.debug(`[Spawner] Spawning ${targetSpawnCount} mobs on floor ${floorNumber} (density: ${spawnDensity})`);
 
         // Get appropriate spawn table for this floor and room type
         const tableId = this.getSpawnTableId(floorNumber, roomType);
@@ -43,7 +43,7 @@ export class Spawner {
         // Spawn mobs at random spawn points
         const spawnedMobs = this.spawnMobsFromTable(level, availableSpawns, tableId, targetSpawnCount, floorNumber);
         
-        this.logger.info(`[Spawner] Spawned ${spawnedMobs.length}/${targetSpawnCount} mobs on floor ${floorNumber}`);
+        Logger.info(`[Spawner] Spawned ${spawnedMobs.length}/${targetSpawnCount} mobs on floor ${floorNumber}`);
     }
 
     /**
@@ -62,7 +62,7 @@ export class Spawner {
         const spawnResult = SpawnTableExecutor.instance.rollSpawn(spawnRequest);
         
         if (!spawnResult) {
-            this.logger.warn(`[Spawner] Failed to roll spawn at ${pos} on floor ${floorNumber}`);
+            Logger.warn(`[Spawner] Failed to roll spawn at ${pos} on floor ${floorNumber}`);
             return null;
         }
 
@@ -70,7 +70,7 @@ export class Spawner {
         const mob = ActorFactory.instance.createActor(spawnResult.actorId, pos);
         
         if (!mob) {
-            this.logger.error(`[Spawner] Failed to create actor '${spawnResult.actorId}' at ${pos}`);
+            Logger.error(`[Spawner] Failed to create actor '${spawnResult.actorId}' at ${pos}`);
             return null;
         }
 
@@ -86,7 +86,7 @@ export class Spawner {
 
         level.addMob(mob);
         
-        this.logger.debug(`[Spawner] Spawned ${spawnResult.actorId} at ${pos} (floor ${floorNumber}, scaling: ${spawnResult.floorScaling ? 'yes' : 'no'})`);
+        Logger.debug(`[Spawner] Spawned ${spawnResult.actorId} at ${pos} (floor ${floorNumber}, scaling: ${spawnResult.floorScaling ? 'yes' : 'no'})`);
         
         return mob;
     }
@@ -152,7 +152,7 @@ export class Spawner {
                 statsComponent.modifyStat('hp', hpBonus);
             }
             
-            this.logger.debug(`[Spawner] Applied floor scaling: +${strengthBonus} STR, +${hpBonus} HP`);
+            Logger.debug(`[Spawner] Applied floor scaling: +${strengthBonus} STR, +${hpBonus} HP`);
         }
     }
 
@@ -178,7 +178,7 @@ export class Spawner {
                     }
                     
                     level.addMob(packMob);
-                    this.logger.debug(`[Spawner] Spawned pack member ${spawnResult.actorId} at ${packPos}`);
+                    Logger.debug(`[Spawner] Spawned pack member ${spawnResult.actorId} at ${packPos}`);
                 }
             }
         }

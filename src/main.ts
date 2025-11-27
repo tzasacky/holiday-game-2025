@@ -3,11 +3,10 @@ import { loader } from './config/resources';
 import { ActorFactory } from './factories/ActorFactory';
 import { ActorSpawnSystem } from './components/ActorSpawnSystem';
 import { UnifiedSystemInit } from './core/UnifiedSystemInit';
-import { AdvancedLevelGenerator } from './dungeon/generators/AdvancedLevelGenerator';
-import { SnowyVillageTheme } from './dungeon/themes/SnowyVillageTheme';
-import { SnowyVillage } from './dungeon/biomes/SnowyVillage';
+import { AdvancedLevelGenerator } from './dungeon/algorithms/AdvancedLevelGenerator';
+import { getBiomesForFloor } from './data/biomes';
 import { TurnManager } from './core/TurnManager';
-import { WarmthSystem } from './mechanics/WarmthSystem';
+import { WarmthSystem } from './systems/WarmthSystem';
 import { UIManager } from './ui/UIManager';
 import { InputManager } from './core/InputManager';
 import { Spawner } from './dungeon/Spawner';
@@ -38,7 +37,6 @@ const game = new ex.Engine({
 // Enable debug mode to diagnose rendering
 game.showDebug(true);
 
-import { FallbackTheme } from './dungeon/themes/FallbackTheme';
 import { SpriteDebugScene } from './scenes/SpriteDebugScene';
 
 game.start(loader).then(() => {
@@ -60,8 +58,9 @@ game.start(loader).then(() => {
 
     // Generation
     const generator = new AdvancedLevelGenerator();
-    const theme = AppConfig.UseFallbackRendering ? new FallbackTheme() : new SnowyVillageTheme();
-    const biome = new SnowyVillage(theme);
+    const floorNumber = 1;
+    const availableBiomes = getBiomesForFloor(floorNumber);
+    const biome = availableBiomes[0]; // Use first valid biome for floor 1
     const level = generator.generate(40, 30, biome, gameScene);
     gameScene.level = level;
     

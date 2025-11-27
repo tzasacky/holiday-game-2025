@@ -1,6 +1,6 @@
 import { EventBus } from '../core/EventBus';
 import { GameEventNames } from '../core/GameEvents';
-import { EnhancedEquipment } from '../items/EnhancedEquipment';
+import { ItemEntity } from '../factories/ItemFactory';
 import { GameActor } from '../components/GameActor';
 import { EnchantmentSystem } from './EnchantmentSystem';
 

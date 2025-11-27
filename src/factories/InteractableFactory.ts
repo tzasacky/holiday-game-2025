@@ -8,7 +8,7 @@ import * as ex from 'excalibur';
 
 export class InteractableFactory {
   private static _instance: InteractableFactory;
-  private logger = Logger.getInstance();
+  // Logger is used via static methods
 
   public static get instance(): InteractableFactory {
     if (!InteractableFactory._instance) {
@@ -31,7 +31,7 @@ export class InteractableFactory {
     const { definitionId, definition, position, config, level } = event;
 
     if (!definition) {
-      this.logger.error(`[InteractableFactory] Missing definition for ${definitionId}`);
+      Logger.error(`[InteractableFactory] Missing definition for ${definitionId}`);
       return;
     }
 
@@ -41,7 +41,7 @@ export class InteractableFactory {
     
     level.scene.add(interactable);
     
-    this.logger.debug(`[InteractableFactory] Created ${definitionId} at ${position.x}, ${position.y}`);
+    Logger.debug(`[InteractableFactory] Created ${definitionId} at ${position.x}, ${position.y}`);
 
     EventBus.instance.emit('interactable:created' as any, {
       entity: interactable,

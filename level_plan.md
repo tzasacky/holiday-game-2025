@@ -109,7 +109,7 @@ Create a festive, winter-themed roguelike dungeon with deep interactivity, disti
 41. **Elf Archer**: Ranged harass.
 42. **Yeti**: Tanky melee.
 43. **Mimic Present**: Surprise enemy.
-44. **Merchant Elf**: Sells items. [IMPLEMENTED]
+44. **Merchant Elf**: Sells items
 45. **Lost Penguin**: Escort quest NPC.
 46. **Snow Sprite**: Basic enemy. [IMPLEMENTED]
 

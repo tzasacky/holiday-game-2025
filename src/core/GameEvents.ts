@@ -1,7 +1,7 @@
 import * as ex from 'excalibur';
 import { GameActor } from '../components/GameActor';
-import { ItemEntity } from '../items/ItemFactory';
-import { AbilityID } from '../constants';
+import { ItemEntity } from '../factories/ItemFactory';
+import { AbilityID, DamageType } from '../constants';
 
 // Event Names Enum
 export enum GameEventNames {
@@ -21,6 +21,11 @@ export enum GameEventNames {
     ItemDestroyed = 'item:destroyed',
     ItemCreated = 'item:created',
     
+    // Equipment
+    EquipmentEquipped = 'equipment:equipped',
+    EquipmentUnequipped = 'equipment:unequipped',
+    EquipmentUnequipRequest = 'equipment:unequip_request',
+    
     // Enchantments
     EnchantmentApplied = 'enchantment:applied',
     EnchantmentRemoved = 'enchantment:removed',
@@ -28,6 +33,7 @@ export enum GameEventNames {
     // Stats
     HealthChange = 'healthchange',
     WarmthChange = 'warmthchange',
+    StatsRecalculate = 'stats:recalculate',
     XpGain = 'xpgain',
     LevelUp = 'levelup',
     
@@ -63,6 +69,26 @@ export enum GameEventNames {
     // Loot Events
     LootRequest = "loot:request",
     LootGenerated = "loot:generated",
+    
+    // Collision Events
+    CollisionCheck = "collision:check",
+    CollisionResult = "collision:result",
+    TerrainInteract = "terrain:interact",
+    
+    // Movement Events
+    MovementRequest = "movement:request",
+    MovementResult = "movement:result",
+    
+    // Effect Events
+    EffectApply = "effect:apply",
+    EffectRemove = "effect:remove",
+    
+    // Level Events
+    LevelTransition = "level:transition",
+    LevelTransitionRequest = "level:transition_request",
+    
+    // Sound Events
+    SoundPlay = "sound:play",
 }
 
 // Event Classes
@@ -333,6 +359,128 @@ export class LootGeneratedEvent extends ex.GameEvent<any> {
     }
 }
 
+// --- Collision Events ---
+export class CollisionCheckEvent extends ex.GameEvent<any> {
+    constructor(
+        public actorId: string,
+        public position: ex.Vector,
+        public movementType: 'walk' | 'run' | 'teleport' | 'fall',
+        public level: any // Level reference
+    ) {
+        super();
+    }
+}
+
+export class CollisionResultEvent extends ex.GameEvent<any> {
+    constructor(
+        public actorId: string,
+        public position: ex.Vector,
+        public canMove: boolean,
+        public collisionType?: 'terrain' | 'actor' | 'interactable' | 'environmental',
+        public interaction?: {
+            type: string;
+            data: any;
+        },
+        public consequences?: Array<{
+            type: 'damage' | 'effect' | 'transition' | 'sound';
+            data: any;
+        }>
+    ) {
+        super();
+    }
+}
+
+export class TerrainInteractEvent extends ex.GameEvent<any> {
+    constructor(
+        public actorId: string,
+        public position: ex.Vector,
+        public terrainType: string,
+        public level: any
+    ) {
+        super();
+    }
+}
+
+// --- Movement Events ---
+export class MovementRequestEvent extends ex.GameEvent<any> {
+    constructor(
+        public actorId: string,
+        public fromPosition: ex.Vector,
+        public toPosition: ex.Vector,
+        public movementType: 'walk' | 'run' | 'teleport' | 'fall'
+    ) {
+        super();
+    }
+}
+
+export class MovementResultEvent extends ex.GameEvent<any> {
+    constructor(
+        public actorId: string,
+        public fromPosition: ex.Vector,
+        public toPosition: ex.Vector,
+        public success: boolean,
+        public reason?: string
+    ) {
+        super();
+    }
+}
+
+// --- Effect Events ---
+export class EffectApplyEvent extends ex.GameEvent<any> {
+    constructor(
+        public targetId: string,
+        public effectId: string,
+        public duration: number,
+        public source?: string,
+        public data?: any
+    ) {
+        super();
+    }
+}
+
+export class EffectRemoveEvent extends ex.GameEvent<any> {
+    constructor(
+        public targetId: string,
+        public effectId: string,
+        public source?: string
+    ) {
+        super();
+    }
+}
+
+// --- Level Events ---
+export class LevelTransitionEvent extends ex.GameEvent<any> {
+    constructor(
+        public direction: 'up' | 'down',
+        public fromLevel: number,
+        public toLevel: number
+    ) {
+        super();
+    }
+}
+
+export class LevelTransitionRequestEvent extends ex.GameEvent<any> {
+    constructor(
+        public actorId: string,
+        public direction: 'up' | 'down',
+        public source: string,
+        public data?: any
+    ) {
+        super();
+    }
+}
+
+// --- Sound Events ---
+export class SoundPlayEvent extends ex.GameEvent<any> {
+    constructor(
+        public soundId: string,
+        public volume?: number,
+        public position?: ex.Vector
+    ) {
+        super();
+    }
+}
+
 // Event Map Type
 export type GameEventMap = {
     [GameEventNames.Attack]: AttackEvent;
@@ -384,5 +532,20 @@ export type GameEventMap = {
     
     [GameEventNames.LootRequest]: LootRequestEvent;
     [GameEventNames.LootGenerated]: LootGeneratedEvent;
+    
+    [GameEventNames.CollisionCheck]: CollisionCheckEvent;
+    [GameEventNames.CollisionResult]: CollisionResultEvent;
+    [GameEventNames.TerrainInteract]: TerrainInteractEvent;
+    
+    [GameEventNames.MovementRequest]: MovementRequestEvent;
+    [GameEventNames.MovementResult]: MovementResultEvent;
+    
+    [GameEventNames.EffectApply]: EffectApplyEvent;
+    [GameEventNames.EffectRemove]: EffectRemoveEvent;
+    
+    [GameEventNames.LevelTransition]: LevelTransitionEvent;
+    [GameEventNames.LevelTransitionRequest]: LevelTransitionRequestEvent;
+    
+    [GameEventNames.SoundPlay]: SoundPlayEvent;
 };
 

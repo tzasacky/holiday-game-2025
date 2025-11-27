@@ -23,7 +23,7 @@ export interface SpawnRequest {
 
 export class SpawnTableExecutor {
   private static _instance: SpawnTableExecutor;
-  private logger = Logger.getInstance();
+
 
   public static get instance(): SpawnTableExecutor {
     if (!SpawnTableExecutor._instance) {
@@ -41,7 +41,7 @@ export class SpawnTableExecutor {
     const table = DataManager.instance.query<SpawnTableDefinition>('spawnTable', request.tableId);
     
     if (!table) {
-      this.logger.warn(`SpawnTableExecutor: Table '${request.tableId}' not found`);
+      Logger.warn(`SpawnTableExecutor: Table '${request.tableId}' not found`);
       return null;
     }
 
@@ -49,7 +49,7 @@ export class SpawnTableExecutor {
     const validEntries = this.filterEntries(table.entries, request);
     
     if (validEntries.length === 0) {
-      this.logger.warn(`SpawnTableExecutor: No valid entries found for floor ${request.floorNumber} in table '${request.tableId}'`);
+      Logger.warn(`SpawnTableExecutor: No valid entries found for floor ${request.floorNumber} in table '${request.tableId}'`);
       return null;
     }
 
@@ -63,13 +63,13 @@ export class SpawnTableExecutor {
       if (roll <= currentWeight) {
         const result = this.createSpawnResult(entry, table, request.floorNumber);
         
-        this.logger.debug(`SpawnTableExecutor: Rolled ${entry.actorId} from table '${request.tableId}' (${entry.weight}/${totalWeight} weight)`);
+        Logger.debug(`SpawnTableExecutor: Rolled ${entry.actorId} from table '${request.tableId}' (${entry.weight}/${totalWeight} weight)`);
         return result;
       }
     }
 
     // Fallback to first entry if something goes wrong
-    this.logger.warn(`SpawnTableExecutor: Roll failed, using fallback spawn`);
+    Logger.warn(`SpawnTableExecutor: Roll failed, using fallback spawn`);
     return this.createSpawnResult(validEntries[0], table, request.floorNumber);
   }
 
@@ -190,25 +190,25 @@ export class SpawnTableExecutor {
       // Check that entries have valid actor IDs
       spawnTable.entries.forEach(entry => {
         if (!Object.values(ActorID).includes(entry.actorId)) {
-          this.logger.error(`SpawnTableExecutor: Invalid actorId '${entry.actorId}' in table '${id}'`);
+          Logger.error(`SpawnTableExecutor: Invalid actorId '${entry.actorId}' in table '${id}'`);
           isValid = false;
         }
 
         if (entry.weight <= 0) {
-          this.logger.error(`SpawnTableExecutor: Invalid weight '${entry.weight}' in table '${id}'`);
+          Logger.error(`SpawnTableExecutor: Invalid weight '${entry.weight}' in table '${id}'`);
           isValid = false;
         }
       });
 
       // Ensure table has at least one entry
       if (spawnTable.entries.length === 0) {
-        this.logger.error(`SpawnTableExecutor: Table '${id}' has no entries`);
+        Logger.error(`SpawnTableExecutor: Table '${id}' has no entries`);
         isValid = false;
       }
     });
 
     if (isValid) {
-      this.logger.info('SpawnTableExecutor: All spawn tables validated successfully');
+      Logger.info('SpawnTableExecutor: All spawn tables validated successfully');
     }
 
     return isValid;

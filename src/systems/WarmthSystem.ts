@@ -1,5 +1,5 @@
 import { GameActor } from '../components/GameActor';
-import { DamageType } from '../mechanics/DamageType';
+import { DamageType } from '../data/mechanics';
 import { DataManager } from '../core/DataManager';
 
 export class WarmthSystem {

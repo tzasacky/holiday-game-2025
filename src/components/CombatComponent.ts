@@ -1,5 +1,6 @@
 import { ActorComponent } from './ActorComponent';
 import { GameEventNames, AttackEvent, DamageEvent } from '../core/GameEvents';
+import { DamageType } from '../data/mechanics';
 
 export class CombatComponent extends ActorComponent {
     private lastAttackTime = 0;
@@ -24,6 +25,27 @@ export class CombatComponent extends ActorComponent {
                 this.handleDeath();
             }
         });
+    }
+    
+    private calculateDamage(): number {
+        // Get base damage from actor's stats
+        const statsComp = this.actor.getGameComponent('stats') as any;
+        let baseDamage = statsComp ? (statsComp.strength || 10) : 10;
+        
+        // Add equipment bonuses
+        const equipmentComp = this.actor.getGameComponent('equipment') as any;
+        if (equipmentComp) {
+            const weapon = equipmentComp.getEquipment('weapon');
+            if (weapon && weapon.definition.stats?.damage) {
+                baseDamage += weapon.definition.stats.damage;
+            }
+        }
+        
+        // Add some randomization (±25%)
+        const variance = 0.25;
+        const multiplier = 1 + (Math.random() * 2 - 1) * variance;
+        
+        return Math.max(1, Math.floor(baseDamage * multiplier));
     }
     
     private handleAttack(targetId: string): void {

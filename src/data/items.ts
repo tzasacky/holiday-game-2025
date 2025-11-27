@@ -59,6 +59,7 @@ export interface ItemDefinition {
     requiredLevel?: number;
     allowedEnchantments?: EnchantmentType[];
     possibleCurses?: CurseType[];
+    cursed?: boolean;
     tags: string[];
 }
 

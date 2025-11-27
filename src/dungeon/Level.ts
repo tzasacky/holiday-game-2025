@@ -2,10 +2,8 @@ import * as ex from 'excalibur';
 import { GameActor } from '../components/GameActor';
 import { WorldItemEntity } from '../items/WorldItemEntity';
 import { Room } from './Room';
-import { FloorTheme } from './FloorTheme';
-import { TerrainType } from './Terrain';
-import { TurnManager } from '../core/TurnManager';
-import { Trap } from './Trap';
+import { BiomeDefinition } from '../data/biomes';
+import { TerrainType } from '../data/terrain';
 import { Trigger } from '../core/Trigger';
 import { Logger } from '../core/Logger';
 
@@ -19,19 +17,19 @@ export class Level {
 
     public mobs: GameActor[] = [];
     public actors: GameActor[] = [];
-    public triggers: (Trap | Trigger)[] = [];
+    public triggers: Trigger[] = [];
     public items: WorldItemEntity[] = [];
     public rooms: Room[] = [];
     public spawnPoints: ex.Vector[] = [];
     public exitPoint: ex.Vector | null = null;
     public terrainData: TerrainType[][] = [];
-    public theme: FloorTheme;
+    public biome: BiomeDefinition;
     public scene: ex.Scene;
 
-    constructor(width: number, height: number, theme: FloorTheme, scene: ex.Scene) {
+    constructor(width: number, height: number, biome: BiomeDefinition, scene: ex.Scene) {
         this.width = width;
         this.height = height;
-        this.theme = theme;
+        this.biome = biome;
         this.scene = scene;
 
         // Floor Layer (Background)
@@ -63,34 +61,47 @@ export class Level {
     public updateTileGraphics() {
         for (let x = 0; x < this.width; x++) {
             for (let y = 0; y < this.height; y++) {
-                // Update Floor Layer
+                const terrainType = this.terrainData[x][y];
+                const biomeGraphics = this.biome.visuals.tileGraphics[terrainType];
+                
+                // Update Floor Layer - always show floor
                 const floorTile = this.floorMap.getTile(x, y);
                 if (floorTile) {
                     floorTile.clearGraphics();
-                    const graphic = this.theme.getBottomTile(x, y, this);
-                    floorTile.addGraphic(graphic);
+                    
+                    // Use floor graphics from biome
+                    const floorGraphics = this.biome.visuals.tileGraphics[TerrainType.Floor];
+                    if (floorGraphics.color) {
+                        const rect = new ex.Rectangle({
+                            width: 32,
+                            height: 32,
+                            color: floorGraphics.color
+                        });
+                        floorTile.addGraphic(rect);
+                    }
                     floorTile.solid = false; // Floor is never solid
                 }
 
-                // Update Object Layer
+                // Update Object Layer - show terrain features
                 const objectTile = this.objectMap.getTile(x, y);
                 if (objectTile) {
                     objectTile.clearGraphics();
-                    const graphic = this.theme.getTopTile(x, y, this);
-                    if (graphic) {
-                        objectTile.addGraphic(graphic);
+                    
+                    // Only add graphics for non-floor terrain
+                    if (terrainType !== TerrainType.Floor && biomeGraphics) {
+                        if (biomeGraphics.color) {
+                            const rect = new ex.Rectangle({
+                                width: 32,
+                                height: 32,
+                                color: biomeGraphics.color
+                            });
+                            objectTile.addGraphic(rect);
+                        }
                     }
                     
-                    // Collision Logic based on TerrainType
-                    // This assumes terrainData is the source of truth for collision
-                    const type = this.terrainData[x][y];
-                    // Walls and Chasms are solid. Doors are now interactables.
-                    const isSolid = (type === TerrainType.Wall || 
-                        type === TerrainType.Chasm);
-                    
-                    // TODO: Check for solid interactables (like closed doors) at this position
-                    
-                    objectTile.solid = isSolid;
+                    // Collision is now handled by CollisionSystem via events
+                    // Just mark tiles as non-solid since collision logic is event-driven
+                    objectTile.solid = false;
                 }
             }
         }
@@ -121,9 +132,9 @@ export class Level {
         this.scene.add(entity);
     }
 
-    public addTrap(trap: Trap) {
-        this.triggers.push(trap);
-        this.scene.add(trap);
+    public addTrigger(trigger: Trigger) {
+        this.triggers.push(trigger);
+        this.scene.add(trigger);
     }
 
     public update(engine: ex.Engine, delta: number) {
@@ -158,31 +169,31 @@ export class Level {
     }
 
     // Artifact Support Methods
-    public getAllEntities(): Actor[] {
+    public getAllEntities(): GameActor[] {
         return this.actors;
     }
 
-    public getAllAllies(): Actor[] {
-        return this.actors.filter(a => !a.isEnemy);
+    public getAllAllies(): GameActor[] {
+        return this.actors.filter(a => !(a as any).isEnemy);
     }
 
-    public getAllEnemies(): Actor[] {
-        return this.actors.filter(a => a.isEnemy);
+    public getAllEnemies(): GameActor[] {
+        return this.actors.filter(a => (a as any).isEnemy);
     }
 
     public getDistance(x1: number, y1: number, x2: number, y2: number): number {
         return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
     }
 
-    public getEntitiesInRadius(x: number, y: number, radius: number): Actor[] {
-        return this.actors.filter(a => this.getDistance(x, y, a.x, a.y) <= radius);
+    public getEntitiesInRadius(x: number, y: number, radius: number): GameActor[] {
+        return this.actors.filter(a => this.getDistance(x, y, a.pos.x, a.pos.y) <= radius);
     }
 
     public addCelebrationEffects(x: number, y: number, radius: number): void {
-        console.log(`[Level] Celebration effects at ${x},${y} radius ${radius} (Stub)`);
+        Logger.info(`[Level] Celebration effects at ${x},${y} radius ${radius} - TODO: Implement with effect system`);
     }
 
-    public revealFutureEvents(actor: Actor): void {
-        console.log(`[Level] Revealing future events to ${actor.name} (Stub)`);
+    public revealFutureEvents(actor: GameActor): void {
+        Logger.info(`[Level] Revealing future events to ${actor.name} - TODO: Implement with UI system`);
     }
 }

@@ -316,7 +316,7 @@ export const EffectDefinitions: Record<string, EffectDefinition> = {
             colorTint: '#440000',
             particleEffect: 'dark_aura'
         },
-        tags: ['curse', 'permanent', ActorID.Krampus, 'unlucky'],
+        tags: ['curse', 'permanent', ActorID.KRAMPUS, 'unlucky'],
         category: 'debuff',
         dispellable: false,
         hiddenFromUI: false

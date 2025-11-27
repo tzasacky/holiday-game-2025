@@ -1,12 +1,11 @@
 import { ActorComponent } from './ActorComponent';
-import { ItemEntity, ItemFactory } from '../items/ItemFactory';
+import { ItemEntity, ItemFactory } from '../factories/ItemFactory';
 import { GameEventNames } from '../core/GameEvents';
 import { Logger } from '../core/Logger';
 
 export class InventoryComponent extends ActorComponent {
     public items: ItemEntity[] = [];
     public maxSize: number;
-    private logger = Logger.instance;
     
     constructor(actor: any, config: { size?: number } = {}) {
         super(actor);
@@ -49,19 +48,19 @@ export class InventoryComponent extends ActorComponent {
     }
 
     public addStartingItems(itemIds: string[]): void {
-        this.logger.info(`[InventoryComponent] Adding starting items to ${this.actor.name}:`, itemIds);
+        Logger.info(`[InventoryComponent] Adding starting items to ${this.actor.name}:`, itemIds);
         
         for (const itemId of itemIds) {
             const item = ItemFactory.instance.create(itemId);
             if (item) {
                 const added = this.addItemEntity(item);
                 if (added) {
-                    this.logger.debug(`[InventoryComponent] Added starting item: ${item.getDisplayName()}`);
+                    Logger.debug(`[InventoryComponent] Added starting item: ${item.getDisplayName()}`);
                 } else {
-                    this.logger.warn(`[InventoryComponent] Failed to add starting item: ${item.getDisplayName()} (inventory full?)`);
+                    Logger.warn(`[InventoryComponent] Failed to add starting item: ${item.getDisplayName()} (inventory full?)`);
                 }
             } else {
-                this.logger.error(`[InventoryComponent] Failed to create starting item: ${itemId}`);
+                Logger.error(`[InventoryComponent] Failed to create starting item: ${itemId}`);
             }
         }
 
@@ -86,7 +85,7 @@ export class InventoryComponent extends ActorComponent {
     public addItem(itemId: string, quantity: number = 1): boolean {
         const item = ItemFactory.instance.create(itemId, quantity);
         if (!item) {
-            this.logger.error(`[InventoryComponent] Failed to create item: ${itemId}`);
+            Logger.error(`[InventoryComponent] Failed to create item: ${itemId}`);
             return false;
         }
         
@@ -159,7 +158,7 @@ export class InventoryComponent extends ActorComponent {
         }
         
         if (!item) {
-            this.logger.warn(`[InventoryComponent] Item not found for use: ${itemIdOrIndex}`);
+            Logger.warn(`[InventoryComponent] Item not found for use: ${itemIdOrIndex}`);
             return false;
         }
         
@@ -194,6 +193,26 @@ export class InventoryComponent extends ActorComponent {
 
     public getItemByIndex(index: number): ItemEntity | null {
         return this.items[index] || null;
+    }
+
+    public removeItemAtIndex(index: number): ItemEntity | null {
+        if (index >= 0 && index < this.items.length) {
+            const item = this.items.splice(index, 1)[0];
+            this.emitInventoryChanged();
+            return item;
+        }
+        return null;
+    }
+
+    public setItemAtIndex(index: number, item: ItemEntity): void {
+        if (index >= 0 && index < this.maxSize) {
+            // Extend array if necessary
+            while (this.items.length <= index) {
+                this.items.push(null as any);
+            }
+            this.items[index] = item;
+            this.emitInventoryChanged();
+        }
     }
 
     public getSize(): number {

@@ -1,6 +1,6 @@
 import * as ex from 'excalibur';
 import { GameEntity } from '../core/GameEntity';
-import { ItemEntity } from './ItemFactory';
+import { ItemEntity } from '../factories/ItemFactory';
 import { GameActor } from '../components/GameActor';
 import { EventBus } from '../core/EventBus';
 import { Logger } from '../core/Logger';
@@ -10,7 +10,7 @@ import { Logger } from '../core/Logger';
  * Uses the new ItemEntity from ItemFactory for data
  */
 export class WorldItemEntity extends GameEntity {
-  private logger = Logger.getInstance();
+  // Logger used via static methods"
 
   constructor(gridPos: ex.Vector, public item: ItemEntity) {
     super(gridPos, { width: 32, height: 32, collisionType: ex.CollisionType.Passive });

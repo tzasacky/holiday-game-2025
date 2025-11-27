@@ -2,7 +2,7 @@ import { DataManager } from '../core/DataManager';
 import { EventBus } from '../core/EventBus';
 import { Logger } from '../core/Logger';
 import { ActorFactory } from '../factories/ActorFactory';
-import { ItemFactory } from '../items/ItemFactory';
+import { ItemFactory } from '../factories/ItemFactory';
 import { Level } from '../dungeon/Level';
 import { Room } from '../dungeon/Room';
 import { PrefabDefinition, PrefabActorPlacement, PrefabInteractablePlacement, PrefabItemPlacement } from '../data/prefabDefinitions';
@@ -30,7 +30,7 @@ export interface PrefabPlacementResult {
 
 export class PrefabExecutor {
   private static _instance: PrefabExecutor;
-  private logger = Logger.instance;
+
   private placedPrefabs: Map<string, number> = new Map(); // Track prefabs per level
 
   public static get instance(): PrefabExecutor {
@@ -114,10 +114,10 @@ export class PrefabExecutor {
       // 5. Track placement count
       this.trackPrefabPlacement(request.prefabId);
 
-      this.logger.info(`[PrefabExecutor] Successfully placed prefab '${prefabDef.name}' at ${request.position}`);
+      Logger.info(`[PrefabExecutor] Successfully placed prefab '${prefabDef.name}' at ${request.position}`);
 
     } catch (error) {
-      this.logger.error(`[PrefabExecutor] Failed to place prefab '${request.prefabId}':`, error);
+      Logger.error(`[PrefabExecutor] Failed to place prefab '${request.prefabId}':`, error);
       result.success = false;
       result.reason = String(error);
     }
@@ -137,26 +137,26 @@ export class PrefabExecutor {
   private validatePlacement(prefab: PrefabDefinition, request: PrefabPlacementRequest): boolean {
     // Check floor constraints
     if (prefab.minFloor && request.floorNumber < prefab.minFloor) {
-      this.logger.debug(`[PrefabExecutor] Prefab '${prefab.id}' requires min floor ${prefab.minFloor}, current floor ${request.floorNumber}`);
+      Logger.debug(`[PrefabExecutor] Prefab '${prefab.id}' requires min floor ${prefab.minFloor}, current floor ${request.floorNumber}`);
       return false;
     }
 
     if (prefab.maxFloor && request.floorNumber > prefab.maxFloor) {
-      this.logger.debug(`[PrefabExecutor] Prefab '${prefab.id}' requires max floor ${prefab.maxFloor}, current floor ${request.floorNumber}`);
+      Logger.debug(`[PrefabExecutor] Prefab '${prefab.id}' requires max floor ${prefab.maxFloor}, current floor ${request.floorNumber}`);
       return false;
     }
 
     // Check level placement limits
     const currentCount = this.placedPrefabs.get(prefab.id) || 0;
     if (prefab.maxPerLevel && currentCount >= prefab.maxPerLevel) {
-      this.logger.debug(`[PrefabExecutor] Prefab '${prefab.id}' already placed ${currentCount}/${prefab.maxPerLevel} times`);
+      Logger.debug(`[PrefabExecutor] Prefab '${prefab.id}' already placed ${currentCount}/${prefab.maxPerLevel} times`);
       return false;
     }
 
     // Check if prefab fits in level bounds
     const { position, level } = request;
     if (position.x + prefab.width > level.width || position.y + prefab.height > level.height) {
-      this.logger.debug(`[PrefabExecutor] Prefab '${prefab.id}' doesn't fit at position ${position}`);
+      Logger.debug(`[PrefabExecutor] Prefab '${prefab.id}' doesn't fit at position ${position}`);
       return false;
     }
 
@@ -189,7 +189,7 @@ export class PrefabExecutor {
       }
     }
     
-    this.logger.debug(`[PrefabExecutor] Applied terrain layout for prefab '${prefab.id}'`);
+    Logger.debug(`[PrefabExecutor] Applied terrain layout for prefab '${prefab.id}'`);
   }
 
   private placeActors(prefab: PrefabDefinition, request: PrefabPlacementRequest): number {
@@ -214,10 +214,10 @@ export class PrefabExecutor {
           }
           
           placed++;
-          this.logger.debug(`[PrefabExecutor] Placed actor ${actorPlacement.actorId} at ${worldPos}`);
+          Logger.debug(`[PrefabExecutor] Placed actor ${actorPlacement.actorId} at ${worldPos}`);
         }
       } catch (error) {
-        this.logger.warn(`[PrefabExecutor] Failed to place actor ${actorPlacement.actorId}:`, error);
+        Logger.warn(`[PrefabExecutor] Failed to place actor ${actorPlacement.actorId}:`, error);
       }
     }
 
@@ -244,9 +244,9 @@ export class PrefabExecutor {
         });
         
         placed++;
-        this.logger.debug(`[PrefabExecutor] Requested interactable ${interactablePlacement.interactableId} at ${worldPos}`);
+        Logger.debug(`[PrefabExecutor] Requested interactable ${interactablePlacement.interactableId} at ${worldPos}`);
       } catch (error) {
-        this.logger.warn(`[PrefabExecutor] Failed to place interactable ${interactablePlacement.interactableId}:`, error);
+        Logger.warn(`[PrefabExecutor] Failed to place interactable ${interactablePlacement.interactableId}:`, error);
       }
     }
 
@@ -277,10 +277,10 @@ export class PrefabExecutor {
           level.addItem(worldItem);
           
           placed++;
-          this.logger.debug(`[PrefabExecutor] Placed ${count}x ${itemPlacement.itemId} at ${worldPos}`);
+          Logger.debug(`[PrefabExecutor] Placed ${count}x ${itemPlacement.itemId} at ${worldPos}`);
         }
       } catch (error) {
-        this.logger.warn(`[PrefabExecutor] Failed to place item ${itemPlacement.itemId}:`, error);
+        Logger.warn(`[PrefabExecutor] Failed to place item ${itemPlacement.itemId}:`, error);
       }
     }
 
@@ -294,21 +294,21 @@ export class PrefabExecutor {
         case 'isBoss':
           if (value && actor.components) {
             // Mark as boss - this would be handled by a BossComponent in a full system
-            this.logger.debug(`[PrefabExecutor] Marked actor as boss`);
+            Logger.debug(`[PrefabExecutor] Marked actor as boss`);
           }
           break;
         case 'isGuard':
           if (value) {
-            this.logger.debug(`[PrefabExecutor] Marked actor as guard`);
+            Logger.debug(`[PrefabExecutor] Marked actor as guard`);
           }
           break;
         case 'floorScaling':
           if (value) {
-            this.logger.debug(`[PrefabExecutor] Applied floor scaling to actor`);
+            Logger.debug(`[PrefabExecutor] Applied floor scaling to actor`);
           }
           break;
         default:
-          this.logger.debug(`[PrefabExecutor] Applied property ${key}=${value} to actor`);
+          Logger.debug(`[PrefabExecutor] Applied property ${key}=${value} to actor`);
       }
     }
   }
@@ -358,6 +358,6 @@ export class PrefabExecutor {
    */
   public resetPlacementTracking(): void {
     this.placedPrefabs.clear();
-    this.logger.debug('[PrefabExecutor] Reset placement tracking');
+    Logger.debug('[PrefabExecutor] Reset placement tracking');
   }
 }

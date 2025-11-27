@@ -7,9 +7,11 @@ import { ComponentRegistry } from '../components/ComponentFactory';
 import { EffectExecutor } from '../systems/EffectExecutor';
 import { SpawnTableExecutor } from '../systems/SpawnTableExecutor';
 import { RoomGenerationExecutor } from '../systems/RoomGenerationExecutor';
-import { ItemSpawner } from '../systems/ItemSpawner';
+// import { ItemSpawner } from '../systems/ItemSpawner'; // Legacy - ItemSpawner was deleted
 import { InteractableFactory } from '../factories/InteractableFactory';
 import { PrefabExecutor } from '../systems/PrefabExecutor';
+import { CollisionSystem } from '../systems/CollisionSystem';
+import { PathfindingSystem } from '../systems/PathfindingSystem';
 // import { AbilityExecutor } from '../systems/AbilityExecutor'; // DEFERRED: Abilities are vaporware
 
 export class UnifiedSystemInit {
@@ -48,10 +50,7 @@ export class UnifiedSystemInit {
         const roomExecutor = RoomGenerationExecutor.instance;
         console.log('[UnifiedSystemInit] RoomGenerationExecutor ready');
         
-        // 6. Initialize ItemSpawner (Phase 3)
-        console.log('[UnifiedSystemInit] Initializing ItemSpawner...');
-        const itemSpawner = ItemSpawner.instance;
-        console.log('[UnifiedSystemInit] ItemSpawner ready');
+        // 6. ItemSpawner functionality moved to RoomGenerationExecutor and LootSystem
         
         // 7. Initialize InteractableFactory (Phase 3)
         console.log('[UnifiedSystemInit] Initializing InteractableFactory...');
@@ -63,15 +62,25 @@ export class UnifiedSystemInit {
         const prefabExecutor = PrefabExecutor.instance;
         console.log('[UnifiedSystemInit] PrefabExecutor ready');
         
-        // 9. AbilityExecutor - DEFERRED (abilities are vaporware, sprites too costly)
+        // 9. Initialize CollisionSystem (Phase 3.8) 
+        console.log('[UnifiedSystemInit] Initializing CollisionSystem...');
+        const collisionSystem = CollisionSystem.instance;
+        console.log('[UnifiedSystemInit] CollisionSystem ready');
+        
+        // 10. Initialize PathfindingSystem (Phase 3.8)
+        console.log('[UnifiedSystemInit] Initializing PathfindingSystem...');
+        const pathfindingSystem = PathfindingSystem.instance;
+        console.log('[UnifiedSystemInit] PathfindingSystem ready');
+        
+        // 11. AbilityExecutor - DEFERRED (abilities are vaporware, sprites too costly)
         // console.log('[UnifiedSystemInit] Initializing AbilityExecutor...');
         // const abilityExecutor = AbilityExecutor.instance;
         // console.log('[UnifiedSystemInit] AbilityExecutor ready');
         
-        // 10. Log available component types (Stream B)
+        // 12. Log available component types (Stream B)
         console.log('[UnifiedSystemInit] Available component types:', ComponentRegistry.getRegisteredTypes());
         
-        // 11. Set up integration between Stream A and Stream B
+        // 13. Set up integration between Stream A and Stream B
         this.setupStreamIntegration();
         
         this._initialized = true;

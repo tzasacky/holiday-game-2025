@@ -300,7 +300,7 @@ export const PrefabDefinitions: Record<string, PrefabDefinition> = {
         position: ex.vec(5, 2)
       },
       {
-        interactableId: InteractableID.ANVIL,
+        interactableId: InteractableID.Anvil,
         position: ex.vec(3, 4)
       }
     ],

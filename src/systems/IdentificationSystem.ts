@@ -1,10 +1,10 @@
 import { GameActor } from '../components/GameActor';
-import { EnhancedEquipment } from '../items/EnhancedEquipment';
+import { ItemEntity } from '../factories/ItemFactory';
 import { EquipmentSystem } from './EquipmentSystem';
 import { ItemID } from '../constants/ItemIDs';
 
 interface IdentificationProcess {
-    item: EnhancedEquipment;
+    item: ItemEntity;
     turnsRemaining: number;
     actor: GameActor;
 }

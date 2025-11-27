@@ -1,7 +1,6 @@
 import { Level } from './Level';
-import { Actor } from '../actors/Actor';
-import { SnowSprite } from '../content/enemies/SnowSprite';
-import { Krampus } from '../content/enemies/Krampus';
+import { GameActor } from '../components/GameActor';
+import { ActorSpawnSystem } from '../components/ActorSpawnSystem';
 import * as ex from 'excalibur';
 
 export class Spawner {
@@ -20,21 +19,25 @@ export class Spawner {
     private static spawnMobAt(level: Level, pos: ex.Vector) {
         // Simple Rarity/Pack logic
         const roll = Math.random();
+        const spawnSystem = ActorSpawnSystem.instance;
         
         if (roll < 0.1) {
-            // 10% Chance for a "Pack" (2-3 enemies)
-            // Need to find adjacent spots? Or just stack them?
-            // For now, just spawn one strong enemy or a pack leader
-            const mob = new SnowSprite(pos);
+            // 10% Chance for elite enemy
+            const mob = spawnSystem.spawnSnowSprite(pos);
             mob.name = "Elite Snow Sprite";
-            mob.color = ex.Color.Violet; // Visual distinction
-            // mob.stats.hp *= 2; // Buff stats if possible
+            // TODO: Add elite modifiers via component events
             level.addMob(mob);
-            console.log(`[Spawner] Spawning Elite at ${pos}`);
+            console.log(`[Spawner] Spawning Elite Snow Sprite at ${pos} with unified system`);
+        } else if (roll < 0.3) {
+            // 20% chance for Snowman
+            const mob = spawnSystem.spawnSnowman(pos);
+            level.addMob(mob);
+            console.log(`[Spawner] Spawning Snowman at ${pos} with unified system`);
         } else {
-            // Normal Spawn
-            const mob = new SnowSprite(pos);
+            // Normal Snow Sprite spawn
+            const mob = spawnSystem.spawnSnowSprite(pos);
             level.addMob(mob);
+            console.log(`[Spawner] Spawning Snow Sprite at ${pos} with unified system`);
         }
     }
 }

@@ -1,14 +1,15 @@
 import * as ex from 'excalibur';
-import { Actor } from '../actors/Actor';
+import { GameActor } from '../components/GameActor';
 import { Item } from '../items/Item';
 import { DamageType } from '../mechanics/DamageType';
+import { AbilityID } from '../constants';
 
 // Event Names Constants
 export const GameEventNames = {
     // Combat
     Attack: 'attack',
     Damage: 'damage',
-    Heal: 'heal',
+    Heal: AbilityID.Heal,
     Die: 'die',
     
     // Items
@@ -31,16 +32,41 @@ export const GameEventNames = {
     Load: 'load',
     LevelChange: 'levelchange',
     GameStart: 'gamestart',
-    GameOver: 'gameover'
+    GameOver: 'gameover',
+
+    // Registry Events
+    TerrainQuery: "terrain:query",
+    ActorConfigQuery: "actor:config:query",
+    ItemSpriteQuery: "item:sprite:query",
+    EnchantmentQuery: "enchantment:query",
+    LootQuery: "loot:query",
+
+    // Data modification events
+    TerrainModify: "terrain:modify",
+    ActorConfigModify: "actor:config:modify",
+    BalanceModify: "balance:modify",
+
+    // Registry System events
+    RegistryReload: "registry:reload",
+    RegistryError: "registry:error",
+
+    // Factory events
+    ActorCreate: "actor:create",
+    ItemCreate: "item:create",
+    InteractableCreate: "interactable:create",
+    
+    // Loot Events
+    LootRequest: "loot:request",
+    LootGenerated: "loot:generated",
 } as const;
 
 // Event Classes
 
 // --- Combat Events ---
-export class AttackEvent extends ex.GameEvent<Actor> {
+export class AttackEvent extends ex.GameEvent<GameActor> {
     constructor(
-        public attacker: Actor,
-        public target: Actor,
+        public attacker: GameActor,
+        public target: GameActor,
         public damage: number
     ) {
         super();
@@ -48,33 +74,33 @@ export class AttackEvent extends ex.GameEvent<Actor> {
     }
 }
 
-export class DamageEvent extends ex.GameEvent<Actor> {
+export class DamageEvent extends ex.GameEvent<GameActor> {
     constructor(
-        public target: Actor,
+        public target: GameActor,
         public damage: number,
         public type: DamageType,
-        public source?: Actor
+        public source?: GameActor
     ) {
         super();
         this.target = target;
     }
 }
 
-export class HealEvent extends ex.GameEvent<Actor> {
+export class HealEvent extends ex.GameEvent<GameActor> {
     constructor(
-        public target: Actor,
+        public target: GameActor,
         public amount: number,
-        public source?: Actor
+        public source?: GameActor
     ) {
         super();
         this.target = target;
     }
 }
 
-export class DieEvent extends ex.GameEvent<Actor> {
+export class DieEvent extends ex.GameEvent<GameActor> {
     constructor(
-        public actor: Actor,
-        public killer?: Actor
+        public actor: GameActor,
+        public killer?: GameActor
     ) {
         super();
         this.target = actor;
@@ -82,9 +108,9 @@ export class DieEvent extends ex.GameEvent<Actor> {
 }
 
 // --- Item Events ---
-export class ItemPickupEvent extends ex.GameEvent<Actor> {
+export class ItemPickupEvent extends ex.GameEvent<GameActor> {
     constructor(
-        public actor: Actor,
+        public actor: GameActor,
         public item: Item
     ) {
         super();
@@ -92,9 +118,9 @@ export class ItemPickupEvent extends ex.GameEvent<Actor> {
     }
 }
 
-export class ItemDropEvent extends ex.GameEvent<Actor> {
+export class ItemDropEvent extends ex.GameEvent<GameActor> {
     constructor(
-        public actor: Actor,
+        public actor: GameActor,
         public item: Item
     ) {
         super();
@@ -102,9 +128,9 @@ export class ItemDropEvent extends ex.GameEvent<Actor> {
     }
 }
 
-export class ItemUseEvent extends ex.GameEvent<Actor> {
+export class ItemUseEvent extends ex.GameEvent<GameActor> {
     constructor(
-        public actor: Actor,
+        public actor: GameActor,
         public item: Item
     ) {
         super();
@@ -112,9 +138,9 @@ export class ItemUseEvent extends ex.GameEvent<Actor> {
     }
 }
 
-export class ItemEquipEvent extends ex.GameEvent<Actor> {
+export class ItemEquipEvent extends ex.GameEvent<GameActor> {
     constructor(
-        public actor: Actor,
+        public actor: GameActor,
         public item: Item,
         public slot: string
     ) {
@@ -123,9 +149,9 @@ export class ItemEquipEvent extends ex.GameEvent<Actor> {
     }
 }
 
-export class ItemUnequipEvent extends ex.GameEvent<Actor> {
+export class ItemUnequipEvent extends ex.GameEvent<GameActor> {
     constructor(
-        public actor: Actor,
+        public actor: GameActor,
         public item: Item,
         public slot: string
     ) {
@@ -146,9 +172,9 @@ export class InventoryChangeEvent extends ex.GameEvent<any> {
 }
 
 // --- Stat Events ---
-export class HealthChangeEvent extends ex.GameEvent<Actor> {
+export class HealthChangeEvent extends ex.GameEvent<GameActor> {
     constructor(
-        public actor: Actor,
+        public actor: GameActor,
         public current: number,
         public max: number,
         public delta: number
@@ -158,9 +184,9 @@ export class HealthChangeEvent extends ex.GameEvent<Actor> {
     }
 }
 
-export class WarmthChangeEvent extends ex.GameEvent<Actor> {
+export class WarmthChangeEvent extends ex.GameEvent<GameActor> {
     constructor(
-        public actor: Actor,
+        public actor: GameActor,
         public current: number,
         public max: number,
         public delta: number
@@ -170,9 +196,9 @@ export class WarmthChangeEvent extends ex.GameEvent<Actor> {
     }
 }
 
-export class XpGainEvent extends ex.GameEvent<Actor> {
+export class XpGainEvent extends ex.GameEvent<GameActor> {
     constructor(
-        public actor: Actor,
+        public actor: GameActor,
         public amount: number
     ) {
         super();
@@ -180,9 +206,9 @@ export class XpGainEvent extends ex.GameEvent<Actor> {
     }
 }
 
-export class LevelUpEvent extends ex.GameEvent<Actor> {
+export class LevelUpEvent extends ex.GameEvent<GameActor> {
     constructor(
-        public actor: Actor,
+        public actor: GameActor,
         public newLevel: number
     ) {
         super();
@@ -221,6 +247,68 @@ export class LevelChangeEvent extends ex.GameEvent<any> {
     }
 }
 
+// --- Registry Events ---
+export class RegistryQueryEvent extends ex.GameEvent<any> {
+    constructor(
+        public system: string,
+        public key: string,
+        public result: any,
+        public timestamp: number = Date.now()
+    ) {
+        super();
+    }
+}
+
+export class RegistryModifyEvent extends ex.GameEvent<any> {
+    constructor(
+        public system: string,
+        public key: string,
+        public definition: any
+    ) {
+        super();
+    }
+}
+
+export class RegistryReloadEvent extends ex.GameEvent<any> {
+    constructor(
+        public system: string,
+        public key: string,
+        public definition: any
+    ) {
+        super();
+    }
+}
+
+export class FactoryCreateEvent extends ex.GameEvent<any> {
+    constructor(
+        public type: string,
+        public instance: any
+    ) {
+        super();
+    }
+}
+
+export class LootRequestEvent extends ex.GameEvent<any> {
+    constructor(
+        public tableId: string,
+        public position: ex.Vector,
+        public floor: number = 1,
+        public sourceId?: string
+    ) {
+        super();
+    }
+}
+
+export class LootGeneratedEvent extends ex.GameEvent<any> {
+    constructor(
+        public items: any[], // GeneratedLoot[]
+        public position: ex.Vector,
+        public sourceId?: string
+    ) {
+        super();
+    }
+}
+
 // Event Map Type
 export type GameEventMap = {
     [GameEventNames.Attack]: AttackEvent;
@@ -246,4 +334,25 @@ export type GameEventMap = {
     [GameEventNames.LevelChange]: LevelChangeEvent;
     [GameEventNames.GameStart]: ex.GameEvent<any>;
     [GameEventNames.GameOver]: ex.GameEvent<any>;
+
+    // Registry Events
+    [GameEventNames.TerrainQuery]: RegistryQueryEvent;
+    [GameEventNames.ActorConfigQuery]: RegistryQueryEvent;
+    [GameEventNames.ItemSpriteQuery]: RegistryQueryEvent;
+    [GameEventNames.EnchantmentQuery]: RegistryQueryEvent;
+    [GameEventNames.LootQuery]: RegistryQueryEvent;
+
+    [GameEventNames.TerrainModify]: RegistryModifyEvent;
+    [GameEventNames.ActorConfigModify]: RegistryModifyEvent;
+    [GameEventNames.BalanceModify]: RegistryModifyEvent;
+
+    [GameEventNames.RegistryReload]: RegistryReloadEvent;
+    [GameEventNames.RegistryError]: ex.GameEvent<any>;
+
+    [GameEventNames.ActorCreate]: FactoryCreateEvent;
+    [GameEventNames.ItemCreate]: FactoryCreateEvent;
+    [GameEventNames.InteractableCreate]: FactoryCreateEvent;
+    
+    [GameEventNames.LootRequest]: LootRequestEvent;
+    [GameEventNames.LootGenerated]: LootGeneratedEvent;
 };

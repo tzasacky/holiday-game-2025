@@ -1,5 +1,4 @@
 import { ItemID } from '../content/items/ItemIDs';
-import { ItemRegistry } from '../config/ItemRegistry';
 
 export abstract class Item {
     public stackable: boolean = false;
@@ -33,7 +32,7 @@ export abstract class Item {
     }
 
     getSprite(): any { // Return type ex.Graphic
-        const registry = ItemRegistry.getInstance();
-        return registry.getSprite(this.id);
+        const { GraphicsManager } = require('../data/graphics');
+        return GraphicsManager.instance.getItemSprite(this.id);
     }
 }

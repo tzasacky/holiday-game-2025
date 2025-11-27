@@ -1,12 +1,13 @@
 import * as ex from 'excalibur';
 import { loader } from './config/resources';
-import { Hero } from './actors/Hero';
+import { ActorFactory } from './factories/ActorFactory';
+import { ActorSpawnSystem } from './components/ActorSpawnSystem';
+import { UnifiedSystemInit } from './core/UnifiedSystemInit';
 import { AdvancedLevelGenerator } from './dungeon/generators/AdvancedLevelGenerator';
 import { SnowyVillageTheme } from './dungeon/themes/SnowyVillageTheme';
 import { SnowyVillage } from './dungeon/biomes/SnowyVillage';
 import { TurnManager } from './core/TurnManager';
 import { WarmthSystem } from './mechanics/WarmthSystem';
-import { SnowSprite } from './content/enemies/SnowSprite';
 import { CandyCaneSpear } from './content/items/weapons/CandyCaneSpear';
 import { UIManager } from './ui/UIManager';
 import { InputManager } from './core/InputManager';
@@ -85,8 +86,16 @@ game.start(loader).then(() => {
         Logger.error("Hero spawn position is out of bounds!");
     }
     
-    const hero = new Hero(spawn);
-    level.addActor(hero);
+    // Initialize unified system first
+    UnifiedSystemInit.initialize();
+    
+    const hero = ActorFactory.instance.createHero(spawn);
+    if (hero) {
+        level.addActor(hero);
+        console.log('[main] Hero created with unified system, components:', Array.from(hero.components.keys()));
+    } else {
+        console.error('[main] Failed to create hero with unified system');
+    }
     
     // Camera - set zoom BEFORE going to scene
     game.currentScene.camera.zoom = 1.5; // Much more reasonable zoom

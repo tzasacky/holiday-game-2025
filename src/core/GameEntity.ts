@@ -15,10 +15,10 @@ export abstract class GameEntity extends ex.Actor {
     }
 
     public getSprite(): ex.Graphic | null {
-        // Default implementation checks registry if name is set
+        // Default implementation checks unified graphics system
         if (this.name) {
-             const registry = require('../config/ActorRegistry').ActorRegistry.getInstance();
-             return registry.getSprite(this.name);
+             const { GraphicsManager } = require('../data/graphics');
+             return GraphicsManager.instance.getActorSprite(this.name);
         }
         return null;
     }

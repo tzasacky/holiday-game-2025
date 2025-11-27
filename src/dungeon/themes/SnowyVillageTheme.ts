@@ -3,6 +3,7 @@ import { FloorTheme } from '../FloorTheme';
 import { TerrainType } from '../Terrain';
 import { Level } from '../Level';
 import { Resources } from '../../config/resources';
+import { EffectID } from '../../constants';
 
 export class SnowyVillageTheme implements FloorTheme {
     name = "Snowy Village";
@@ -196,7 +197,7 @@ export class SnowyVillageTheme implements FloorTheme {
         return level.terrainData[x][y] === TerrainType.Decoration;
     }
 
-    private getWallType(x: number, y: number, level: Level): 'log' | 'ice' | 'brick' {
+    private getWallType(x: number, y: number, level: Level): 'log' | EffectID.Ice | 'brick' {
         const neighbors = [
             {x: x, y: y-1}, {x: x, y: y+1}, {x: x-1, y: y}, {x: x+1, y: y},
             {x: x-1, y: y-1}, {x: x+1, y: y-1}, {x: x-1, y: y+1}, {x: x+1, y: y+1}
@@ -211,14 +212,14 @@ export class SnowyVillageTheme implements FloorTheme {
         }
 
         if (touchingRoom) return 'log';
-        return 'ice';
+        return EffectID.Ice;
     }
 
     private getWallTile(x: number, y: number, level: Level): ex.Graphic {
         const wallType = this.getWallType(x, y, level);
         
         // Row 3 (Index 2) in tiles sheet
-        if (wallType === 'ice') return this.tilesSheet.getSprite(1, 2)!;
+        if (wallType === EffectID.Ice) return this.tilesSheet.getSprite(1, 2)!;
         if (wallType === 'brick') return this.tilesSheet.getSprite(2, 2)!;
         
         // Default Log

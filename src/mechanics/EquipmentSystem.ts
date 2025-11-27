@@ -1,7 +1,10 @@
 import { Item } from '../items/Item';
-import { Actor } from '../actors/Actor';
-import { GeneratedItem } from './LootSystem';
-import { EnchantmentSystem, EnchantmentType, CurseType } from './EnchantmentSystem';
+import { GameActor } from '../components/GameActor';
+import { GeneratedLoot } from '../systems/LootSystem';
+import { EnchantmentSystem } from '../systems/EnchantmentSystem';
+import { EnchantmentType, CurseType } from '../data/enchantments';
+import { DataManager } from '../core/DataManager';
+import { ItemDefinition, ItemType, ItemRarity } from '../data/items';
 
 export interface EquipmentStats {
     damage?: number;
@@ -22,12 +25,17 @@ export class EnhancedEquipment extends Item {
     public curses: any[];
     public identified: boolean;
     public cursed: boolean;
+    public type: ItemType;
     public tier: number;
     public unremovableWhenCursed: boolean;
 
-    constructor(generatedItem: GeneratedItem, baseItem: Item) {
+    constructor(generatedItem: GeneratedLoot, baseItem: Item) {
         super(generatedItem.itemId, baseItem.name, baseItem.description);
         
+        // Look up item definition to get type
+        const itemDef = DataManager.instance.query<ItemDefinition>('item', generatedItem.itemId);
+        this.type = itemDef?.type || ItemType.MISC;
+
         this.baseStats = this.extractBaseStats(baseItem);
         this.bonusStats = generatedItem.bonusStats || {};
         this.enchantments = generatedItem.enchantments || [];
@@ -219,24 +227,15 @@ export class EnhancedEquipment extends Item {
             5: 'Magnificent'
         };
         
-        const categoryNames = {
-            'weapon': 'Weapon',
-            'armor': 'Armor'
+        const categoryNames: Record<string, string> = {
+            [ItemType.WEAPON]: 'Weapon',
+            [ItemType.ARMOR]: 'Armor',
+            [ItemType.ARTIFACT]: 'Artifact',
+            [ItemType.CONSUMABLE]: 'Item',
+            [ItemType.MISC]: 'Item'
         };
         
-        // Determine category from item type
-        let category = 'Item';
-        if (this.id.toString().includes('Dagger') || 
-            this.id.toString().includes('Hammer') || 
-            this.id.toString().includes('Wand') ||
-            this.id.toString().includes('Lights')) {
-            category = 'Weapon';
-        } else if (this.id.toString().includes('Suit') || 
-                   this.id.toString().includes('Plate') || 
-                   this.id.toString().includes('Cloak') ||
-                   this.id.toString().includes('Sweater')) {
-            category = 'Armor';
-        }
+        const category = categoryNames[this.type] || 'Item';
         
         return `${tierDescriptors[this.tier] || 'Unknown'} ${category}`;
     }
@@ -251,7 +250,7 @@ export class EnhancedEquipment extends Item {
         return false;
     }
 
-    public use(actor: Actor): boolean {
+    public use(actor: GameActor): boolean {
         if (!this.identified && this.cursed && this.curses.some(c => c.hidden)) {
             // Equipping unidentified cursed items triggers identification
             this.identify();
@@ -274,7 +273,7 @@ export class EnhancedEquipment extends Item {
         return !this.unremovableWhenCursed;
     }
     
-    public unequip(actor: Actor): void {
+    public unequip(actor: GameActor): void {
         console.log(`${actor.name} unequips ${this.getDisplayName()}`);
     }
     

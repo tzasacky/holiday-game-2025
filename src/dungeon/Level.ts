@@ -1,5 +1,5 @@
 import * as ex from 'excalibur';
-import { Actor } from '../actors/Actor';
+import { GameActor } from '../components/GameActor';
 import { Item } from '../items/Item';
 import { Room } from './Room';
 import { FloorTheme } from './FloorTheme';
@@ -17,8 +17,8 @@ export class Level {
     public floorMap: ex.TileMap; // Z = -1
     public objectMap: ex.TileMap; // Z = 0 (Collision)
 
-    public mobs: Actor[] = [];
-    public actors: Actor[] = [];
+    public mobs: GameActor[] = [];
+    public actors: GameActor[] = [];
     public triggers: (Trap | Trigger)[] = [];
     public items: Item[] = [];
     public rooms: Room[] = [];
@@ -97,7 +97,7 @@ export class Level {
         }
     }
 
-    public addMob(mob: Actor) {
+    public addMob(mob: GameActor) {
         this.mobs.push(mob);
         this.actors.push(mob);
         // Don't add to scene here - GameScene.onActivate will add all actors
@@ -109,7 +109,7 @@ export class Level {
         this.items.push(item);
     }
 
-    public addActor(actor: Actor) {
+    public addActor(actor: GameActor) {
         this.actors.push(actor);
         // Don't add to scene here - will be added when scene becomes active in GameScene.onActivate
         // Don't register with TurnManager here either - GameScene will do it

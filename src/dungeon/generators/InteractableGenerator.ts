@@ -14,6 +14,7 @@ import { Bookshelf } from '../interactables/Bookshelf';
 import { AlchemyPot } from '../interactables/AlchemyPot';
 import { Anvil } from '../interactables/Anvil';
 import { SleighStation } from '../interactables/SleighStation';
+import { ItemID } from '../../constants';
 
 export class InteractableGenerator {
     
@@ -33,7 +34,7 @@ export class InteractableGenerator {
                 if (pos) {
                     const isLocked = rng.bool(0.3);
                     const isMimic = rng.bool(0.1);
-                    const keyId = isLocked ? 'silver_key' : null; // Simplified key logic
+                    const keyId = isLocked ? ItemID.SilverKey : null; // Simplified key logic
                     level.addEntity(new PresentChest(pos, isLocked, keyId, isMimic));
                 }
             }

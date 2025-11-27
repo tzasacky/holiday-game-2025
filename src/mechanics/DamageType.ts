@@ -1,6 +1,7 @@
+import { EffectID } from '../constants';
 export enum DamageType {
-    Physical = 'physical',
+    Physical = EffectID.Physical,
     Magical = 'magical',
-    Ice = 'ice',
-    Fire = 'fire'
+    Ice = EffectID.Ice,
+    Fire = EffectID.Fire
 }

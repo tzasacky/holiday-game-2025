@@ -2,6 +2,7 @@ import { Actor } from '../actors/Actor';
 import { Hero } from '../actors/Hero';
 import { EnhancedEquipment } from './EquipmentSystem';
 import { Item } from '../items/Item';
+import { ItemID } from '../constants';
 
 export class IdentificationSystem {
     private static readonly BASE_IDENTIFICATION_TIME = 150; // ticks (roughly 1 floor of exploration)
@@ -151,7 +152,7 @@ export class IdentificationSystem {
                     }, -1);
                     break;
                 
-                case 'naughty_list':
+                case ItemID.NaughtyList:
                     console.log('You feel Santa\'s disapproving gaze upon you...');
                     actor.addTemporaryEffect('Naughty Listed', {
                         krampusTarget: true

@@ -1,0 +1,59 @@
+import { EventBus } from './EventBus';
+
+/**
+ * Base component class for all game components (Actor & UI)
+ * Components are event-driven and communicate via EventBus
+ */
+export abstract class Component {
+    protected eventHandlers: Array<{ event: string; handler: (data: any) => void }> = [];
+    
+    constructor(protected owner: any) {
+        this.setupEventListeners();
+    }
+    
+    /**
+     * Override this to set up component-specific event listeners
+     */
+    protected abstract setupEventListeners(): void;
+    
+    /**
+     * Helper to register an event listener that auto-cleans up on detach
+     */
+    protected listen(eventName: string, handler: (data: any) => void): void {
+        const boundHandler = handler.bind(this);
+        this.eventHandlers.push({ event: eventName, handler: boundHandler });
+        EventBus.instance.on(eventName as any, boundHandler);
+    }
+    
+    /**
+     * Helper to emit events
+     */
+    protected emit(eventName: string, data: any): void {
+        EventBus.instance.emit(eventName as any, data);
+    }
+    
+    /**
+     * Called when component is attached to owner
+     */
+    onAttach(): void {
+        // Subclasses can override
+    }
+    
+    /**
+     * Called when component is detached from owner
+     */
+    onDetach(): void {
+        // Clean up all event listeners
+        this.eventHandlers.forEach(({ event, handler }) => {
+            EventBus.instance.off(event as any, handler);
+        });
+        this.eventHandlers = [];
+    }
+    
+    /**
+     * Optional lifecycle hooks
+     */
+    onTick?(deltaMs: number): void;
+    onTurn?(): void;
+    onDestroy?(): void;
+}

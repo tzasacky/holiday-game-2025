@@ -1,4 +1,5 @@
 import { Item } from '../items/Item';
+import { ItemID } from '../constants';
 
 export class SpriteMapper {
     // Map item names/IDs to image URLs or emoji
@@ -16,7 +17,7 @@ export class SpriteMapper {
         if (name.includes('boots')) return '👢';
         if (name.includes('scroll')) return '📜';
         if (name.includes('key')) return '🔑';
-        if (name.includes('gold') || name.includes('coin')) return '💰';
+        if (name.includes(ItemID.Gold) || name.includes('coin')) return '💰';
         if (name.includes('food') || name.includes('cocoa')) return '☕';
         
         return '📦'; // Default box

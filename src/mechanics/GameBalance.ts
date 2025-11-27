@@ -1,3 +1,4 @@
+import { EffectID } from '../constants';
 export interface DifficultySettings {
     playerStartingHP: number;
     playerStartingWarmth: number;
@@ -128,15 +129,13 @@ export class GameBalance {
     }
 
     // Environmental hazard scaling
-    static getEnvironmentalDamage(floor: number, hazardType: string): number {
-        const baseDamage: Record<string, number> = {
-            'yellow_snow': 3,
-            'falling_icicle': 8,
-            'trap_spike': 12,
-            'cold_damage': 2,
-            'fire_damage': 6,
-            'poison_gas': 4
-        };
+    static getEnvironmentalDamage(floor: number, hazardType: EffectID): number {
+        const baseDamage: Record<EffectID, number> = {
+            [EffectID.YellowSnow]: 3,
+            [EffectID.FallingIcicle]: 8,
+            [EffectID.TrapSpike]: 12,
+            [EffectID.ColdDamage]: 2,
+        } as any; // Partial record
         
         const base = baseDamage[hazardType] || 5;
         return Math.floor(base * (1 + floor * 0.15));
@@ -241,7 +240,7 @@ export class GameBalance {
             weapon: {
                 minTier: Math.max(1, Math.floor(floor / 4)),
                 requiredDamage: requirements.minDamage,
-                preferredEnchantments: ['sharpness', 'frost', 'fire']
+                preferredEnchantments: ['sharpness', 'frost']
             },
             armor: {
                 minTier: Math.max(1, Math.floor(floor / 5)),

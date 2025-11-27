@@ -1,10 +1,11 @@
 import { GameEntity } from '../core/GameEntity';
 import * as ex from 'excalibur';
 import { Resources } from '../config/resources';
+import { EffectID } from '../constants';
 
 export enum TrapType {
     IceSlip = 'ice_slip',
-    FallingIcicle = 'falling_icicle',
+    FallingIcicle = EffectID.FallingIcicle,
     ExplodingOrnament = 'exploding_ornament'
 }
 

@@ -2,16 +2,18 @@ import * as ex from 'excalibur';
 import { Level } from '../dungeon/Level';
 import { TurnManager } from '../core/TurnManager';
 import { UIManager } from '../ui/UIManager';
-import { Snowman } from '../content/enemies/Snowman';
-import { Hero } from '../actors/Hero';
-import { Resources } from '../config/resources';
+import { GameActor } from '../components/GameActor';
+import { ActorFactory } from '../factories/ActorFactory';
+import { UnifiedSystemInit } from '../core/UnifiedSystemInit';
 
 export class GameScene extends ex.Scene {
     public level: Level | null = null;
-    private hero: Hero | null = null;
+    private hero: GameActor | null = null;
 
     public onInitialize(engine: ex.Engine) {
-        // UIManager initialization moved to main.ts or onActivate
+        // Initialize unified system
+        UnifiedSystemInit.initialize();
+        console.log('[GameScene] Unified system initialized');
     }
     
     public onActivate(context: ex.SceneActivationContext<unknown>): void {
@@ -22,8 +24,8 @@ export class GameScene extends ex.Scene {
                 if (!this.actors.includes(actor)) {
                     this.add(actor);
                     // Ensure actor is initialized if it wasn't already
-                    if (!actor.isInitialized && actor instanceof Hero) {
-                         // Hero might need specific init if not handled by Registry yet
+                    if (!actor.isInitialized && actor instanceof GameActor) {
+                         // GameActor components handle initialization
                     }
                 }
             });
@@ -39,7 +41,7 @@ export class GameScene extends ex.Scene {
                 }
             });
             
-            const hero = this.level.actors.find(a => a.isPlayer) as Hero;
+            const hero = this.level.actors.find(a => a.isPlayer) as GameActor;
             if (hero) {
                 this.hero = hero;
                 TurnManager.instance.registerActor(hero);
@@ -70,7 +72,7 @@ export class GameScene extends ex.Scene {
     }
     
     // Utility methods for external access
-    public getHero(): Hero | null {
+    public getHero(): GameActor | null {
         return this.hero;
     }
     

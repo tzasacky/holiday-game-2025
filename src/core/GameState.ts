@@ -1,11 +1,7 @@
-import { Hero } from '../actors/Hero';
+import { GameActor } from '../components/GameActor';
 import { Level } from '../dungeon/Level';
 import { EventBus } from './EventBus';
-import { GameEventNames, LogEvent, HealthChangeEvent, WarmthChangeEvent } from './GameEvents';
-import { Item } from '../items/Item';
-import { EnhancedEquipment } from '../mechanics/EquipmentSystem';
-import { Actor } from '../actors/Actor';
-import { ItemFactory } from '../items/ItemFactory';
+import { GameEventNames, LogEvent } from './GameEvents';
 import * as ex from 'excalibur';
 
 // Serialization Interfaces
@@ -15,27 +11,22 @@ export interface SerializedItem {
     count: number;
     stats?: any;
     enchantments?: string[];
-    curses?: string[];
+    curses?: string[]
+;
     identified?: boolean;
     stackable?: boolean;
 }
 
 export interface SerializedActor {
-    id: number;
-    type: string;
+    id: string; // Changed from number to string for entityId
+    defName: string; // Definition name (e.g., 'Hero', 'Snowman')
     x: number;
     y: number;
-    hp: number;
-    maxHp: number;
-    warmth: number;
-    maxWarmth: number;
-    stats: any;
-    inventory: (SerializedItem | null)[];
-    equipment: {
-        weapon: SerializedItem | null;
-        armor: SerializedItem | null;
-    };
+    time: number;
+    actPriority: number;
     isPlayer: boolean;
+    // Component-based data
+    componentData: Record<string, any>; // Serialized component states
 }
 
 export interface SerializedLevel {
@@ -57,11 +48,21 @@ export interface GameSaveData {
     version: number;
 }
 
+/**
+ * GameState - Manages save/load serialization for the component-based system
+ * 
+ * NOTE: This is a transitional implementation. Full serialization requires:
+ * - Component serialization protocol
+ * - ActorFactory integration for deserialization
+ * - ItemFactory integration
+ * 
+ * For now, this provides the structure for future implementation.
+ */
 export class GameState {
     private static _instance: GameState;
     
     // Runtime references
-    private hero: Hero | null = null;
+    private hero: GameActor | null = null;
     private level: Level | null = null;
 
     private constructor() {
@@ -75,7 +76,7 @@ export class GameState {
         return this._instance;
     }
 
-    public registerHero(hero: Hero) {
+    public registerHero(hero: GameActor) {
         this.hero = hero;
     }
 
@@ -89,168 +90,23 @@ export class GameState {
         bus.on(GameEventNames.Load, () => this.load());
     }
 
-    // --- Helper Methods for Serialization ---
-
-    private serializeItem(item: Item | null): SerializedItem | null {
-        if (!item) return null;
-        
-        const serialized: SerializedItem = {
-            id: item.id || item.name, // Fallback if no ID
-            name: item.name,
-            count: item.count,
-            stackable: item.stackable
-        };
-
-        if (item instanceof EnhancedEquipment) {
-            serialized.stats = { ...item.baseStats, ...item.bonusStats }; // Combine stats
-            serialized.enchantments = item.enchantments;
-            serialized.curses = item.curses;
-            serialized.identified = item.identified;
-        }
-
-        return serialized;
-    }
-
-    private serializeActor(actor: Actor): SerializedActor {
-        const actorAny = actor as any;
-        return {
-            id: actor.id,
-            type: actor.name, // Or a specific type field
-            x: actor.gridPos.x,
-            y: actor.gridPos.y,
-            hp: actor.hp,
-            maxHp: actor.maxHp,
-            warmth: actor.warmth,
-            maxWarmth: actor.maxWarmth,
-            stats: { ...actor.stats }, // Clone stats
-            isPlayer: actor.isPlayer,
-            inventory: actorAny.inventory ? actorAny.inventory.items.map((i: any) => this.serializeItem(i)) : [],
-            equipment: {
-                weapon: this.serializeItem(actor.weapon),
-                armor: this.serializeItem(actor.armor)
-            }
-        };
-    }
+    // --- Serialization Methods (TO BE REIMPLEMENTED FOR COMPONENT SYSTEM) ---
 
     public save(): void {
-        if (!this.hero || !this.level) {
-            console.warn('[GameState] Cannot save: Hero or Level not registered');
-            return;
-        }
-
-        try {
-            // Serialize Level
-            const serializedLevel: SerializedLevel = {
-                seed: 0, // TODO: Get actual seed from Level
-                depth: 1, // TODO: Get actual depth
-                width: this.level.width,
-                height: this.level.height,
-                terrain: [], // TODO: Serialize terrain grid if dynamic
-                explored: [], // TODO: Serialize explored state
-                actors: this.level.mobs.map(mob => this.serializeActor(mob)),
-                items: this.level.items.map(item => {
-                    const itemAny = item as any;
-                    return {
-                        x: itemAny.gridPos ? itemAny.gridPos.x : 0,
-                        y: itemAny.gridPos ? itemAny.gridPos.y : 0,
-                        item: this.serializeItem(item)!
-                    };
-                }).filter(i => i.item !== null)
-            };
-
-            const data: GameSaveData = {
-                hero: this.serializeActor(this.hero),
-                level: serializedLevel,
-                globalVars: {},
-                timestamp: Date.now(),
-                version: 1
-            };
-
-            console.log('[GameState] Saving game...', data);
-            localStorage.setItem('holiday_roguelike_save', JSON.stringify(data));
-            EventBus.instance.emit(GameEventNames.Log, new LogEvent('Game Saved', 'System', 'green'));
-        } catch (e) {
-            console.error('[GameState] Save failed:', e);
-            EventBus.instance.emit(GameEventNames.Log, new LogEvent('Save Failed!', 'System', 'red'));
-        }
+        console.warn('[GameState] Save system needs reimplementation for component-based architecture');
+        console.warn('[GameState] TODO: Implement component serialization protocol');
+        console.warn('[GameState] TODO: Serialize gameComponents map with each component providing its own saveState() method');
+        
+        // For now, just acknowledge the request
+        EventBus.instance.emit(GameEventNames.Log, new LogEvent('Save system pending migration', 'System', 'yellow'));
     }
 
     public load(): void {
-        const json = localStorage.getItem('holiday_roguelike_save');
-        if (!json) {
-            console.warn('[GameState] No save found');
-            EventBus.instance.emit(GameEventNames.Log, new LogEvent('No save game found.', 'System', 'yellow'));
-            return;
-        }
-
-        try {
-            const data: GameSaveData = JSON.parse(json);
-            console.log('[GameState] Loading game...', data);
-            
-            if (this.hero) {
-                // Restore Hero Stats
-                this.hero.hp = data.hero.hp;
-                this.hero.maxHp = data.hero.maxHp;
-                this.hero.warmth = data.hero.warmth;
-                this.hero.maxWarmth = data.hero.maxWarmth;
-                this.hero.gridPos = ex.vec(data.hero.x, data.hero.y);
-                this.hero.pos = this.hero.gridPos.scale(32).add(ex.vec(16, 16));
-
-                // Restore Inventory
-                if (this.hero.inventory) {
-                    this.hero.inventory.items = data.hero.inventory.map(serializedItem => {
-                        if (!serializedItem) return null;
-                        return ItemFactory.createItem(serializedItem);
-                    });
-                }
-                
-                // Restore Equipment
-                if (data.hero.equipment.weapon) {
-                    const weapon = ItemFactory.createItem(data.hero.equipment.weapon);
-                    if (weapon instanceof EnhancedEquipment) {
-                        this.hero.weapon = weapon;
-                    }
-                } else {
-                    this.hero.weapon = null;
-                }
-
-                if (data.hero.equipment.armor) {
-                    const armor = ItemFactory.createItem(data.hero.equipment.armor);
-                    if (armor instanceof EnhancedEquipment) {
-                        this.hero.armor = armor;
-                    }
-                } else {
-                    this.hero.armor = null;
-                }
-                
-                // Trigger updates
-                EventBus.instance.emit(GameEventNames.HealthChange, new HealthChangeEvent(this.hero, this.hero.hp, this.hero.maxHp, 0));
-                EventBus.instance.emit(GameEventNames.WarmthChange, new WarmthChangeEvent(this.hero, this.hero.warmth, this.hero.maxWarmth, 0));
-                // Force inventory update
-                // We might need a generic "Refresh" event or just emit InventoryChange for each item?
-                // Or just one big update.
-                // For now, let's assume UI listens to InventoryChange and we might need to trigger it manually or add a "Refresh" type.
-                // Actually, let's just emit a dummy change to force refresh
-                EventBus.instance.emit(GameEventNames.InventoryChange, { inventory: this.hero.inventory, action: 'change' } as any);
-            }
-
-            if (this.level) {
-                // Restore Level State
-                // Clear existing mobs and items
-                // Re-spawn mobs from data.level.actors
-                // Re-spawn items from data.level.items
-                // This part is complex because it involves creating actors/entities. 
-                // For MVP, we might just restore Hero state and keep the level as is (if we don't support full level persistence yet).
-                // But the user asked for serialization.
-                // Let's at least log that level restoration is partial.
-                console.warn('[GameState] Level restoration is not fully implemented yet (requires ActorFactory)');
-            }
-            
-            EventBus.instance.emit(GameEventNames.Log, new LogEvent('Game Loaded', 'System', 'green'));
-
-        } catch (e) {
-            console.error('[GameState] Failed to load save:', e);
-            EventBus.instance.emit(GameEventNames.Log, new LogEvent('Load Failed!', 'System', 'red'));
-        }
+        console.warn('[GameState] Load system needs reimplementation for component-based architecture');
+        console.warn('[GameState] TODO: Implement component deserialization with ActorFactory');
+        console.warn('[GameState] TODO: Components should provide loadState(data) method');
+        
+        // For now, just acknowledge the request
+        EventBus.instance.emit(GameEventNames.Log, new LogEvent('Load system pending migration', 'System', 'yellow'));
     }
 }

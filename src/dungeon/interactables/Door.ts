@@ -4,11 +4,12 @@ import { Interactable } from '../../mechanics/Interactable';
 import { Actor } from '../../actors/Actor';
 import { Hero } from '../../actors/Hero';
 import { Resources } from '../../config/resources';
+import { ItemID } from '../../constants';
 
 export class Door extends GameEntity implements Interactable {
     public isOpen: boolean = false;
     public isLocked: boolean = false;
-    public keyId: string | null = null; // e.g., 'silver_key', 'gold_key'
+    public keyId: string | null = null; // e.g., ItemID.SilverKey, ItemID.GoldKey
 
     constructor(gridPos: ex.Vector, isLocked: boolean = false, keyId: string | null = null) {
         super(gridPos, { width: 32, height: 32, collisionType: ex.CollisionType.Fixed });

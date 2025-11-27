@@ -11,24 +11,32 @@ import { DamageType } from '../mechanics/DamageType';
 import { Logger } from '../core/Logger';
 import { Level } from '../dungeon/Level';
 import { TerrainType, TerrainDefinitions } from '../dungeon/Terrain';
-import { GameScene } from '../scenes/GameScene';
+// import { GameScene } from '../scenes/GameScene'; // Break circular dependency
 import { TurnManager } from '../core/TurnManager';
 import { ItemEntity } from '../items/ItemEntity';
 import { Pathfinding, PathfindingOptions } from '../core/Pathfinding';
-
+import { EventBus } from '../core/EventBus';
+import { 
+    GameEventNames, 
+    AttackEvent, 
+    DamageEvent, 
+    HealEvent, 
+    DieEvent, 
+    HealthChangeEvent, 
+    WarmthChangeEvent, 
+    XpGainEvent,
+    ItemEquipEvent,
+    ItemUnequipEvent
+} from '../core/GameEvents';
 
 
 export abstract class Actor extends GameEntity {
     public hp: number = 10;
     public maxHp: number = 10;
     public defense: number = 0;
-    public warmth: number = 100;
+    protected _warmth: number = 100;
     public maxWarmth: number = 100;
     public isPlayer: boolean = false;
-    
-    // Position properties
-    public x: number = 0;
-    public y: number = 0;
     
     // Game world properties
     public currentLevel: any = null; // Will be properly typed when Level is available
@@ -94,15 +102,29 @@ export abstract class Actor extends GameEntity {
         this.stats = new ActorStats();
     }
 
+    public get warmth(): number {
+        return this._warmth;
+    }
+
+    public set warmth(value: number) {
+        const old = this._warmth;
+        this._warmth = value;
+        if (old !== value) {
+            EventBus.instance.emit(GameEventNames.WarmthChange, new WarmthChangeEvent(this, this._warmth, this.maxWarmth, value - old));
+        }
+    }
+
     // Equipment Management (Basic)
     public equip(item: EnhancedEquipment): boolean {
         // Base actor just sets the reference for stats
         // Hero overrides this for full logic
         if (item.id.toString().includes('Weapon') || item.id.toString().includes('Dagger') || item.id.toString().includes('Sword')) {
             this.weapon = item;
+            EventBus.instance.emit(GameEventNames.ItemEquip, new ItemEquipEvent(this, item, 'weapon'));
             return true;
         } else if (item.id.toString().includes('Armor') || item.id.toString().includes('Suit') || item.id.toString().includes('Plate')) {
             this.armor = item;
+            EventBus.instance.emit(GameEventNames.ItemEquip, new ItemEquipEvent(this, item, 'armor'));
             return true;
         }
         return false;
@@ -111,9 +133,11 @@ export abstract class Actor extends GameEntity {
     public unequip(item: EnhancedEquipment): boolean {
         if (this.weapon === item) {
             this.weapon = null;
+            EventBus.instance.emit(GameEventNames.ItemUnequip, new ItemUnequipEvent(this, item, 'weapon'));
             return true;
         } else if (this.armor === item) {
             this.armor = null;
+            EventBus.instance.emit(GameEventNames.ItemUnequip, new ItemUnequipEvent(this, item, 'armor'));
             return true;
         }
         return false;
@@ -179,6 +203,7 @@ export abstract class Actor extends GameEntity {
     
     public gainExperience(amount: number): void {
         console.log(`${this.name} gained ${amount} XP`);
+        EventBus.instance.emit(GameEventNames.XpGain, new XpGainEvent(this, amount));
     }
 
     public teleportToSafeLocation(): void {
@@ -186,14 +211,9 @@ export abstract class Actor extends GameEntity {
     }
 
     public teleportTo(x: number, y: number): void {
-        this.x = x;
-        this.y = y;
-        // Sync Excalibur pos?
-        // this.pos = ex.vec(x * 32, y * 32); 
-        // But Actor.ts doesn't manage pos directly usually, GameEntity does.
-        // However, we should probably update gridPos if we have it.
+        // Update grid position and world position
         this.gridPos = ex.vec(x, y);
-        this.pos = ex.vec(x * 32, y * 32); // Assuming 32px grid
+        this.syncToGrid();
         console.log(`${this.name} teleported to ${x}, ${y}`);
     }
 
@@ -276,12 +296,12 @@ export abstract class Actor extends GameEntity {
     }
 
     public findPathTo(targetX: number, targetY: number, options?: PathfindingOptions): void {
-        if (!this.scene || !(this.scene as GameScene).level) {
+        if (!this.scene || !(this.scene as any).level) {
             Logger.debug("[Actor] No scene/level for pathfinding");
             return;
         }
         
-        const level = (this.scene as GameScene).level!;
+        const level = (this.scene as any).level!;
         const start = ex.vec(this.gridPos.x, this.gridPos.y);
         const end = ex.vec(targetX, targetY);
         
@@ -325,76 +345,22 @@ export abstract class Actor extends GameEntity {
         }
     }
     
-    protected animateMovement(targetGridPos: ex.Vector): void {
-        // Set moving state to prevent visual glitches
-        this.moving = true;
-        
-        // Update sprite facing and animation based on movement direction  
-        const diff = targetGridPos.sub(this.gridPos);
-        const direction = this.getDirectionFromDiff(diff);
-        
-        // Use appropriate walk animation from ActorRegistry
-        this.graphics.use(`${direction}-walk`);
-        
-        // Animate movement - purely visual, doesn't affect game state
-        const moveSpeed = 300; // 300px/sec for smooth movement
-        const targetWorldPos = targetGridPos.scale(32).add(ex.vec(16, 16));
-        
-        this.actions.moveTo(targetWorldPos, moveSpeed).callMethod(() => {
-            this.moving = false;
-            // Return to idle animation after movement
-            this.graphics.use(`idle-${direction}`);
-            // Sync visual position with game state (in case of any drift)
-            this.pos = this.gridPos.scale(32).add(ex.vec(16, 16));
-        });
+    // Lifecycle
+    onInitialize(engine: ex.Engine) {
+        super.onInitialize(engine);
+        // Configure graphics via registry
+        const { ActorRegistry } = require('../config/ActorRegistry');
+        ActorRegistry.getInstance().configureActor(this);
     }
-    
-    protected animateAttack(direction?: string): void {
-        const attackDirection = direction || this.getFacingDirection();
-        this.graphics.use(`attack-${attackDirection}`);
-        
-        // Return to idle after attack animation
-        setTimeout(() => {
-            if (!this.moving) {
-                this.graphics.use(`idle-${attackDirection}`);
-            }
-        }, 400); // Attack animation duration
+
+    onPreUpdate(engine: ex.Engine, delta: number) {
+        super.onPreUpdate(engine, delta);
+        // Update effects
+        this.updateEffects();
     }
-    
-    protected animateHurt(direction?: string): void {
-        const hurtDirection = direction || this.getFacingDirection();
-        this.graphics.use(`hurt-${hurtDirection}`);
-        
-        // Return to idle after hurt animation
-        setTimeout(() => {
-            if (!this.moving) {
-                this.graphics.use(`idle-${hurtDirection}`);
-            }
-        }, 400); // Hurt animation duration
-    }
-    
-    protected animateDeath(): void {
-        this.graphics.use('death');
-        // Death animation doesn't return to idle
-    }
-    
-    protected animateIdle(direction?: string): void {
-        const idleDirection = direction || this.getFacingDirection();
-        this.graphics.use(`idle-${idleDirection}`);
-    }
-    
-    private getDirectionFromDiff(diff: ex.Vector): string {
-        if (Math.abs(diff.x) > Math.abs(diff.y)) {
-            return diff.x > 0 ? 'right' : 'left';
-        } else {
-            return diff.y > 0 ? 'down' : 'up';
-        }
-    }
-    
-    private getFacingDirection(): string {
-        // Default to down if no specific direction is stored
-        // Could be enhanced to track actual facing direction
-        return 'down';
+
+    onPostUpdate(engine: ex.Engine, delta: number) {
+        super.onPostUpdate(engine, delta);
     }
 
     public immuneTo: string[] = [];
@@ -405,13 +371,6 @@ export abstract class Actor extends GameEntity {
         if (now - this.lastAttackTime < 500) return; // 500ms cooldown
         this.lastAttackTime = now;
 
-        // Calculate attack direction towards target
-        const diff = target.gridPos.sub(this.gridPos);
-        const attackDirection = this.getDirectionFromDiff(diff);
-        
-        // Play attack animation
-        this.animateAttack(attackDirection);
-
         // Calculate damage
         let damage = this.totalDamage;
         
@@ -421,50 +380,26 @@ export abstract class Actor extends GameEntity {
         }
 
         // Apply critical hit chance (based on dexterity/luck)
-        // For now, simple 5% crit
         const isCrit = Math.random() < 0.05;
         if (isCrit) {
             damage *= 1.5;
-            if (this.scene && 'logCombat' in this.scene) {
-                const scene = this.scene as any;
-                scene.logCombat('Critical Hit!');
-            } else {
-                console.log('Critical Hit!');
-            }
+            console.log('Critical Hit!');
         }
 
-        // Enhanced combat logging
-        if (this.scene && 'logCombat' in this.scene) {
-            const scene = this.scene as any;
-            scene.logCombat(`${this.name} attacks ${target.name} for ${damage} damage!`);
-        } else {
-            console.log(`${this.name} attacks ${target.name} for ${damage} damage!`);
-        }
-        target.takeDamage(damage, type, this);
+        console.log(`${this.name} attacks ${target.name} for ${damage} damage!`);
         
-        // Trigger effects on attack
-        if (this.weapon) {
-            // Weapon effects
-        }
+        EventBus.instance.emit(GameEventNames.Attack, new AttackEvent(this, target, damage));
+        
+        target.takeDamage(damage, type, this);
     }
 
     public heal(amount: number): void {
+        const oldHp = this.hp;
         this.hp = Math.min(this.maxHp, this.hp + amount);
         console.log(`${this.name} healed for ${amount}. HP: ${this.hp}/${this.maxHp}`);
         
-        // Visual feedback
-        const damageLabel = new ex.Label({
-            text: `+${Math.floor(amount)}`,
-            pos: ex.vec(0, -20),
-            font: new ex.Font({
-                family: 'Arial',
-                size: 20,
-                unit: ex.FontUnit.Px,
-                color: ex.Color.Green
-            })
-        });
-        this.addChild(damageLabel);
-        damageLabel.actions.moveBy(0, -30, 50).fade(0, 1000).die();
+        EventBus.instance.emit(GameEventNames.Heal, new HealEvent(this, amount));
+        EventBus.instance.emit(GameEventNames.HealthChange, new HealthChangeEvent(this, this.hp, this.maxHp, this.hp - oldHp));
     }
 
     public takeDamage(amount: number, type: DamageType, source?: Actor): void {
@@ -474,17 +409,12 @@ export abstract class Actor extends GameEntity {
             finalDamage = Math.max(0, amount - this.totalDefense);
         }
 
+        const oldHp = this.hp;
         this.hp -= finalDamage;
         console.log(`${this.name} took ${finalDamage} damage. HP: ${this.hp}/${this.maxHp}`);
-
-        // Play hurt animation
-        if (source) {
-            const diff = this.gridPos.sub(source.gridPos);
-            const hurtDirection = this.getDirectionFromDiff(diff);
-            this.animateHurt(hurtDirection);
-        } else {
-            this.animateHurt();
-        }
+        
+        EventBus.instance.emit(GameEventNames.Damage, new DamageEvent(this, finalDamage, type, source));
+        EventBus.instance.emit(GameEventNames.HealthChange, new HealthChangeEvent(this, this.hp, this.maxHp, this.hp - oldHp));
 
         // Visual feedback (floating text)
         const damageLabel = new ex.Label({
@@ -507,29 +437,23 @@ export abstract class Actor extends GameEntity {
 
     public die(): void {
         console.log(`${this.name} has died!`);
+        EventBus.instance.emit(GameEventNames.Die, new DieEvent(this));
         
-        // Play death animation
-        this.animateDeath();
-        
-        // Delay removal to let death animation play
+        // Delay removal slightly
         setTimeout(() => {
-            // Drop loot?
-            // Remove from level?
-            this.kill(); // Excalibur kill
-        }, 800); // Death animation duration
+            this.kill(); 
+        }, 100);
     }
 
-    // Lifecycle
-    onPreUpdate(engine: ex.Engine, delta: number) {
-        super.onPreUpdate(engine, delta);
-        // Update effects
-        this.updateEffects();
+    // Helper methods for direction (kept for now as they might be useful for logic)
+    private getDirectionFromDiff(diff: ex.Vector): string {
+        if (Math.abs(diff.x) > Math.abs(diff.y)) {
+            return diff.x > 0 ? 'right' : 'left';
+        } else {
+            return diff.y > 0 ? 'down' : 'up';
+        }
     }
-
-    onPostUpdate(engine: ex.Engine, delta: number) {
-        super.onPostUpdate(engine, delta);
-        // Sync Excalibur position with grid position
-        // this.pos.x = this.x * 32; // Assuming 32px grid
-        // this.pos.y = this.y * 32;
+    
+    private getFacingDirection(): string {
+        return 'down';
     }
-}

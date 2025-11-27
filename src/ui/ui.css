@@ -1,0 +1,252 @@
+:root {
+  /* Colors */
+  --color-primary: #dc2626;
+  --color-primary-dark: #991b1b;
+  --color-secondary: #16a34a;
+  --color-secondary-dark: #15803d;
+  --color-accent: #f59e0b;
+
+  --color-background: rgba(0, 0, 0, 0.85);
+  --color-background-dark: rgba(0, 0, 0, 0.95);
+  --color-panel: #1f2937;
+  --color-panel-light: #374151;
+  --color-border: #6b7280;
+  --color-border-light: #9ca3af;
+
+  --color-text: #ffffff;
+  --color-text-secondary: #d1d5db;
+  --color-text-muted: #9ca3af;
+  --color-text-danger: #ef4444;
+
+  /* Status Colors */
+  --color-health: #22c55e;
+  --color-health-low: #ef4444;
+  --color-warmth: #f97316;
+  --color-warmth-low: #06b6d4;
+
+  /* Layout */
+  --spacing-xs: 2px;
+  --spacing-sm: 4px;
+  --spacing-md: 8px;
+  --spacing-lg: 12px;
+  --spacing-xl: 16px;
+
+  --border-radius-sm: 4px;
+  --border-radius-md: 6px;
+  --border-radius-lg: 8px;
+}
+
+#ui-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* Let clicks pass through to canvas by default */
+  font-family: "Arial", sans-serif;
+  color: var(--color-text);
+  z-index: 1000;
+}
+
+/* Enable pointer events for interactive elements */
+#ui-layer > * {
+  pointer-events: auto;
+}
+
+/* HUD */
+#hud {
+  position: absolute;
+  top: var(--spacing-lg);
+  left: var(--spacing-lg);
+  background-color: var(--color-background);
+  border: 2px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-md);
+  width: 200px;
+}
+
+.stat-row {
+  margin-bottom: var(--spacing-md);
+}
+
+.stat-label {
+  font-weight: bold;
+  margin-bottom: var(--spacing-xs);
+  display: block;
+  font-size: 14px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 20px;
+  background-color: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-sm);
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.progress-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 11px;
+  text-shadow: 1px 1px 0 #000;
+  white-space: nowrap;
+}
+
+/* Hotbar */
+#hotbar {
+  position: absolute;
+  bottom: var(--spacing-lg);
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--color-background);
+  border: 2px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-md);
+  display: flex;
+  gap: var(--spacing-md);
+}
+
+.slot {
+  width: 40px;
+  height: 40px;
+  background-color: var(--color-panel-light);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  user-select: none;
+}
+
+.slot:hover {
+  border-color: var(--color-text);
+  background-color: var(--color-panel);
+}
+
+.slot-hotkey {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+.slot-count {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+/* Game Journal */
+#game-journal {
+  position: absolute;
+  bottom: var(--spacing-lg);
+  right: var(--spacing-lg);
+  width: 300px;
+  max-height: 200px;
+  background-color: var(--color-background);
+  border: 2px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  display: flex;
+  flex-direction: column;
+}
+
+.journal-header {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--color-panel);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.journal-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-sm);
+  font-size: 12px;
+}
+
+.log-entry {
+  margin-bottom: 2px;
+  line-height: 1.4;
+}
+
+.log-time {
+  color: var(--color-text-muted);
+  margin-right: 4px;
+}
+
+/* Inventory Screen */
+#inventory-screen {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 400px;
+  background-color: var(--color-background-dark);
+  border: 2px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  display: none; /* Hidden by default */
+  flex-direction: column;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+#inventory-screen.visible {
+  display: flex;
+}
+
+.inventory-header {
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.inventory-body {
+  flex: 1;
+  display: flex;
+  padding: var(--spacing-md);
+  gap: var(--spacing-lg);
+}
+
+.equipment-panel {
+  width: 180px;
+  background-color: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-md);
+}
+
+.inventory-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  grid-auto-rows: 40px;
+  gap: var(--spacing-sm);
+  align-content: start;
+}
+
+.close-btn {
+  cursor: pointer;
+  color: var(--color-text-danger);
+  font-weight: bold;
+  user-select: none;
+}

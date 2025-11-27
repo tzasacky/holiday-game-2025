@@ -14,16 +14,22 @@ import { IdentificationSystem } from '../mechanics/IdentificationSystem';
 import { ItemEntity } from '../items/ItemEntity';
 import { Pathfinding } from '../core/Pathfinding';
 import { InteractionManager } from '../mechanics/InteractionManager';
+import { EventBus } from '../core/EventBus';
+import { 
+    GameEventNames, 
+    ItemPickupEvent, 
+    ItemDropEvent, 
+    ItemEquipEvent, 
+    ItemUnequipEvent,
+    LogEvent
+} from '../core/GameEvents';
 
 export class Hero extends Actor {
     private inputManager!: InputManager;
     private actionQueue: GameActionType[] = [];
 
     constructor(gridPos: ex.Vector) {
-        super(gridPos, 100, { // 100 HP
-            width: 32,
-            height: 32,
-            color: ex.Color.Red,
+        super(gridPos, 100, {
             collisionType: ex.CollisionType.Active
         });
         this.name = 'Hero';
@@ -35,9 +41,12 @@ export class Hero extends Actor {
         Logger.info("[Hero] onInitialize called at position:", this.gridPos, "world pos:", this.pos);
         this.inputManager = InputManager.instance;
 
+
         // Use ActorRegistry for consistent rendering
         ActorRegistry.getInstance().configureActor(this);
     }
+
+
 
     // Called by InputManager to queue an action
     public queueAction(action: GameActionType) {
@@ -170,6 +179,32 @@ export class Hero extends Actor {
         Logger.debug("[Hero] Moved to:", this.gridPos, "terrain:", targetTerrain, "cost:", cost, "time:", this.time);
         return true;
     }
+
+    private animateMovement(targetGridPos: ex.Vector): void {
+        // Set moving state to prevent visual glitches
+        this.moving = true;
+        
+        // Update sprite facing and animation based on movement direction  
+        const diff = targetGridPos.sub(this.gridPos);
+        const direction = Math.abs(diff.x) > Math.abs(diff.y) 
+            ? (diff.x > 0 ? 'right' : 'left') 
+            : (diff.y > 0 ? 'down' : 'up');
+        
+        // Use appropriate walk animation from ActorRegistry
+        this.graphics.use(`${direction}-walk`);
+        
+        // Animate movement - purely visual, doesn't affect game state
+        const moveSpeed = 300; // 300px/sec for smooth movement
+        const targetWorldPos = targetGridPos.scale(32).add(ex.vec(16, 16));
+        
+        this.actions.moveTo(targetWorldPos, moveSpeed).callMethod(() => {
+            this.moving = false;
+            // Return to idle animation after movement
+            this.graphics.use(`idle-${direction}`);
+            // Sync visual position with game state (in case of any drift)
+            this.pos = this.gridPos.scale(32).add(ex.vec(16, 16));
+        });
+    }
     
     private applyTerrainEffects(terrainType: TerrainType, terrainDef: any): void {
         // Apply existing terrain effects
@@ -296,6 +331,9 @@ export class Hero extends Actor {
             if (this.scene instanceof GameScene && this.scene.level) {
                 const entity = new ItemEntity(this.gridPos.clone(), item);
                 this.scene.level.addEntity(entity);
+                
+                EventBus.instance.emit(GameEventNames.ItemDrop, new ItemDropEvent(this, item));
+                
                 if (this.scene instanceof GameScene) {
                     this.scene.logItem(`Dropped ${item.name}`);
                 } else {
@@ -317,9 +355,11 @@ export class Hero extends Actor {
         if (slot === 'weapon') {
             if (this.weapon) this.unequip(this.weapon);
             this.weapon = item;
+            EventBus.instance.emit(GameEventNames.ItemEquip, new ItemEquipEvent(this, item, 'weapon'));
         } else if (slot === 'armor') {
             if (this.armor) this.unequip(this.armor);
             this.armor = item;
+            EventBus.instance.emit(GameEventNames.ItemEquip, new ItemEquipEvent(this, item, 'armor'));
         } else {
             console.log('Unknown slot for item:', item.name);
             return false;
@@ -340,13 +380,16 @@ export class Hero extends Actor {
     public unequip(item: EnhancedEquipment): boolean {
         if (item.unremovableWhenCursed) {
             console.log(`${item.getDisplayName()} is cursed and cannot be removed!`);
+            EventBus.instance.emit(GameEventNames.Log, new LogEvent(`${item.getDisplayName()} is cursed!`, 'Combat', 'red'));
             return false;
         }
 
         if (this.weapon === item) {
             this.weapon = null;
+            EventBus.instance.emit(GameEventNames.ItemUnequip, new ItemUnequipEvent(this, item, 'weapon'));
         } else if (this.armor === item) {
             this.armor = null;
+            EventBus.instance.emit(GameEventNames.ItemUnequip, new ItemUnequipEvent(this, item, 'armor'));
         } else {
             return false;
         }
@@ -413,6 +456,8 @@ export class Hero extends Actor {
             level.items.splice(itemIndex, 1);
             
             this.addToInventory(item);
+            
+            EventBus.instance.emit(GameEventNames.ItemPickup, new ItemPickupEvent(this, item));
             
             if (this.scene instanceof GameScene) {
                 this.scene.logItem(`Picked up ${item.name}`);

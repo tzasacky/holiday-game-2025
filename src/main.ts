@@ -26,7 +26,7 @@ export const AppConfig = {
 };
 
 // Set log level (change to LogLevel.DEBUG for verbose logging)  
-Logger.setLevel(LogLevel.DEBUG);
+Logger.setLevel(LogLevel.INFO);
 
 Logger.info("AppConfig:", AppConfig);
 Logger.info("Initializing Game Engine...");
@@ -38,6 +38,9 @@ const game = new ex.Engine({
     pixelRatio: 2,
     displayMode: ex.DisplayMode.FillScreen
 });
+
+// Enable debug mode to diagnose rendering
+game.showDebug(true);
 
 import { FallbackTheme } from './dungeon/themes/FallbackTheme';
 import { SpriteDebugScene } from './scenes/SpriteDebugScene';
@@ -114,15 +117,10 @@ game.start(loader).then(() => {
         Logger.info("Hero in camera view:", heroInView);
     }, 100);
 
-    // UI Update Loop
-    game.on('postupdate', () => {
-        UIManager.instance.update(hero);
-    });
-
     // Initialize Input and UI systems
     InputManager.instance.initialize(game);
     InputManager.instance.setGameScene(gameScene);
-    UIManager.instance.initialize(game);
+    UIManager.instance.initialize(hero);
     
     // UI components will be initialized when the scene activates
     

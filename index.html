@@ -6,10 +6,73 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Holiday Roguelike 2025</title>
     <link rel="stylesheet" href="./index.css" />
+    <link rel="stylesheet" href="./src/ui/ui.css" />
   </head>
   <body>
     <div id="app">
-      <canvas id="game"></canvas>      
+      <canvas id="game"></canvas>
+
+      <!-- UI Layer -->
+      <div id="ui-layer" style="display: none;">
+        <!-- HUD -->
+        <div id="hud">
+          <div class="stat-row">
+            <span class="stat-label">❤️ Health</span>
+            <div class="progress-bar">
+              <div
+                id="hp-bar"
+                class="progress-fill"
+                style="width: 100%; background-color: var(--color-health)"
+              ></div>
+              <span id="hp-text" class="progress-text">100/100</span>
+            </div>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">🔥 Warmth</span>
+            <div class="progress-bar">
+              <div
+                id="warmth-bar"
+                class="progress-fill"
+                style="width: 100%; background-color: var(--color-warmth)"
+              ></div>
+              <span id="warmth-text" class="progress-text">100/100</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hotbar -->
+        <div id="hotbar">
+          <!-- Slots injected by JS -->
+          <div id="inventory-btn" class="slot">🎒</div>
+        </div>
+
+        <!-- Game Journal -->
+        <div id="game-journal">
+          <div class="journal-header">
+            <span>📜 Journal</span>
+            <span id="journal-toggle">−</span>
+          </div>
+          <div id="journal-content" class="journal-content">
+            <!-- Logs injected by JS -->
+          </div>
+        </div>
+
+        <!-- Inventory Screen -->
+        <div id="inventory-screen">
+          <div class="inventory-header">
+            <h2>Inventory & Equipment</h2>
+            <span id="inventory-close" class="close-btn">✕</span>
+          </div>
+          <div class="inventory-body">
+            <div id="equipment-panel" class="equipment-panel">
+              <!-- Equipment slots -->
+            </div>
+            <div id="inventory-grid" class="inventory-grid">
+              <!-- Inventory slots -->
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

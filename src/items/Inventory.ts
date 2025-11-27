@@ -1,10 +1,14 @@
+import * as ex from 'excalibur';
 import { Item } from './Item';
+import { EventBus } from '../core/EventBus';
+import { GameEventNames, InventoryChangeEvent } from '../core/GameEvents';
 
-export class Inventory {
+export class Inventory extends ex.EventEmitter<any> { // Keeping generic emitter for local listeners if any, but main bus is global
     public items: (Item | null)[];
     public capacity: number;
 
     constructor(capacity: number = 20) {
+        super();
         this.capacity = capacity;
         this.items = new Array(capacity).fill(null);
     }
@@ -15,6 +19,7 @@ export class Inventory {
             const existing = this.items.find(i => i !== null && i.name === item.name && i.stackable);
             if (existing) {
                 existing.count += item.count;
+                EventBus.instance.emit(GameEventNames.InventoryChange, new InventoryChangeEvent(this, 'change', item));
                 return true;
             }
         }
@@ -24,6 +29,7 @@ export class Inventory {
         if (index === -1) return false; // Full
 
         this.items[index] = item;
+        EventBus.instance.emit(GameEventNames.InventoryChange, new InventoryChangeEvent(this, 'add', item, index));
         return true;
     }
 
@@ -32,6 +38,7 @@ export class Inventory {
         if (index === -1) return false;
 
         this.items[index] = null;
+        EventBus.instance.emit(GameEventNames.InventoryChange, new InventoryChangeEvent(this, 'remove', item, index));
         return true;
     }
 
@@ -46,6 +53,8 @@ export class Inventory {
         const temp = this.items[index1];
         this.items[index1] = this.items[index2];
         this.items[index2] = temp;
+        
+        EventBus.instance.emit(GameEventNames.InventoryChange, new InventoryChangeEvent(this, 'swap'));
         return true;
     }
 
@@ -54,15 +63,11 @@ export class Inventory {
         if (!item) return null;
 
         this.items[index] = null;
+        EventBus.instance.emit(GameEventNames.InventoryChange, new InventoryChangeEvent(this, 'remove', item, index));
         return item;
     }
 
     public hasItem(itemId: string): boolean {
-        // Check by name or some ID property. 
-        // Item class doesn't seem to have a unique ID, but name might be enough for keys.
-        // Or check constructor name?
-        // Let's assume we check by name for now, or if Item has an id field.
-        // Looking at Item usage, it seems we might need to check name.
         return this.items.some(i => i !== null && (i.name === itemId || i.id === itemId));
     }
 
@@ -74,6 +79,8 @@ export class Inventory {
             item.count -= count;
             if (item.count <= 0) {
                 this.removeItem(item);
+            } else {
+                EventBus.instance.emit(GameEventNames.InventoryChange, new InventoryChangeEvent(this, 'change', item));
             }
             return true;
         } else {

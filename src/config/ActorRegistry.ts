@@ -82,61 +82,51 @@ export class ActorRegistry {
     }
 
     public configureActor(actor: ex.Actor) {
-        console.log(`[ActorRegistry] Configuring actor: ${actor.name}`);
+        console.log(`[ActorRegistry] configureActor called for: ${actor.name}`);
         
         // Check if we should use fallback rendering
         if (AppConfig.UseFallbackRendering) {
-            console.log(`[ActorRegistry] Using fallback rendering for ${actor.name}`);
             this.addFallbackGraphics(actor);
             return;
         }
         
         const config = this.configs.get(actor.name);
         if (!config) {
-            console.warn(`No configuration found for actor: ${actor.name}, using fallback`);
+            console.warn(`[ActorRegistry] No config for ${actor.name}, using fallback`);
             this.addFallbackGraphics(actor);
             return;
         }
-        console.log(`[ActorRegistry] Found config for ${actor.name}, setting up animations`);
-        console.log(`[ActorRegistry] Resource loaded:`, config.resource.isLoaded());
-        console.log(`[ActorRegistry] Resource data:`, config.resource.data ? 'has data' : 'no data');
-        console.log(`[ActorRegistry] Grid config:`, config.grid);
         
         try {
             const spriteSheet = ex.SpriteSheet.fromImageSource({
                 image: config.resource,
                 grid: config.grid
             });
-            console.log(`[ActorRegistry] SpriteSheet created successfully for ${actor.name}`);
-            console.log(`[ActorRegistry] SpriteSheet sprite count:`, spriteSheet.sprites.length);
+            
+            console.log(`[ActorRegistry] SpriteSheet created, sprite count: ${spriteSheet.sprites.length}`);
             
             if (spriteSheet.sprites.length === 0) {
-                console.warn(`[ActorRegistry] SpriteSheet has no sprites for ${actor.name}!`);
+                console.warn(`[ActorRegistry] No sprites in sheet for ${actor.name}`);
                 this.addFallbackGraphics(actor);
                 return;
             }
 
             config.animations.forEach((animConfig, index) => {
-                console.log(`[ActorRegistry] Creating animation ${index}: ${animConfig.name} with frames:`, animConfig.frames);
-                try {
-                    const animation = ex.Animation.fromSpriteSheet(
-                        spriteSheet,
-                        animConfig.frames,
-                        animConfig.duration
-                    );
-                    console.log(`[ActorRegistry] Animation ${animConfig.name} created successfully`);
-                    actor.graphics.add(animConfig.name, animation);
-                    console.log(`[ActorRegistry] Animation ${animConfig.name} added to actor`);
-                } catch (animError) {
-                    console.error(`[ActorRegistry] Failed to create animation ${animConfig.name}:`, animError);
-                }
+                const animation = ex.Animation.fromSpriteSheet(
+                    spriteSheet,
+                    animConfig.frames,
+                    animConfig.duration
+                );
+                actor.graphics.add(animConfig.name, animation);
             });
-
-            console.log(`[ActorRegistry] Setting default animation: ${config.defaultAnimation}`);
             actor.graphics.use(config.defaultAnimation);
-            console.log(`[ActorRegistry] Actor ${actor.name} graphics setup complete`);
+            
+            // Ensure visibility
+            actor.graphics.isVisible = true;
+            actor.graphics.opacity = 1.0;
+            
         } catch (error) {
-            console.error(`[ActorRegistry] Failed to create sprite sheet for ${actor.name}:`, error);
+            console.error(`[ActorRegistry] Error configuring ${actor.name}:`, error);
             this.addFallbackGraphics(actor);
         }
     }
@@ -183,10 +173,9 @@ export class ActorRegistry {
         actor.graphics.add('default', group);
         actor.graphics.use('default');
         
-        console.log(`[ActorRegistry] Added fallback graphics for ${actor.name} with color ${color} and label '${label}'`);
-        console.log(`[ActorRegistry] Group members count:`, group.members.length);
-        console.log(`[ActorRegistry] Rectangle dimensions:`, rect.width, 'x', rect.height);
-        console.log(`[ActorRegistry] Text content:`, text.text);
+        // Ensure visibility
+        actor.graphics.isVisible = true;
+        actor.graphics.opacity = 1.0;
     }
 
     public getSprite(name: string): ex.Graphic {

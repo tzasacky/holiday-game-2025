@@ -100,9 +100,9 @@ export class Level {
     public addMob(mob: Actor) {
         this.mobs.push(mob);
         this.actors.push(mob);
-        this.scene.add(mob);
-        TurnManager.instance.registerActor(mob);
-        console.log(`[Level] Added mob ${mob.name || 'unnamed'} to level and registered with TurnManager`);
+        // Don't add to scene here - GameScene.onActivate will add all actors
+        // Don't register with TurnManager here - GameScene will do it
+        console.log(`[Level] Added mob ${mob.name || 'unnamed'} to level mobs and actors lists`);
     }
 
     public addItem(item: Item) {
@@ -111,11 +111,9 @@ export class Level {
 
     public addActor(actor: Actor) {
         this.actors.push(actor);
-        // Don't add to scene here - will be added when scene becomes active
-        if (!actor.isPlayer) {
-            TurnManager.instance.registerActor(actor);
-        }
-        Logger.info(`[Level] Added actor ${actor.name || 'unnamed'} to level`);
+        // Don't add to scene here - will be added when scene becomes active in GameScene.onActivate
+        // Don't register with TurnManager here either - GameScene will do it
+        Logger.info(`[Level] Added actor ${actor.name || 'unnamed'} to level actors list`);
     }
 
     public addEntity(entity: ex.Actor) {

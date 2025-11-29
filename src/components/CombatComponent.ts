@@ -7,6 +7,7 @@ import { GameActor } from './GameActor';
 import { EventBus } from '../core/EventBus';
 import { Logger } from '../core/Logger';
 import { TurnManager } from '../core/TurnManager';
+import { LevelManager } from '../core/LevelManager';
 
 export class CombatComponent extends ActorComponent {
     private lastAttackTime = 0;
@@ -36,7 +37,7 @@ export class CombatComponent extends ActorComponent {
         // But GameEventNames.Damage maps to DamageEvent which has a target.
         this.listen(GameEventNames.Damage, (event: DamageEvent) => {
             if (event.target === this.actor) {
-                this.handleTakeDamage(event.damage, event.type, event.source, event.isCounterAttack);
+                this.takeDamage(event.damage, event.type, event.source, event.isCounterAttack);
             }
         });
         
@@ -49,8 +50,11 @@ export class CombatComponent extends ActorComponent {
     }
     
     private getActorById(id: string): GameActor | undefined {
-        if (!this.actor.scene) return undefined;
-        return this.actor.scene.actors.find(a => (a as any).entityId === id || a.name === id) as GameActor;
+        // Use LevelManager to get current level's actors
+        // This is more reliable than scene.actors, especially during scene transitions
+        const level = LevelManager.instance.getCurrentLevel();
+        if (!level) return undefined;
+        return level.actors.find((a: GameActor) => a.entityId === id || a.name === id);
     }
     
     private calculateDamage(): number {
@@ -132,7 +136,7 @@ export class CombatComponent extends ActorComponent {
         ));
     }
     
-    private handleTakeDamage(amount: number, type: DamageType, source?: GameActor, isCounterAttack: boolean = false): void {
+    public takeDamage(amount: number, type: DamageType, source?: GameActor, isCounterAttack: boolean = false): void {
         // Calculate final damage with defense
         let finalDamage = amount;
         if (type === DamageType.Physical) {

@@ -3,6 +3,7 @@ import { GraphicsManager } from '../data/graphics';
 
 export abstract class GameEntity extends ex.Actor {
     public gridPos: ex.Vector;
+    public blocking: boolean = false;
 
     constructor(gridPos: ex.Vector, config?: ex.ActorArgs) {
         super(config);

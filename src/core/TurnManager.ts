@@ -45,6 +45,12 @@ export class TurnManager {
         this.actors.remove(actor);
     }
 
+    public clear() {
+        Logger.info("[TurnManager] Clearing all actors");
+        // PriorityQueue doesn't have clear, so we pop until empty or create new
+        this.actors = new PriorityQueue<GameActor>();
+    }
+
     public async processTurns() {
         Logger.debug("[TurnManager] processTurns starting, actors count:", this.actors.length);
         let processing = true;
@@ -67,6 +73,14 @@ export class TurnManager {
             }
             
             Logger.debug("[TurnManager] Processing actor:", currentActor.name, "isPlayer:", currentActor.isPlayer, "time:", currentActor.time);
+            
+            // Skip killed actors
+            if (currentActor.isKilled()) {
+                Logger.debug(`[TurnManager] Actor ${currentActor.name} is killed, removing from queue`);
+                this.actors.pop();
+                loops++;
+                continue;
+            }
             
             // Advance game time
             if (currentActor.time > TurnManager.now) {

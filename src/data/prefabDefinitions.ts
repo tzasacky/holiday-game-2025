@@ -2,6 +2,7 @@ import { TerrainType } from './terrain';
 import { ActorID } from '../constants/ActorIDs';
 import { ItemID } from '../constants/ItemIDs';
 import { InteractableID } from '../constants/InteractableIDs';
+import { PrefabID } from '../constants/PrefabID';
 import * as ex from 'excalibur';
 
 export interface PrefabActorPlacement {
@@ -24,7 +25,7 @@ export interface PrefabItemPlacement {
 }
 
 export interface PrefabDefinition {
-  id: string;
+  id: PrefabID;
   name: string;
   category: 'special_room' | 'treasure' | 'boss' | 'utility' | 'decoration';
   width: number;
@@ -48,9 +49,9 @@ export interface PrefabDefinition {
   maxPerLevel?: number;
 }
 
-export const PrefabDefinitions: Record<string, PrefabDefinition> = {
-  small_shrine: {
-    id: 'small_shrine',
+export const PrefabDefinitions: Record<PrefabID, PrefabDefinition> = {
+  [PrefabID.SmallShrine]: {
+    id: PrefabID.SmallShrine,
     name: 'Small Shrine',
     category: 'special_room',
     width: 5,
@@ -65,8 +66,14 @@ export const PrefabDefinitions: Record<string, PrefabDefinition> = {
     legend: {
       '#': TerrainType.Wall,
       '.': TerrainType.Floor,
-      'F': TerrainType.Fireplace
+      'F': TerrainType.Floor // Fireplace location
     },
+    interactables: [
+      {
+        interactableId: InteractableID.Fireplace,
+        position: ex.vec(2, 2)
+      }
+    ],
     // Place healing items near the fireplace
     items: [
       {
@@ -87,8 +94,8 @@ export const PrefabDefinitions: Record<string, PrefabDefinition> = {
     rarity: 'uncommon'
   },
 
-  storage_room: {
-    id: 'storage_room',
+  [PrefabID.StorageRoom]: {
+    id: PrefabID.StorageRoom,
     name: 'Storage Room',
     category: 'treasure',
     width: 6,
@@ -102,7 +109,7 @@ export const PrefabDefinitions: Record<string, PrefabDefinition> = {
     legend: {
       '#': TerrainType.Wall,
       '.': TerrainType.Floor,
-      'D': TerrainType.Decoration
+      'D': TerrainType.Floor // Decoration location
     },
     // Storage rooms have containers and loot
     interactables: [
@@ -130,8 +137,8 @@ export const PrefabDefinitions: Record<string, PrefabDefinition> = {
     rarity: 'uncommon'
   },
 
-  merchant_shop: {
-    id: 'merchant_shop',
+  [PrefabID.MerchantShop]: {
+    id: PrefabID.MerchantShop,
     name: 'Merchant Shop',
     category: 'utility',
     width: 7,
@@ -168,8 +175,8 @@ export const PrefabDefinitions: Record<string, PrefabDefinition> = {
     minFloor: 2
   },
 
-  treasure_vault: {
-    id: 'treasure_vault',
+  [PrefabID.TreasureVault]: {
+    id: PrefabID.TreasureVault,
     name: 'Treasure Vault',
     category: 'treasure',
     width: 9,
@@ -219,8 +226,8 @@ export const PrefabDefinitions: Record<string, PrefabDefinition> = {
     minFloor: 3
   },
 
-  boss_arena: {
-    id: 'boss_arena',
+  [PrefabID.BossArena]: {
+    id: PrefabID.BossArena,
     name: 'Boss Arena',
     category: 'boss',
     width: 11,
@@ -270,8 +277,8 @@ export const PrefabDefinitions: Record<string, PrefabDefinition> = {
     minFloor: 5
   },
 
-  workshop: {
-    id: 'workshop',
+  [PrefabID.Workshop]: {
+    id: PrefabID.Workshop,
     name: 'Workshop',
     category: 'utility',
     width: 8,
@@ -288,7 +295,7 @@ export const PrefabDefinitions: Record<string, PrefabDefinition> = {
       '#': TerrainType.Wall,
       '.': TerrainType.Floor,
       'W': TerrainType.Floor, // Workbench locations
-      'F': TerrainType.Fireplace
+      'F': TerrainType.Floor // Fireplace location
     },
     interactables: [
       {
@@ -301,6 +308,10 @@ export const PrefabDefinitions: Record<string, PrefabDefinition> = {
       },
       {
         interactableId: InteractableID.Anvil,
+        position: ex.vec(4, 4) // Moved next to fireplace
+      },
+      {
+        interactableId: InteractableID.Fireplace,
         position: ex.vec(3, 4)
       }
     ],

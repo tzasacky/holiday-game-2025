@@ -3,6 +3,9 @@ import { Level } from '../dungeon/Level';
 import { TerrainType } from '../data/terrain';
 import { Logger } from './Logger';
 import { GameActor } from '../components/GameActor';
+import { InteractionType } from '../constants/InteractionType';
+import { InteractableType } from '../data/interactables';
+import { InteractableID } from '../constants/InteractableIDs';
 
 export interface PathfindingOptions {
     avoidInteractables?: boolean;
@@ -77,7 +80,7 @@ export class Pathfinding {
      * Check what interaction is available at a position
      * Returns interaction type or null
      */
-    public static getInteractionAt(level: Level, x: number, y: number): string | null {
+    public static getInteractionAt(level: Level, x: number, y: number): InteractionType | null {
         if (!level.inBounds(x, y)) {
             return null;
         }
@@ -88,26 +91,22 @@ export class Pathfinding {
             // Check if player can interact with this
             const hero = level.actors.find(a => a.isPlayer);
             if (hero && interactableEntity.canInteract(hero)) {
-                return 'entity_interact';
+                // Return specific interaction type based on definition
+                const def = interactableEntity.definition;
+                if (def.type === InteractableType.DOOR) {
+                    return interactableEntity.state === 'locked' ? InteractionType.DoorLocked : InteractionType.DoorOpen;
+                }
+                if (def.id === InteractableID.StairsDown) return InteractionType.StairsDown;
+                if (def.id === InteractableID.StairsUp) return InteractionType.StairsUp;
+                
+                return InteractionType.EntityInteract;
             }
         }
 
         // Check for actors (combat)
         const actorAtPos = level.getActorAt(x, y);
         if (actorAtPos && !actorAtPos.isPlayer) {
-            return 'actor_attack';
-        }
-
-        // Check terrain interactions (legacy system for doors/stairs placed as terrain)
-        const terrain = level.getTile(x, y);
-        
-        // Door interactions
-        if (terrain === TerrainType.Door) return 'door_open';
-        if (terrain === TerrainType.LockedDoor) return 'door_locked';
-        if (terrain === TerrainType.SecretDoor) return 'secret_door';
-        
-        if (terrain === TerrainType.StairsDown) {
-            return 'stairs_down';
+            return InteractionType.ActorAttack;
         }
 
         return null;
@@ -136,7 +135,9 @@ export class Pathfinding {
         openSet.push(startNode);
 
         let iterations = 0;
-        const maxIterations = options.maxDistance * options.maxDistance;
+        // Allow for more iterations than just distance^2 to account for obstacles
+        // 40x40 map = 1600 tiles. 3000 should be plenty for any path.
+        const maxIterations = 3000;
 
         while (openSet.length > 0) {
             iterations++;
@@ -168,7 +169,7 @@ export class Pathfinding {
                 }
 
                 // Check if neighbor is passable
-                if (!this.isPassable(level, neighborPos.x, neighborPos.y, options)) {
+                if (!this.isPassable(level, neighborPos.x, neighborPos.y, options, goal)) {
                     continue;
                 }
 
@@ -207,7 +208,8 @@ export class Pathfinding {
         level: Level,
         x: number,
         y: number,
-        options: Required<PathfindingOptions>
+        options: Required<PathfindingOptions>,
+        goal?: ex.Vector
     ): boolean {
         // Check bounds
         if (!level.inBounds(x, y)) {
@@ -215,14 +217,29 @@ export class Pathfinding {
         }
 
         // Check terrain - only walls and chasms are impassable
-        // Doors are passable for pathing (will be opened when reached)
         const terrain = level.getTile(x, y);
         if (terrain === TerrainType.Wall || terrain === TerrainType.Chasm) {
             return false;
         }
 
+        // Check for blocking interactables
+        const interactable = level.getInteractableAt(x, y);
+        if (interactable && interactable.blocksMovement) {
+            // Doors are passable for pathing (will be opened when reached)
+            if (interactable.definition.type === InteractableType.DOOR) {
+                return true;
+            }
+            // Other blocking interactables (decorations, etc) are obstacles
+            return false;
+        }
+
         // Check for actors (unless allowed)
         if (!options.allowActors) {
+            // If this is the goal, we allow it (we want to path TO the actor, just not THROUGH others)
+            if (goal && goal.x === x && goal.y === y) {
+                return true;
+            }
+
             const actorAtPos = level.getActorAt(x, y);
             if (actorAtPos) {
                 return false;
@@ -244,6 +261,22 @@ export class Pathfinding {
         
         // Can't target walls or chasms
         if (terrain === TerrainType.Wall || terrain === TerrainType.Chasm) {
+            return false;
+        }
+        
+        // Check for blocking interactables
+        const interactable = level.getInteractableAt(x, y);
+        if (interactable && interactable.blocksMovement) {
+            // Doors are valid targets (can interact)
+            if (interactable.definition.type === InteractableType.DOOR) {
+                return true;
+            }
+            // Other blocking interactables might be valid targets if they have interactions?
+            // For now, assume if it blocks, we can't walk ONTO it, but we might want to path adjacent to it.
+            // But isValidTarget is usually for "can I click here to move here".
+            // If it's a chest, we can't walk ON it, but we click it to interact.
+            // So maybe return true if it's interactable?
+            // For now, let's say if it blocks and is NOT a door, it's not a valid MOVE target.
             return false;
         }
 

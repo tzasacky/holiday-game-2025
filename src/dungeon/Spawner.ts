@@ -1,6 +1,7 @@
 import { Level } from './Level';
 import { GameActor } from '../components/GameActor';
 import { ActorSpawnSystem } from '../components/ActorSpawnSystem';
+import { StatsComponent } from '../components/StatsComponent';
 import { SpawnTableExecutor } from '../systems/SpawnTableExecutor';
 import { getSpawnTableForFloor } from '../data/spawnTables';
 import { ActorFactory } from '../factories/ActorFactory';
@@ -143,7 +144,7 @@ export class Spawner {
      * Apply floor scaling modifiers to a spawned mob
      */
     private static applyFloorScaling(mob: GameActor, scaling: { strengthMultiplier: number; hpMultiplier: number }) {
-        const statsComponent = mob.getGameComponent('stats') as any;
+        const statsComponent = mob.getGameComponent<StatsComponent>('stats');
         
         if (statsComponent) {
             // Apply scaling via events to maintain data-driven approach

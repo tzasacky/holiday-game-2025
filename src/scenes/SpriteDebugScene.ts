@@ -9,7 +9,7 @@ export class SpriteDebugScene extends ex.Scene {
 
     onInitialize(engine: ex.Engine): void {
         // Filter keys for ImageSource
-        this.resourceKeys = Object.keys(Resources).filter(k => (Resources as any)[k] instanceof ex.ImageSource);
+        this.resourceKeys = Object.keys(Resources).filter(k => (Resources as Record<string, any>)[k] instanceof ex.ImageSource);
         this.currentIndex = this.resourceKeys.indexOf(this.currentResourceKey);
         if (this.currentIndex === -1) this.currentIndex = 0;
 
@@ -76,7 +76,7 @@ export class SpriteDebugScene extends ex.Scene {
         makeClickable(nextBtn, () => this.nextResource());
 
         // 2. Load Resource
-        const resource = (Resources as any)[this.currentResourceKey];
+        const resource = (Resources as Record<string, any>)[this.currentResourceKey];
         if (!resource || !(resource instanceof ex.ImageSource)) {
             const err = new ex.Label({ text: "Invalid Resource", pos: ex.vec(10, 40), color: ex.Color.Red });
             this.add(err);

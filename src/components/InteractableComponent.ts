@@ -3,10 +3,12 @@ import { InteractableDefinition, InteractableType } from '../data/interactables'
 import { Logger } from '../core/Logger';
 import { EventBus } from '../core/EventBus';
 import { GameEventNames, LevelTransitionRequestEvent } from '../core/GameEvents';
-import { TileGraphicsManager } from '../graphics/TileGraphicsManager';
-import { TerrainType } from '../data/terrain';
-import { getBiomesForFloor } from '../data/biomes';
 import { InteractableStatePersistence } from '../core/InteractableStatePersistence';
+import { Resources } from '../config/resources';
+import { GameActor } from './GameActor';
+import { GameEntity } from '../core/GameEntity';
+import { InventoryComponent } from './InventoryComponent';
+import { MovementEvent } from '../core/GameEvents';
 
 // Simple entity interface for interaction
 interface InteractingEntity {
@@ -25,7 +27,7 @@ export interface InteractionResult {
 
 export class InteractableComponent {
     public readonly type = 'interactable';
-    private owner: any; // The entity that owns this component
+    private owner: GameEntity; // The entity that owns this component
     
     private definition: InteractableDefinition;
     private state: InteractableState = 'closed';
@@ -35,7 +37,7 @@ export class InteractableComponent {
     private currentHealth?: number;
     private levelId: string = 'unknown';
 
-    constructor(owner: any, definition: InteractableDefinition, config: any = {}) {
+    constructor(owner: GameEntity, definition: InteractableDefinition, config: any = {}) {
         this.owner = owner;
         this.definition = definition;
         this.config = config;
@@ -73,7 +75,7 @@ export class InteractableComponent {
         EventBus.instance.off(GameEventNames.Movement);
     }
 
-    private handlePlayerMovement(event: any): void {
+    private handlePlayerMovement(event: MovementEvent): void {
         if (!this.owner || this.state !== 'open' || this.definition.type !== InteractableType.DOOR) {
             return;
         }
@@ -218,6 +220,10 @@ export class InteractableComponent {
         });
     }
 
+    public forceState(newState: InteractableState): void {
+        this.setState(newState);
+    }
+
     private setState(newState: InteractableState): void {
         if (this.state !== newState) {
             const oldState = this.state;
@@ -278,38 +284,45 @@ export class InteractableComponent {
     }
 
     private getGraphicsForState(): ex.Graphic {
-        // Try to get sprite from TileGraphicsManager for common interactables
-        try {
-            // Map interactable types to terrain types for sprite lookup
-            const terrainTypeMap: Record<string, TerrainType> = {
-                'door': TerrainType.Door,
-                'locked_door': TerrainType.LockedDoor,
-                'secret_door': TerrainType.SecretDoor,
-                'stairs_down': TerrainType.StairsDown,
-                'chasm': TerrainType.Chasm,
-                'fireplace': TerrainType.Fireplace
-                // Other interactables will use fallback colors
-            };
+        // 1. Try to use direct sprite coordinates from definition (Preferred)
+        if (this.definition.graphics.resource && this.definition.graphics.spriteCoords) {
+            const { resource, spriteCoords } = this.definition.graphics;
             
-            const terrainType = terrainTypeMap[this.definition.id];
-            if (terrainType && TileGraphicsManager.instance.isInitialized()) {
-                // Get appropriate biome (use first available biome for now)
-                const biome = getBiomesForFloor(1)[0];
-                
-                if (biome) {
-                    // For open doors, show floor instead of door
-                    if (this.state === 'open' && this.definition.type === InteractableType.DOOR) {
-                        return TileGraphicsManager.instance.getTileGraphic(TerrainType.Floor, biome);
-                    } else {
-                        return TileGraphicsManager.instance.getTileGraphic(terrainType, biome);
+            if (resource.isLoaded()) {
+                const spriteSheet = ex.SpriteSheet.fromImageSource({
+                    image: resource,
+                    grid: {
+                        rows: 8, // Assuming standard 8x8 grid for now, or should be configurable?
+                        columns: 8,
+                        spriteWidth: 32,
+                        spriteHeight: 32
                     }
+                });
+                
+                // Special handling for common tiles which might have different grid
+                // This is a bit hacky but needed until we standardize sprite sheets
+                if (resource === Resources.CommonTilesPng) {
+                     const commonSheet = ex.SpriteSheet.fromImageSource({
+                        image: resource,
+                        grid: {
+                            rows: 3,
+                            columns: 8,
+                            spriteWidth: 32,
+                            spriteHeight: 32
+                        }
+                    });
+                    return commonSheet.getSprite(spriteCoords.x, spriteCoords.y) || new ex.Rectangle({ width: 32, height: 32, color: ex.Color.Magenta });
                 }
+
+                return spriteSheet.getSprite(spriteCoords.x, spriteCoords.y) || new ex.Rectangle({ width: 32, height: 32, color: ex.Color.Magenta });
             }
-        } catch (error) {
-            // Fall back to colored rectangles if graphics system not available
         }
+
+        // 2. Legacy fallback removed
+        // If we reach here without a resource, we fall through to the colored rectangle
+
         
-        // Fallback: colored rectangle based on state
+        // 3. Fallback: colored rectangle based on state
         const colors = this.getStateColors();
         const color = colors[this.state] || this.definition.graphics.fallbackColor || ex.Color.Purple;
         
@@ -337,9 +350,9 @@ export class InteractableComponent {
         if (!this.definition.requiresKey) return true;
         
         // Check if the entity has the game component system (i.e., is a GameActor)
-        if ((entity as any).gameComponents) {
-            const gameEntity = entity as any;
-            const inventoryComponent = gameEntity.gameComponents.get('inventory') as any;
+        if (entity instanceof GameActor) {
+            const gameEntity = entity as GameActor;
+            const inventoryComponent = gameEntity.gameComponents.get('inventory') as InventoryComponent;
             if (inventoryComponent && inventoryComponent.hasItem) {
                 return inventoryComponent.hasItem(this.definition.requiresKey);
             }
@@ -479,7 +492,7 @@ const InteractionHandlers: Record<InteractableType, InteractionHandler> = {
             if (currentState === 'locked') {
                 // Unlock, open, and move player through
                 const doorPos = component.getPosition();
-                const actor = entity as any;
+                const actor = entity as GameActor;
                 if (actor.gridPos && actor.animateMovement) {
                     const oldPos = actor.gridPos.clone();
                     actor.gridPos = ex.vec(doorPos.x, doorPos.y);
@@ -503,7 +516,7 @@ const InteractionHandlers: Record<InteractableType, InteractionHandler> = {
             } else if (currentState === 'closed') {
                 // Open and move player through
                 const doorPos = component.getPosition();
-                const actor = entity as any;
+                const actor = entity as GameActor;
                 if (actor.gridPos && actor.animateMovement) {
                     const oldPos = actor.gridPos.clone();
                     actor.gridPos = ex.vec(doorPos.x, doorPos.y);
@@ -596,7 +609,7 @@ const InteractionHandlers: Record<InteractableType, InteractionHandler> = {
             
             // First move player to stairs position
             const stairPos = component.getPosition();
-            const actor = entity as any;
+            const actor = entity as GameActor;
             if (actor.gridPos && actor.animateMovement) {
                 const oldPos = actor.gridPos.clone();
                 actor.gridPos = ex.vec(stairPos.x, stairPos.y);
@@ -617,7 +630,7 @@ const InteractionHandlers: Record<InteractableType, InteractionHandler> = {
             Logger.info(`[InteractableComponent] Emitting LevelTransitionRequest - Direction: ${direction}`);
             
             EventBus.instance.emit(GameEventNames.LevelTransitionRequest, new LevelTransitionRequestEvent(
-                (entity as any).entityId || entity.name,
+                (entity as GameActor).entityId || entity.name,
                 direction,
                 'stairs',
                 { portal: component }

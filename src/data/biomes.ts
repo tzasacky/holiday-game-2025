@@ -2,17 +2,47 @@ import * as ex from 'excalibur';
 import { TerrainType } from './terrain';
 import { DamageType } from './mechanics';
 import { Resources } from '../config/resources';
+import { BiomeID } from '../constants/BiomeID';
+import { InteractableID } from '../constants/InteractableIDs';
+import { RoomTypeID } from '../constants/RoomTypeID';
+import { PrefabID } from '../constants/PrefabID';
+import { SpawnTableID } from '../constants/SpawnTableID';
+import { LootTableID } from '../constants/LootTableIDs';
+import { FeatureConfig, FeatureMorphology } from '../dungeon/features/FeatureTypes';
+
+export enum MaterialType {
+  Stone = 'stone',
+  Wood = 'wood',
+  Ice = 'ice',
+  Snow = 'snow',
+  Brick = 'brick',
+}
+
+export interface TileVariant {
+  spriteCoords: [number, number];
+  weight: number; // Higher = more common
+  tags?: string[]; // e.g., 'cracked', 'mossy', 'clean'
+}
 
 // Unified Biome/Theme system - combines visual themes with gameplay properties
 export interface BiomeDefinition {
-  id: string;
+  id: BiomeID;
   name: string;
   description: string;
   
   // Visual properties (formerly "theme")
   visuals: {
     tileset?: ex.ImageSource;
-    // Terrain tile graphics mapping
+    
+    // Construction Materials: Defines how Walls and Floors look for a given material
+    // Map Material -> TerrainType (Floor/Wall) -> Variants
+    materials?: Partial<Record<MaterialType, Partial<Record<TerrainType, TileVariant[]>>>>;
+    
+    // Terrain Features: Defines how specific terrain types look (independent of material)
+    // Map TerrainType (Water, Chasm, etc.) -> Variants
+    features?: Partial<Record<TerrainType, TileVariant[]>>;
+    
+    // Legacy support until full migration
     tileGraphics: Record<TerrainType, {
       spriteCoords?: [number, number]; // [col, row] for getSprite(col, row)
       color?: ex.Color;
@@ -21,35 +51,26 @@ export interface BiomeDefinition {
     
     // Visual effects
     lighting: 'dim' | 'normal' | 'bright';
-    particleEffects?: string[];
-    fogColor?: ex.Color;
-    ambientColor?: ex.Color;
+    
+    // Default material for corridors and undefined areas
+    defaultMaterial: MaterialType;
   };
   
   // Gameplay properties (formerly "biome")
   gameplay: {
     // Spawn table preferences
-    preferredSpawnTables: string[];
+    preferredSpawnTables: SpawnTableID[];
     spawnRateMultiplier: number;
     
     // Loot modifications
     lootRateMultiplier: number;
-    lootTableOverrides?: Record<string, string>; // roomType -> lootTableId
-    
-    // Environmental hazards
-    environmentalHazards: Array<{
-      type: string;
-      probability: number;
-      damageType: DamageType;
-      damagePerTurn?: number;
-      effect?: string; // e.g., 'slow', 'poison', 'burn'
-    }>;
+    lootTableOverrides?: Partial<Record<RoomTypeID, LootTableID>>; // roomType -> lootTableId
     
     // Preferred interactables for this biome
-    interactableSet: string[];
+    interactableSet: InteractableID[];
     
     // Preferred prefabs
-    preferredPrefabs: string[];
+    preferredPrefabs: PrefabID[];
   };
   
   // Floor availability
@@ -58,22 +79,85 @@ export interface BiomeDefinition {
   rarity: 'common' | 'uncommon' | 'rare';
   
   // Special terrain features (data-driven replacements for old decorators/features)
-  features?: Array<{
-    type: 'river' | 'chasm' | 'columns' | 'ice_patches';
-    probability: number;
-    density?: number;
-    properties?: Record<string, any>;
-  }>;
+  // These define WHERE features are placed, not how they look
+  featureGenerators?: FeatureConfig[];
 }
 
-export const BiomeDefinitions: Record<string, BiomeDefinition> = {
-  snowy_village: {
-    id: 'snowy_village',
+export const BiomeDefinitions: Record<BiomeID, BiomeDefinition> = {
+  [BiomeID.SnowyVillage]: {
+    id: BiomeID.SnowyVillage,
     name: 'Snowy Village',
     description: 'A festive winter village covered in snow and holiday decorations.',
     
     visuals: {
       tileset: Resources.SnowyVillageTilesPng,
+      
+      // Construction Materials (Walls & Floors)
+      materials: {
+          [MaterialType.Snow]: {
+              [TerrainType.Floor]: [
+                  { spriteCoords: [0, 0], weight: 80, tags: ['clean'] }, // Clean Snow
+                  { spriteCoords: [1, 0], weight: 20, tags: ['deep'] }   // Deep Snow
+              ],
+              [TerrainType.Wall]: [
+                  { spriteCoords: [1, 2], weight: 100, tags: ['ice_wall'] } // Clear Ice Wall (closest to snow wall?)
+              ]
+          },
+          [MaterialType.Ice]: {
+              [TerrainType.Floor]: [
+                  { spriteCoords: [2, 0], weight: 70, tags: ['packed_ice'] },
+                  { spriteCoords: [3, 0], weight: 30, tags: ['slushy_ice'] }
+              ],
+              [TerrainType.Wall]: [
+                  { spriteCoords: [1, 2], weight: 100, tags: ['ice_wall'] } // Clear Ice Wall
+              ]
+          },
+          [MaterialType.Wood]: {
+              [TerrainType.Floor]: [
+                  { spriteCoords: [0, 1], weight: 50, tags: ['planks_light'] },
+                  { spriteCoords: [1, 1], weight: 50, tags: ['planks_dark'] },
+                  { spriteCoords: [4, 1], weight: 30, tags: ['wood_variation'] },
+                  { spriteCoords: [7, 1], weight: 20, tags: ['frozen_planks'] }
+              ],
+              [TerrainType.Wall]: [
+                  { spriteCoords: [0, 2], weight: 100, tags: ['log_cabin'] }
+              ]
+          },
+          [MaterialType.Brick]: {
+              [TerrainType.Floor]: [
+                  { spriteCoords: [0, 1], weight: 50, tags: ['planks_light'] },
+                  { spriteCoords: [1, 1], weight: 50, tags: ['planks_dark'] },
+              ],
+              [TerrainType.Wall]: [
+                  { spriteCoords: [2, 2], weight: 100, tags: ['red_brick'] }
+              ]
+          },
+          [MaterialType.Stone]: {
+              [TerrainType.Floor]: [
+                  { spriteCoords: [4, 1], weight: 30, tags: ['wood_variation'] },
+              ],
+              [TerrainType.Wall]: [
+                  { spriteCoords: [3, 2], weight: 100, tags: ['stone_dungeon'] }
+              ]
+          },
+      },
+      
+      // Terrain Features (Independent of Material)
+      features: {
+          [TerrainType.Water]: [
+              { spriteCoords: [5, 0], weight: 100, tags: ['flowing'] }
+          ],
+          [TerrainType.Chasm]: [
+              { spriteCoords: [4, 0], weight: 100, tags: ['lake'] }
+          ],
+          [TerrainType.DeepSnow]: [
+              { spriteCoords: [1, 0], weight: 100, tags: ['deep'] }
+          ],
+          [TerrainType.Ice]: [
+              { spriteCoords: [2, 0], weight: 100, tags: ['packed'] }
+          ]
+      },
+      
       tileGraphics: {
         // ROW 0: Winter Floors (snowy_village_tiles.png)
         [TerrainType.Floor]: { spriteCoords: [0, 0], color: ex.Color.fromHex('#FFFAFA'), fallbackText: '·' }, // Clean Snow
@@ -84,57 +168,43 @@ export const BiomeDefinitions: Record<string, BiomeDefinition> = {
         
         // ROW 2: Walls (snowy_village_tiles.png)
         [TerrainType.Wall]: { spriteCoords: [0, 2], color: ex.Color.fromHex('#8B4513'), fallbackText: '█' }, // Log Cabin Wall
-        [TerrainType.Decoration]: { spriteCoords: [4, 2], color: ex.Color.fromHex('#654321'), fallbackText: '♦' }, // Bookshelf Wall
-        
-        // Common tiles (doors, stairs, etc.) - handled by CommonTiles sprite sheet, use fallback colors
-        [TerrainType.Fireplace]: { color: ex.Color.fromHex('#FF6347'), fallbackText: '♨' }, 
-        [TerrainType.Door]: { color: ex.Color.fromHex('#8B4513'), fallbackText: '+' },
-        [TerrainType.LockedDoor]: { color: ex.Color.fromHex('#FFD700'), fallbackText: '‡' },
-        [TerrainType.SecretDoor]: { spriteCoords: [0, 2], color: ex.Color.fromHex('#8B4513'), fallbackText: '█' }, // Same as wall 
-        [TerrainType.StairsDown]: { color: ex.Color.fromHex('#8B4513'), fallbackText: '>' },
-        [TerrainType.Bridge]: { color: ex.Color.fromHex('#DEB887'), fallbackText: '=' },
       },
       lighting: 'normal',
-      particleEffects: ['snow_fall', 'sparkles'],
-      fogColor: ex.Color.fromHex('#F0F8FF'),
-      ambientColor: ex.Color.fromHex('#E6F3FF')
+      defaultMaterial: MaterialType.Snow
     },
     
     gameplay: {
-      preferredSpawnTables: ['early_floors', 'holiday_creatures'],
+      preferredSpawnTables: [SpawnTableID.EarlyFloors, SpawnTableID.HolidayCreatures],
       spawnRateMultiplier: 1.0,
       lootRateMultiplier: 1.1,
       
-      environmentalHazards: [
-        {
-          type: 'freezing_cold',
-          probability: 0.3,
-          damageType: DamageType.Ice,
-          damagePerTurn: 1,
-          effect: 'slow'
-        }
-      ],
-      
-      interactableSet: ['fireplace', 'christmas_tree', 'present_chest', 'stocking'],
-      preferredPrefabs: ['small_shrine', 'storage_room', 'merchant_shop']
+      interactableSet: [InteractableID.Fireplace, InteractableID.ChristmasTree, InteractableID.PresentChest, InteractableID.Stocking],
+      preferredPrefabs: [PrefabID.SmallShrine, PrefabID.StorageRoom, PrefabID.MerchantShop]
     },
     
     minFloor: 1,
     maxFloor: 5,
     rarity: 'common',
     
-    features: [
+    featureGenerators: [
       {
-        type: 'ice_patches',
-        probability: 0.2,
-        density: 0.1,
-        properties: { slippery: true }
+        morphology: FeatureMorphology.Patch,
+        terrainType: TerrainType.Ice,
+        probability: 0.4, // Increased from 0.2
+        properties: { density: 0.15, slippery: true }
+      },
+      {
+        morphology: FeatureMorphology.Linear,
+        terrainType: TerrainType.Water,
+        probability: 0.3, // Added River
+        properties: { width: 2, meander: 0.3, frozen: false },
+        placement: 'corridor' // Avoid rooms
       }
     ]
   },
 
-  frozen_depths: {
-    id: 'frozen_depths',
+  [BiomeID.FrozenDepths]: {
+    id: BiomeID.FrozenDepths,
     name: 'Frozen Depths',
     description: 'Deep underground caverns filled with ancient ice and dangerous creatures.',
     
@@ -145,69 +215,44 @@ export const BiomeDefinitions: Record<string, BiomeDefinition> = {
         [TerrainType.Water]: { color: ex.Color.fromHex('#00008B'), fallbackText: '≋' },
         [TerrainType.Chasm]: { color: ex.Color.fromHex('#000000'), fallbackText: '▓' },
         [TerrainType.Ice]: { color: ex.Color.fromHex('#87CEFA'), fallbackText: '≡' },
-        [TerrainType.DeepSnow]: { color: ex.Color.fromHex('#E0FFFF'), fallbackText: '❄' },
-        [TerrainType.Fireplace]: { color: ex.Color.fromHex('#FF4500'), fallbackText: '♨' },
-        [TerrainType.Decoration]: { color: ex.Color.fromHex('#4169E1'), fallbackText: '♦' },
-        [TerrainType.StairsDown]: { color: ex.Color.fromHex('#696969'), fallbackText: '>' },
-        [TerrainType.Bridge]: { color: ex.Color.fromHex('#708090'), fallbackText: '=' },
-        [TerrainType.Door]: { color: ex.Color.fromHex('#5A8CB0'), fallbackText: '+' },
-        [TerrainType.LockedDoor]: { color: ex.Color.fromHex('#87CEFA'), fallbackText: '‡' },
-        [TerrainType.SecretDoor]: { color: ex.Color.fromHex('#4682B4'), fallbackText: '█' }
+        [TerrainType.DeepSnow]: { color: ex.Color.fromHex('#E0FFFF'), fallbackText: '❄' }
       },
       lighting: 'dim',
-      particleEffects: ['ice_crystals', 'cold_mist'],
-      fogColor: ex.Color.fromHex('#1E1E1E'),
-      ambientColor: ex.Color.fromHex('#0F1419')
+      defaultMaterial: MaterialType.Ice
     },
     
     gameplay: {
-      preferredSpawnTables: ['mid_floors', 'ice_creatures', 'elite_spawns'],
+      preferredSpawnTables: [SpawnTableID.MidFloors, SpawnTableID.IceCreatures, SpawnTableID.EliteSpawns],
       spawnRateMultiplier: 1.3,
       lootRateMultiplier: 1.2,
       
-      environmentalHazards: [
-        {
-          type: 'hypothermia',
-          probability: 0.5,
-          damageType: DamageType.Ice,
-          damagePerTurn: 2,
-          effect: 'slow'
-        },
-        {
-          type: 'unstable_ice',
-          probability: 0.1,
-          damageType: DamageType.Physical,
-          damagePerTurn: 5,
-          effect: 'fall'
-        }
-      ],
-      
-      interactableSet: ['frozen_chest', 'ice_shrine', 'crystal_formation'],
-      preferredPrefabs: ['treasure_vault', 'workshop', 'boss_arena']
+      interactableSet: [InteractableID.FROZEN_CHEST, InteractableID.ICE_SHRINE, InteractableID.CRYSTAL_FORMATION],
+      preferredPrefabs: [PrefabID.TreasureVault, PrefabID.Workshop, PrefabID.BossArena]
     },
     
     minFloor: 5,
     maxFloor: 15,
     rarity: 'uncommon',
     
-    features: [
+    featureGenerators: [
       {
-        type: 'chasm',
-        probability: 0.15,
-        density: 0.05,
-        properties: { fallDamage: 10, levelTransition: true }
+        morphology: FeatureMorphology.Patch,
+        terrainType: TerrainType.Chasm,
+        probability: 0.3, // Increased from 0.15
+        properties: { density: 0.08, fallDamage: 10, levelTransition: true }
       },
       {
-        type: 'river',
-        probability: 0.3,
-        density: 0.1,
-        properties: { frozen: true, crossable: true }
+        morphology: FeatureMorphology.Linear,
+        terrainType: TerrainType.Ice, // Frozen river
+        probability: 0.5, // Increased from 0.3
+        properties: { width: 3, meander: 0.6, crossable: true },
+        placement: 'corridor'
       }
     ]
   },
 
-  krampus_lair: {
-    id: 'krampus_lair',
+  [BiomeID.KrampusLair]: {
+    id: BiomeID.KrampusLair,
     name: "Krampus's Lair",
     description: 'A twisted version of Christmas cheer, filled with dark magic and corrupted decorations.',
     
@@ -218,60 +263,34 @@ export const BiomeDefinitions: Record<string, BiomeDefinition> = {
         [TerrainType.Water]: { color: ex.Color.fromHex('#8B0000'), fallbackText: '≋' },
         [TerrainType.Chasm]: { color: ex.Color.fromHex('#8B0000'), fallbackText: '▓' },
         [TerrainType.Ice]: { color: ex.Color.fromHex('#4B0082'), fallbackText: '≡' },
-        [TerrainType.DeepSnow]: { color: ex.Color.fromHex('#696969'), fallbackText: '❄' },
-        [TerrainType.Fireplace]: { color: ex.Color.fromHex('#DC143C'), fallbackText: '♨' },
-        [TerrainType.Decoration]: { color: ex.Color.fromHex('#800080'), fallbackText: '♦' },
-        [TerrainType.StairsDown]: { color: ex.Color.fromHex('#8B4513'), fallbackText: '>' },
-        [TerrainType.Bridge]: { color: ex.Color.fromHex('#A0522D'), fallbackText: '=' },
-        [TerrainType.Door]: { color: ex.Color.fromHex('#8B0000'), fallbackText: '+' },
-        [TerrainType.LockedDoor]: { color: ex.Color.fromHex('#DC143C'), fallbackText: '‡' },
-        [TerrainType.SecretDoor]: { color: ex.Color.fromHex('#8B0000'), fallbackText: '█' }
+        [TerrainType.DeepSnow]: { color: ex.Color.fromHex('#696969'), fallbackText: '❄' }
       },
       lighting: 'dim',
-      particleEffects: ['dark_snow', 'evil_sparkles', 'red_mist'],
-      fogColor: ex.Color.fromHex('#8B0000'),
-      ambientColor: ex.Color.fromHex('#2F0000')
+      defaultMaterial: MaterialType.Stone
     },
     
     gameplay: {
-      preferredSpawnTables: ['late_floors', 'boss_spawns', 'corrupted_creatures'],
+      preferredSpawnTables: [SpawnTableID.LateFloors, SpawnTableID.BossSpawns, SpawnTableID.CorruptedCreatures],
       spawnRateMultiplier: 1.5,
       lootRateMultiplier: 1.5,
       lootTableOverrides: {
-        'treasure': 'corrupted_treasure_loot',
-        'boss': 'krampus_boss_loot'
+        [RoomTypeID.Treasure]: LootTableID.CorruptedTreasure,
+        [RoomTypeID.Boss]: LootTableID.KrampusBoss
       },
       
-      environmentalHazards: [
-        {
-          type: 'dark_magic',
-          probability: 0.4,
-          damageType: DamageType.Magical,
-          damagePerTurn: 3,
-          effect: 'curse'
-        },
-        {
-          type: 'corrupted_ground',
-          probability: 0.2,
-          damageType: DamageType.Physical, // Changed from Poison which doesn't exist
-          damagePerTurn: 2,
-          effect: 'poison'
-        }
-      ],
-      
-      interactableSet: ['corrupted_tree', 'evil_altar', 'trapped_chest', 'bone_pile'],
-      preferredPrefabs: ['boss_arena', 'treasure_vault']
+      interactableSet: [InteractableID.CORRUPTED_TREE, InteractableID.EVIL_ALTAR, InteractableID.TRAPPED_CHEST, InteractableID.BONE_PILE],
+      preferredPrefabs: [PrefabID.BossArena, PrefabID.TreasureVault]
     },
     
     minFloor: 10,
     rarity: 'rare',
     
-    features: [
+    featureGenerators: [
       {
-        type: 'chasm',
+        morphology: FeatureMorphology.Patch,
+        terrainType: TerrainType.Chasm,
         probability: 0.25,
-        density: 0.08,
-        properties: { fallDamage: 20, levelTransition: true, cursed: true }
+        properties: { density: 0.08, fallDamage: 20, levelTransition: true, cursed: true }
       }
     ]
   }
@@ -290,7 +309,7 @@ export function selectRandomBiome(floorNumber: number): BiomeDefinition {
   
   if (availableBiomes.length === 0) {
     // Fallback to snowy village
-    return BiomeDefinitions.snowy_village;
+    return BiomeDefinitions[BiomeID.SnowyVillage];
   }
   
   // Weight by rarity (common = 60%, uncommon = 30%, rare = 10%)

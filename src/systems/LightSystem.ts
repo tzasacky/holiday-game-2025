@@ -1,6 +1,8 @@
 import * as ex from 'excalibur';
 import { GameActor } from '../components/GameActor';
 import { DataManager } from '../core/DataManager';
+import { StatsComponent } from '../components/StatsComponent';
+import { EquipmentComponent } from '../components/EquipmentComponent';
 
 export class LightSystem {
     private static _instance: LightSystem;
@@ -23,12 +25,12 @@ export class LightSystem {
         // For this stateless calculation, we just return what's currently visible
         // The caller (Level or GameScene) should merge this with persistent explored state
         
-        const stats = source.getGameComponent('stats') as any;
+        const stats = source.getGameComponent('stats') as StatsComponent;
         // Default view distance
         let radius = 8;
         
         // Check for light sources in equipment
-        const equipment = source.getGameComponent('equipment') as any;
+        const equipment = source.getGameComponent('equipment') as EquipmentComponent;
         if (equipment) {
             // Logic to check for light-emitting items
             // e.g. if (equipment.hasItemWithTag('light_source')) radius += 2;

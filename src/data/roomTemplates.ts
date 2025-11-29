@@ -1,7 +1,10 @@
 import { LootTableID } from '../constants/LootTableIDs';
+import { RoomTypeID } from '../constants/RoomTypeID';
+import { InteractableID } from '../constants/InteractableIDs';
+import { ItemID } from '../constants/ItemIDs';
 
 export interface InteractablePlacement {
-  type: string; // InteractableID
+  type: InteractableID;
   probability: number; // 0-1 probability of spawning
   minCount?: number;
   maxCount?: number;
@@ -22,19 +25,34 @@ export interface LootConfig {
   tableId?: LootTableID;
   itemProbability: number; // 0-1 chance for items to spawn
   guaranteedItems?: {
-    itemId: string;
+    itemId: ItemID;
     count: number;
   }[];
 }
 
+export type RoomCategory = 'basic' | 'flavor' | 'special';
+
+export interface PlacementConfig {
+  biomeWeights?: Record<string, number>; // BiomeID -> Weight multiplier
+  depthScaling?: {
+    startFloor: number;
+    endFloor: number;
+    weightMultiplier: number; // Multiplier at endFloor
+  };
+}
+
 export interface RoomTemplate {
-  id: string;
+  id: RoomTypeID;
   name: string;
   description: string;
+  category: RoomCategory; // High-level placement logic
   type: 'normal' | 'boss' | 'treasure' | 'puzzle' | 'ambush' | 'safe' | 'shop';
   minSize: { width: number; height: number };
   maxSize: { width: number; height: number };
   
+  // Placement configuration
+  placement?: PlacementConfig;
+
   // Spawn configuration
   spawns: SpawnPointConfig;
   
@@ -61,12 +79,13 @@ export interface RoomTemplate {
 }
 
 // Room templates for different types
-export const RoomTemplateDefinitions: Record<string, RoomTemplate> = {
+export const RoomTemplateDefinitions: Record<RoomTypeID, RoomTemplate> = {
   // Basic room types
-  basic_room: {
-    id: 'basic_room',
+  [RoomTypeID.Basic]: {
+    id: RoomTypeID.Basic,
     name: 'Basic Room',
     description: 'Standard dungeon room with basic enemies and loot',
+    category: 'basic',
     type: 'normal',
     minSize: { width: 5, height: 5 },
     maxSize: { width: 15, height: 15 },
@@ -75,7 +94,7 @@ export const RoomTemplateDefinitions: Record<string, RoomTemplate> = {
     },
     interactables: [
       {
-        type: 'chest',
+        type: InteractableID.CHEST,
         probability: 0.2,
         placement: 'corner',
         avoidPlayerSpawn: true,
@@ -86,13 +105,21 @@ export const RoomTemplateDefinitions: Record<string, RoomTemplate> = {
     },
     tags: ['basic', 'common'],
     rarity: 'common',
+    placement: {
+      depthScaling: {
+        startFloor: 1,
+        endFloor: 10,
+        weightMultiplier: 0.5, // Becomes less common deeper
+      },
+    },
   },
 
   // Combat-focused rooms
-  combat_room: {
-    id: 'combat_room',
+  [RoomTypeID.Combat]: {
+    id: RoomTypeID.Combat,
     name: 'Combat Arena',
     description: 'Room designed for challenging combat encounters',
+    category: 'basic', // Combat rooms are basic filler
     type: 'normal',
     minSize: { width: 8, height: 8 },
     maxSize: { width: 20, height: 20 },
@@ -105,7 +132,7 @@ export const RoomTemplateDefinitions: Record<string, RoomTemplate> = {
     },
     interactables: [
       {
-        type: 'trap',
+        type: InteractableID.TRAP,
         probability: 0.4,
         minCount: 1,
         maxCount: 3,
@@ -118,13 +145,24 @@ export const RoomTemplateDefinitions: Record<string, RoomTemplate> = {
     },
     tags: ['combat', 'dangerous'],
     rarity: 'uncommon',
+    placement: {
+      depthScaling: {
+        startFloor: 1,
+        endFloor: 10,
+        weightMultiplier: 2.0, // Becomes more common deeper
+      },
+      biomeWeights: {
+        'krampus_lair': 1.5, // More combat in Krampus Lair
+      },
+    },
   },
 
   // Treasure rooms
-  treasure_room: {
-    id: 'treasure_room',
+  [RoomTypeID.Treasure]: {
+    id: RoomTypeID.Treasure,
     name: 'Treasure Vault',
     description: 'Room filled with valuable loot, but well guarded',
+    category: 'special',
     type: 'treasure',
     minSize: { width: 6, height: 6 },
     maxSize: { width: 12, height: 12 },
@@ -137,14 +175,14 @@ export const RoomTemplateDefinitions: Record<string, RoomTemplate> = {
     },
     interactables: [
       {
-        type: 'chest',
+        type: InteractableID.CHEST,
         probability: 0.8,
         minCount: 2,
         maxCount: 4,
         placement: 'wall',
       },
       {
-        type: 'present_chest',
+        type: InteractableID.PresentChest,
         probability: 0.6,
         minCount: 1,
         maxCount: 2,
@@ -164,10 +202,11 @@ export const RoomTemplateDefinitions: Record<string, RoomTemplate> = {
   },
 
   // Boss rooms
-  boss_room: {
-    id: 'boss_room',
+  [RoomTypeID.Boss]: {
+    id: RoomTypeID.Boss,
     name: 'Boss Chamber',
     description: 'Large chamber for epic boss encounters',
+    category: 'special',
     type: 'boss',
     minSize: { width: 12, height: 12 },
     maxSize: { width: 25, height: 25 },
@@ -180,12 +219,12 @@ export const RoomTemplateDefinitions: Record<string, RoomTemplate> = {
     },
     interactables: [
       {
-        type: 'altar',
+        type: InteractableID.ALTAR,
         probability: 0.5,
         placement: 'center',
       },
       {
-        type: 'boss_chest',
+        type: InteractableID.BOSS_CHEST,
         probability: 1.0,
         placement: 'wall',
       },
@@ -206,10 +245,11 @@ export const RoomTemplateDefinitions: Record<string, RoomTemplate> = {
   },
 
   // Safe rooms
-  safe_room: {
-    id: 'safe_room',
+  [RoomTypeID.Safe]: {
+    id: RoomTypeID.Safe,
     name: 'Sanctuary',
     description: 'Peaceful room with no enemies and healing items',
+    category: 'flavor',
     type: 'safe',
     minSize: { width: 4, height: 4 },
     maxSize: { width: 8, height: 8 },
@@ -218,12 +258,12 @@ export const RoomTemplateDefinitions: Record<string, RoomTemplate> = {
     },
     interactables: [
       {
-        type: 'fireplace',
+        type: InteractableID.Fireplace,
         probability: 0.8,
         placement: 'wall',
       },
       {
-        type: 'bookshelf',
+        type: InteractableID.Bookshelf,
         probability: 0.4,
         minCount: 1,
         maxCount: 2,
@@ -233,7 +273,7 @@ export const RoomTemplateDefinitions: Record<string, RoomTemplate> = {
     loot: {
       itemProbability: 0.6,
       guaranteedItems: [
-        { itemId: 'hot_cocoa', count: 1 },
+        { itemId: ItemID.HotCocoa, count: 1 },
       ],
     },
     tags: ['safe', 'healing', 'peaceful'],
@@ -244,10 +284,11 @@ export const RoomTemplateDefinitions: Record<string, RoomTemplate> = {
   },
 
   // Ambush rooms
-  ambush_room: {
-    id: 'ambush_room',
+  [RoomTypeID.Ambush]: {
+    id: RoomTypeID.Ambush,
     name: 'Ambush Point',
     description: 'Seemingly empty room that spawns enemies when entered',
+    category: 'special',
     type: 'ambush',
     minSize: { width: 6, height: 6 },
     maxSize: { width: 14, height: 14 },
@@ -260,12 +301,12 @@ export const RoomTemplateDefinitions: Record<string, RoomTemplate> = {
     },
     interactables: [
       {
-        type: 'hidden_door',
+        type: InteractableID.HIDDEN_DOOR,
         probability: 0.3,
         placement: 'wall',
       },
       {
-        type: 'trigger_plate',
+        type: InteractableID.TRIGGER_PLATE,
         probability: 0.7,
         placement: 'center',
       },
@@ -278,10 +319,11 @@ export const RoomTemplateDefinitions: Record<string, RoomTemplate> = {
   },
 
   // Puzzle rooms
-  puzzle_room: {
-    id: 'puzzle_room',
+  [RoomTypeID.Puzzle]: {
+    id: RoomTypeID.Puzzle,
     name: 'Puzzle Chamber',
     description: 'Room with interactive puzzles and mechanisms',
+    category: 'special',
     type: 'puzzle',
     minSize: { width: 8, height: 8 },
     maxSize: { width: 16, height: 16 },
@@ -290,21 +332,21 @@ export const RoomTemplateDefinitions: Record<string, RoomTemplate> = {
     },
     interactables: [
       {
-        type: 'lever',
+        type: InteractableID.LEVER,
         probability: 0.8,
         minCount: 2,
         maxCount: 4,
         placement: 'wall',
       },
       {
-        type: 'pressure_plate',
+        type: InteractableID.PRESSURE_PLATE,
         probability: 0.6,
         minCount: 1,
         maxCount: 3,
         placement: 'floor',
       },
       {
-        type: 'puzzle_chest',
+        type: InteractableID.PUZZLE_CHEST,
         probability: 0.7,
         placement: 'center',
       },
@@ -321,10 +363,11 @@ export const RoomTemplateDefinitions: Record<string, RoomTemplate> = {
   },
 
   // Special holiday-themed rooms
-  workshop_room: {
-    id: 'workshop_room',
+  [RoomTypeID.Workshop]: {
+    id: RoomTypeID.Workshop,
     name: 'Santa\'s Workshop',
     description: 'Abandoned workshop with crafting materials and elven tools',
+    category: 'special',
     type: 'treasure',
     minSize: { width: 10, height: 8 },
     maxSize: { width: 18, height: 14 },
@@ -333,17 +376,17 @@ export const RoomTemplateDefinitions: Record<string, RoomTemplate> = {
     },
     interactables: [
       {
-        type: 'anvil',
+        type: InteractableID.Anvil,
         probability: 0.9,
         placement: 'center',
       },
       {
-        type: 'sleigh_station',
+        type: InteractableID.SleighStation,
         probability: 0.7,
         placement: 'wall',
       },
       {
-        type: 'christmas_tree',
+        type: InteractableID.ChristmasTree,
         probability: 0.8,
         placement: 'corner',
       },
@@ -352,7 +395,7 @@ export const RoomTemplateDefinitions: Record<string, RoomTemplate> = {
       itemProbability: 0.9,
       tableId: LootTableID.CRAFTING_LOOT,
       guaranteedItems: [
-        { itemId: 'holiday_hammer', count: 1 },
+        { itemId: ItemID.HolidayHammer, count: 1 },
       ],
     },
     tags: ['holiday', 'workshop', 'crafting'],
@@ -361,11 +404,126 @@ export const RoomTemplateDefinitions: Record<string, RoomTemplate> = {
       minFloor: 2,
       maxFloor: 8,
     },
+    placement: {
+      biomeWeights: {
+        'snowy_village': 2.0, // Very likely in village
+      },
+    },
     theme: {
       temperature: 'warm',
       preferredTerrain: ['WoodFloor'],
     },
   },
+  
+  [RoomTypeID.Entrance]: {
+    id: RoomTypeID.Entrance,
+    name: 'Dungeon Entrance',
+    description: 'The starting point of the floor.',
+    category: 'special',
+    type: 'safe',
+    minSize: { width: 6, height: 6 },
+    maxSize: { width: 10, height: 10 },
+    spawns: { spawnDensity: 'low' },
+    interactables: [],
+    loot: { itemProbability: 0 },
+    tags: ['entrance', 'safe'],
+    rarity: 'common'
+  },
+  
+  [RoomTypeID.Exit]: {
+    id: RoomTypeID.Exit,
+    name: 'Dungeon Exit',
+    description: 'The way to the next floor.',
+    category: 'special',
+    type: 'safe',
+    minSize: { width: 6, height: 6 },
+    maxSize: { width: 10, height: 10 },
+    spawns: { spawnDensity: 'low' },
+    interactables: [],
+    loot: { itemProbability: 0 },
+    tags: ['exit', 'safe'],
+    rarity: 'common'
+  },
+
+  [RoomTypeID.Shop]: {
+    id: RoomTypeID.Shop,
+    name: 'Goblin Shop',
+    description: 'A safe place to trade wares.',
+    category: 'flavor',
+    type: 'shop',
+    minSize: { width: 8, height: 8 },
+    maxSize: { width: 12, height: 12 },
+    spawns: { spawnDensity: 'low' },
+    interactables: [],
+    loot: { itemProbability: 0 },
+    tags: ['shop', 'safe', 'merchant'],
+    rarity: 'uncommon'
+  },
+
+  [RoomTypeID.Library]: {
+    id: RoomTypeID.Library,
+    name: 'Ancient Library',
+    description: 'Filled with old books and scrolls.',
+    category: 'flavor',
+    type: 'normal',
+    minSize: { width: 8, height: 8 },
+    maxSize: { width: 14, height: 14 },
+    spawns: { spawnDensity: 'medium' },
+    interactables: [{ type: InteractableID.Bookshelf, probability: 0.8, placement: 'wall', minCount: 3, maxCount: 8 }],
+    loot: { itemProbability: 0.4 },
+    tags: ['library', 'knowledge'],
+    rarity: 'uncommon',
+  },
+
+  [RoomTypeID.Armory]: {
+    id: RoomTypeID.Armory,
+    name: 'Old Armory',
+    description: 'Racks of weapons and armor line the walls.',
+    category: 'flavor',
+    type: 'normal',
+    minSize: { width: 8, height: 8 },
+    maxSize: { width: 14, height: 14 },
+    spawns: { spawnDensity: 'high' },
+    interactables: [],
+    loot: { itemProbability: 0.6, tableId: LootTableID.COMBAT_LOOT },
+    tags: ['armory', 'weapons'],
+    rarity: 'uncommon',
+    placement: {
+      biomeWeights: {
+        'frozen_depths': 1.2,
+      },
+    },
+  },
+
+  [RoomTypeID.Kitchen]: {
+    id: RoomTypeID.Kitchen,
+    name: 'Mess Hall',
+    description: 'Where the dungeon denizens eat.',
+    category: 'flavor',
+    type: 'normal',
+    minSize: { width: 8, height: 8 },
+    maxSize: { width: 14, height: 14 },
+    spawns: { spawnDensity: 'medium' },
+    interactables: [{ type: InteractableID.Table, probability: 0.8, placement: 'center', minCount: 2, maxCount: 4 }],
+    loot: { itemProbability: 0.5 },
+    tags: ['kitchen', 'food'],
+    rarity: 'common',
+  },
+
+  [RoomTypeID.Bedroom]: {
+    id: RoomTypeID.Bedroom,
+    name: 'Barracks',
+    description: 'Sleeping quarters for guards.',
+    category: 'flavor',
+    type: 'normal',
+    minSize: { width: 8, height: 8 },
+    maxSize: { width: 14, height: 14 },
+    spawns: { spawnDensity: 'high' },
+    interactables: [{ type: InteractableID.Bed, probability: 0.8, placement: 'wall', minCount: 4, maxCount: 8 }],
+    loot: { itemProbability: 0.3 },
+    tags: ['bedroom', 'sleep'],
+    rarity: 'common',
+  }
 };
 
 // Room generation constraints and rules
@@ -378,33 +536,39 @@ export const RoomGenerationRules = {
   
   // Required room types per floor
   requiredRoomTypes: {
-    1: ['safe_room'], // Floor 1 always has a safe room
-    5: ['boss_room'], // Floor 5 has boss
-    10: ['boss_room', 'workshop_room'], // Floor 10 has multiple special rooms
+    1: [RoomTypeID.Safe], // Floor 1 always has a safe room
+    5: [RoomTypeID.Boss], // Floor 5 has boss
+    10: [RoomTypeID.Boss, RoomTypeID.Workshop], // Floor 10 has multiple special rooms
   },
   
   // Room type distribution by floor ranges
   floorDistribution: {
     early: { // Floors 1-3
-      basic_room: 0.6,
-      safe_room: 0.2,
-      combat_room: 0.1,
-      treasure_room: 0.1,
+      [RoomTypeID.Basic]: 0.4,
+      [RoomTypeID.Safe]: 0.15,
+      [RoomTypeID.Combat]: 0.15,
+      [RoomTypeID.Treasure]: 0.1,
+      [RoomTypeID.Kitchen]: 0.1,
+      [RoomTypeID.Bedroom]: 0.1,
     },
     mid: { // Floors 4-7
-      basic_room: 0.4,
-      combat_room: 0.3,
-      treasure_room: 0.15,
-      puzzle_room: 0.1,
-      ambush_room: 0.05,
+      [RoomTypeID.Basic]: 0.3,
+      [RoomTypeID.Combat]: 0.25,
+      [RoomTypeID.Treasure]: 0.15,
+      [RoomTypeID.Puzzle]: 0.1,
+      [RoomTypeID.Ambush]: 0.05,
+      [RoomTypeID.Library]: 0.05,
+      [RoomTypeID.Armory]: 0.05,
+      [RoomTypeID.Shop]: 0.05,
     },
     late: { // Floors 8+
-      combat_room: 0.4,
-      treasure_room: 0.2,
-      boss_room: 0.1,
-      puzzle_room: 0.15,
-      ambush_room: 0.1,
-      workshop_room: 0.05,
+      [RoomTypeID.Combat]: 0.35,
+      [RoomTypeID.Treasure]: 0.2,
+      [RoomTypeID.Boss]: 0.1,
+      [RoomTypeID.Puzzle]: 0.15,
+      [RoomTypeID.Ambush]: 0.1,
+      [RoomTypeID.Workshop]: 0.05,
+      [RoomTypeID.Library]: 0.05,
     },
   },
 } as const;

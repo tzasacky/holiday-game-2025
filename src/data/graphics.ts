@@ -150,61 +150,36 @@ export class GraphicsManager {
     
     
     public getItemSprite(itemId: string): ex.Graphic {
-        console.log(`[GraphicsManager] getItemSprite called for: ${itemId}`);
-        
         const definition = ItemDefinitions[itemId as ItemID];
         if (!definition) {
-            console.error(`[GraphicsManager] ❌ No definition for item: ${itemId}`);
             Logger.warn(`[GraphicsManager] No definition for item: ${itemId}`);
             return new ex.Rectangle({ width: 32, height: 32, color: ex.Color.Magenta });
         }
         
-        console.log(`[GraphicsManager] ✓ Found definition for ${definition.name}`);
         const { spriteIndex, resource } = definition.graphics;
-        console.log(`[GraphicsManager]   - spriteIndex: ${spriteIndex}`);
-        console.log(`[GraphicsManager]   - resource: ${resource?.path || 'undefined'}`);
-        console.log(`[GraphicsManager]   - resource.isLoaded(): ${resource?.isLoaded() || 'N/A'}`);
         
         if (resource && spriteIndex !== undefined) {
             if (!resource.isLoaded()) {
-                console.error(`[GraphicsManager] ❌ Resource NOT loaded: ${resource.path}`);
-                console.error(`[GraphicsManager]   Resource state:`, {
-                    path: resource.path,
-                    isLoaded: resource.isLoaded(),
-                    data: resource.data ? 'exists' : 'null'
-                });
+                Logger.error(`[GraphicsManager] Resource NOT loaded: ${resource.path}`);
                 return new ex.Rectangle({ width: 32, height: 32, color: ex.Color.Red });
             }
             
-            console.log(`[GraphicsManager] ✓ Resource loaded, creating sprite sheet`);
             const sheet = this.getItemSpriteSheet(resource);
             const col = spriteIndex % 8;
             const row = Math.floor(spriteIndex / 8);
-            console.log(`[GraphicsManager]   - Grid position: (${col}, ${row})`);
             
             const sprite = sheet.getSprite(col, row);
             
             if (sprite) {
-                console.log(`[GraphicsManager] ✓ Sprite retrieved successfully for ${definition.name}`);
                 return sprite;
             }
             
-            console.error(`[GraphicsManager] ❌ Sprite not found at (${col}, ${row}) for ${itemId}`);
-            console.error(`[GraphicsManager]   Sprite sheet info:`, {
-                columns: sheet.columns,
-                rows: sheet.rows,
-                totalSprites: sheet.sprites.length
-            });
             Logger.warn(`[GraphicsManager] Sprite not found for item ${itemId} at index ${spriteIndex}`);
         } else {
-            console.error(`[GraphicsManager] ❌ Missing graphics config:`, {
-                hasResource: !!resource,
-                spriteIndex: spriteIndex
-            });
+            Logger.warn(`[GraphicsManager] Missing graphics config for ${itemId}`);
         }
         
         // Fallback
-        console.warn(`[GraphicsManager] ⚠ Returning fallback graphic for ${itemId}`);
         return new ex.Rectangle({ width: 32, height: 32, color: ex.Color.Magenta });
     }
 }

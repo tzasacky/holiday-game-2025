@@ -3,6 +3,8 @@ import { GameEventNames } from '../core/GameEvents';
 import { ItemEntity } from '../factories/ItemFactory';
 import { GameActor } from '../components/GameActor';
 import { EnchantmentSystem } from './EnchantmentSystem';
+import { Enchantment, Curse } from '../data/enchantments';
+import { ItemStats } from '../data/items';
 import { Logger } from '../core/Logger';
 
 export class EquipmentSystem {
@@ -31,25 +33,27 @@ export class EquipmentSystem {
     
     // Centralized logic for equipment stats and effects
     
-    public static calculateFinalStats(item: ItemEntity): any {
-        const finalStats: any = { ...item.definition.stats };
+    public static calculateFinalStats(item: ItemEntity): ItemStats {
+        const finalStats: ItemStats = { ...item.definition.stats };
         
         // Apply enchantments (only if identified)
         if (item.identified && item.enchantments.length > 0) {
-            item.enchantments.forEach((enchantment: any) => {
+            item.enchantments.forEach((enchantment: Enchantment) => {
                 Object.keys(finalStats).forEach(stat => {
-                    const baseValue = finalStats[stat] || 0;
-                    finalStats[stat] = EnchantmentSystem.getEnchantmentEffect(enchantment, baseValue);
+                    const key = stat as keyof ItemStats;
+                    const baseValue = finalStats[key] || 0;
+                    finalStats[key] = EnchantmentSystem.getEnchantmentEffect(enchantment, baseValue);
                 });
             });
         }
         
         // Apply curses (only if identified)
         if (item.identified && item.curses.length > 0) {
-            item.curses.forEach((curse: any) => {
+            item.curses.forEach((curse: Curse) => {
                 Object.keys(finalStats).forEach(stat => {
-                    const baseValue = finalStats[stat] || 0;
-                    finalStats[stat] = EnchantmentSystem.getCurseEffect(curse, baseValue);
+                    const key = stat as keyof ItemStats;
+                    const baseValue = finalStats[key] || 0;
+                    finalStats[key] = EnchantmentSystem.getCurseEffect(curse, baseValue);
                 });
             });
         }
@@ -65,14 +69,14 @@ export class EquipmentSystem {
         
         if (item.enchantments.length > 0) {
             Logger.info('Enchantments discovered:');
-            item.enchantments.forEach((ench: any) => {
+            item.enchantments.forEach((ench: Enchantment) => {
                 Logger.info(`- ${ench.name}: ${ench.description}`);
             });
         }
         
         if (item.curses.length > 0) {
             Logger.info('CURSES revealed:');
-            item.curses.forEach((curse: any) => {
+            item.curses.forEach((curse: Curse) => {
                 Logger.info(`- ${curse.name}: ${curse.description}`);
             });
             Logger.warn('WARNING: This cursed item may have negative effects!');
@@ -88,7 +92,7 @@ export class EquipmentSystem {
         
         // Add enchantment prefixes/suffixes
         if (item.enchantments.length > 0) {
-            const primaryEnchant = item.enchantments[0] as any;
+            const primaryEnchant = item.enchantments[0] as Enchantment;
             displayName = `${primaryEnchant.name} ${displayName}`;
         }
         
@@ -129,14 +133,14 @@ export class EquipmentSystem {
             
             if (item.enchantments.length > 0) {
                 tooltip += '\n\nEnchantments:';
-                item.enchantments.forEach((ench: any) => {
+                item.enchantments.forEach((ench: Enchantment) => {
                     tooltip += `\n• ${ench.name}: ${ench.description}`;
                 });
             }
             
             if (item.curses.length > 0) {
                 tooltip += '\n\nCurses:';
-                item.curses.forEach((curse: any) => {
+                item.curses.forEach((curse: Curse) => {
                     tooltip += `\n• ${curse.name}: ${curse.description}`;
                 });
                 tooltip += '\n\n⚠️ CURSED - May have negative effects!';

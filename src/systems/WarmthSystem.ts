@@ -1,6 +1,10 @@
 import { GameActor } from '../components/GameActor';
 import { DamageType } from '../data/mechanics';
 import { DataManager } from '../core/DataManager';
+import { CombatComponent } from '../components/CombatComponent';
+import { ProgressionRule } from '../data/mechanics';
+import { EventBus } from '../core/EventBus';
+import { GameEventNames, DamageEvent } from '../core/GameEvents';
 
 export class WarmthSystem {
     private static _instance: WarmthSystem;
@@ -18,7 +22,7 @@ export class WarmthSystem {
 
         // Get configuration from DataManager
         const difficulty = DataManager.instance.query<any>('difficulty', 'warmthDecayRate') || 1;
-        const progression = DataManager.instance.query<any>('progression_rules', 'warmth_decay_scaling');
+        const progression = DataManager.instance.query<ProgressionRule>('progression_rules', 'warmth_decay_scaling');
         
         // Calculate decay
         let decay = difficulty;
@@ -35,12 +39,18 @@ export class WarmthSystem {
 
         // Check for freezing damage
         if (newWarmth <= 0) {
-            const combat = actor.getGameComponent('combat');
+            const combat = actor.getGameComponent('combat') as CombatComponent;
             if (combat) {
                 // Assuming combat component has takeDamage, otherwise we need another way
                 // But GameActor doesn't expose takeDamage directly in the new interface
                 // We'll cast to any for now as per the pattern in GameActor getters
-                (combat as any).takeDamage(1, DamageType.Ice);
+                // Emit damage event
+                EventBus.instance.emit(GameEventNames.Damage, new DamageEvent(
+                    actor,
+                    1,
+                    DamageType.Ice,
+                    undefined // No source actor
+                ));
             }
         }
     }

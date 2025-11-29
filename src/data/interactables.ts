@@ -18,7 +18,7 @@ export enum InteractableType {
 
 export interface InteractableGraphics {
     resource: ex.ImageSource;
-    spriteIndex?: number;
+    spriteCoords?: { x: number, y: number }; // 2D coordinates in sprite sheet
     animation?: string;
     fallbackColor?: ex.Color;
 }
@@ -28,6 +28,9 @@ export interface InteractableEffect {
     value?: number;
     target?: 'self' | 'actor' | 'area';
     condition?: string;
+    magnitude?: number;
+    duration?: number;
+    chance?: number;
 }
 
 export interface InteractableLoot {
@@ -78,12 +81,13 @@ export const InteractableDefinitions: Record<string, InteractableDefinition> = {
         type: InteractableType.DOOR,
         graphics: { 
             resource: Resources.CommonTilesPng,
+            spriteCoords: { x: 0, y: 0 }, // Closed
             fallbackColor: ex.Color.fromHex('#8B4513')
         },
         description: 'A wooden door that can be opened or closed',
         blocking: true,
         effects: [
-            { type: 'toggle_passage', target: 'self' }
+            { type: EffectID.TogglePassage, target: 'self' }
         ],
         tags: [InteractableID.Door, 'passage']
     },
@@ -94,13 +98,14 @@ export const InteractableDefinitions: Record<string, InteractableDefinition> = {
         type: InteractableType.DOOR,
         graphics: {
             resource: Resources.CommonTilesPng,
+            spriteCoords: { x: 2, y: 0 }, // Closed
             fallbackColor: ex.Color.fromHex('#FFD700')
         },
         description: 'A sturdy door secured with a lock',
         blocking: true,
         requiresKey: ItemID.ChristmasKey,
         effects: [
-            { type: 'unlock_and_open', target: 'self' }
+            { type: EffectID.UnlockAndOpen, target: 'self' }
         ],
         tags: [InteractableID.Door, 'locked', 'requires_key']
     },
@@ -111,6 +116,7 @@ export const InteractableDefinitions: Record<string, InteractableDefinition> = {
         type: InteractableType.CONTAINER,
         graphics: {
             resource: Resources.CommonDecorPng,
+            spriteCoords: { x: 4, y: 3 }, // Red Gift Box
             fallbackColor: ex.Color.fromHex('#FF0000')
         },
         description: 'A festive chest wrapped like a present. Who knows what treasures await inside?',
@@ -133,6 +139,7 @@ export const InteractableDefinitions: Record<string, InteractableDefinition> = {
         type: InteractableType.CONTAINER,
         graphics: {
             resource: Resources.CommonDecorPng,
+            spriteCoords: { x: 3, y: 3 }, // Stocking
             fallbackColor: ex.Color.fromHex('#FF6666')
         },
         description: 'A Christmas stocking hanging by the fireplace',
@@ -152,14 +159,15 @@ export const InteractableDefinitions: Record<string, InteractableDefinition> = {
         type: InteractableType.DECORATIVE,
         graphics: {
             resource: Resources.CommonDecorPng,
+            spriteCoords: { x: 0, y: 3 }, // Christmas Tree
             fallbackColor: ex.Color.fromHex('#00AA00')
         },
         description: 'A beautifully decorated Christmas tree emanating warmth and joy',
         warmthGeneration: 5,
         lightRadius: 2,
         effects: [
-            { type: 'restore_warmth', value: 20, target: 'actor' },
-            { type: 'christmas_blessing', value: 1, target: 'actor' }
+            { type: EffectID.WarmthRestore, value: 20, target: 'actor' },
+            { type: EffectID.ChristmasBlessing, value: 1, target: 'actor' }
         ],
         cooldownTurns: 10,
         tags: ['decorative', 'warmth', 'festive', 'blessing']
@@ -171,14 +179,15 @@ export const InteractableDefinitions: Record<string, InteractableDefinition> = {
         type: InteractableType.FUNCTIONAL,
         graphics: {
             resource: Resources.CommonDecorPng,
+            spriteCoords: { x: 7, y: 2 }, // Fireplace (Lit)
             fallbackColor: ex.Color.fromHex('#FF4500')
         },
         description: 'A roaring fireplace that provides warmth and light',
         warmthGeneration: 15,
         lightRadius: 3,
         effects: [
-            { type: 'restore_warmth', value: 50, target: 'actor' },
-            { type: 'dry_equipment', target: 'actor' }
+            { type: EffectID.WarmthRestore, value: 50, target: 'actor' },
+            { type: EffectID.DryEquipment, target: 'actor' }
         ],
         tags: ['warmth', 'light', EffectID.Fire, 'functional']
     },
@@ -189,6 +198,7 @@ export const InteractableDefinitions: Record<string, InteractableDefinition> = {
         type: InteractableType.FUNCTIONAL,
         graphics: {
             resource: Resources.CommonDecorPng,
+            spriteCoords: { x: 6, y: 1 }, // Bookshelf
             fallbackColor: ex.Color.fromHex('#8B4513')
         },
         description: 'A shelf filled with ancient tomes and scrolls',
@@ -199,7 +209,7 @@ export const InteractableDefinitions: Record<string, InteractableDefinition> = {
             { itemId: ItemID.ScrollOfEnchantment, chance: 30 }
         ],
         effects: [
-            { type: 'grant_knowledge', value: 1, target: 'actor' }
+            { type: EffectID.GrantKnowledge, value: 1, target: 'actor' }
         ],
         useLimit: 1,
         tags: ['knowledge', 'scrolls', 'magic', 'functional']
@@ -211,12 +221,13 @@ export const InteractableDefinitions: Record<string, InteractableDefinition> = {
         type: InteractableType.CRAFTING,
         graphics: {
             resource: Resources.CommonDecorPng,
+            spriteCoords: { x: 4, y: 0 }, // Crate as placeholder? No anvil in list. Using Crate for now.
             fallbackColor: ex.Color.fromHex('#555555')
         },
         description: 'A sturdy anvil for forging and repairing equipment',
         effects: [
-            { type: 'open_smithing_interface', target: 'actor' },
-            { type: 'repair_equipment', target: 'actor' }
+            { type: EffectID.OpenSmithing, target: 'actor' },
+            { type: EffectID.RepairEquipment, target: 'actor' }
         ],
         tags: ['crafting', 'smithing', 'repair', 'functional']
     },
@@ -227,12 +238,13 @@ export const InteractableDefinitions: Record<string, InteractableDefinition> = {
         type: InteractableType.CRAFTING,
         graphics: {
             resource: Resources.CommonDecorPng,
+            spriteCoords: { x: 7, y: 0 }, // Pot/Vase
             fallbackColor: ex.Color.fromHex('#800080')
         },
         description: 'A bubbling cauldron perfect for brewing potions',
         effects: [
-            { type: 'open_alchemy_interface', target: 'actor' },
-            { type: 'brew_potions', target: 'actor' }
+            { type: EffectID.OpenAlchemy, target: 'actor' },
+            { type: EffectID.BrewPotions, target: 'actor' }
         ],
         lightRadius: 1,
         tags: ['crafting', 'alchemy', 'potions', 'magical']
@@ -244,12 +256,13 @@ export const InteractableDefinitions: Record<string, InteractableDefinition> = {
         type: InteractableType.PORTAL,
         graphics: {
             resource: Resources.CommonDecorPng,
+            spriteCoords: { x: 4, y: 1 }, // Chair as placeholder? No sleigh.
             fallbackColor: ex.Color.fromHex('#FFD700')
         },
         description: 'A magical sleigh that can transport you between floors',
         effects: [
-            { type: 'floor_travel', target: 'actor' },
-            { type: 'save_progress', target: 'actor' }
+            { type: EffectID.FloorTravel, target: 'actor' },
+            { type: EffectID.SaveProgress, target: 'actor' }
         ],
         tags: ['portal', 'travel', 'sleigh', 'magical']
     },
@@ -259,14 +272,15 @@ export const InteractableDefinitions: Record<string, InteractableDefinition> = {
         name: 'Secret Door',
         type: InteractableType.DOOR,
         graphics: {
-            resource: Resources.CommonDecorPng,
+            resource: Resources.CommonTilesPng,
+            spriteCoords: { x: 0, y: 2 }, // Log Cabin Wall (looks like wall)
             fallbackColor: ex.Color.fromHex('#654321')
         },
         description: 'A hidden passage disguised as a wall',
         blocking: true,
         effects: [
-            { type: 'reveal_and_open', target: 'self' },
-            { type: 'grant_discovery_bonus', target: 'actor' }
+            { type: EffectID.RevealAndOpen, target: 'self' },
+            { type: EffectID.GrantDiscovery, target: 'actor' }
         ],
         tags: [InteractableID.Door, 'secret', 'hidden', 'discovery']
     },
@@ -276,7 +290,8 @@ export const InteractableDefinitions: Record<string, InteractableDefinition> = {
         name: 'Cracked Wall',
         type: InteractableType.TRAP,
         graphics: {
-            resource: Resources.CommonDecorPng,
+            resource: Resources.CommonTilesPng,
+            spriteCoords: { x: 0, y: 2 }, // Log Cabin Wall
             fallbackColor: ex.Color.fromHex('#666666')
         },
         description: 'A weakened wall that can be broken through with enough force',
@@ -291,19 +306,58 @@ export const InteractableDefinitions: Record<string, InteractableDefinition> = {
         tags: ['destructible', 'wall', 'obstacle', 'breakable']
     },
 
-    stairs_down: {
-        id: 'stairs_down',
+    [InteractableID.StairsDown]: {
+        id: InteractableID.StairsDown,
         name: 'Stairs Down',
         type: InteractableType.PORTAL,
         graphics: {
             resource: Resources.CommonTilesPng,
+            spriteCoords: { x: 1, y: 1 }, // Stairs Down (Stone)
             fallbackColor: ex.Color.fromHex('#8B4513')
         },
         description: 'A staircase leading to the next floor',
         effects: [
-            { type: 'level_transition', value: 1, target: 'actor' }
+            { type: EffectID.LevelTransition, value: 1, target: 'actor' }
         ],
         tags: ['stairs', 'portal', 'level_transition', 'descent']
+    },
+
+    [InteractableID.StairsUp]: {
+        id: InteractableID.StairsUp,
+        name: 'Stairs Up',
+        type: InteractableType.PORTAL,
+        graphics: {
+            resource: Resources.CommonTilesPng,
+            spriteCoords: { x: 0, y: 1 }, // Stairs Up (Stone)
+            fallbackColor: ex.Color.fromHex('#8B4513')
+        },
+        description: 'A staircase leading back to the previous floor',
+        effects: [
+            { type: EffectID.LevelTransition, value: -1, target: 'actor' }
+        ],
+        tags: ['stairs', 'portal', 'level_transition', 'ascent']
+    },
+
+    'trigger_plate': {
+        id: 'trigger_plate',
+        name: 'Pressure Plate',
+        type: InteractableType.TRAP,
+        graphics: {
+            resource: Resources.CommonTilesPng, // Assuming it's in common tiles or use a fallback
+            spriteCoords: { x: 7, y: 2 }, // Placeholder coords, check tileset
+            fallbackColor: ex.Color.DarkGray
+        },
+        description: 'A suspicious plate on the floor.',
+        blocking: false,
+        effects: [
+            {
+                type: EffectID.TrapSpike,
+                magnitude: 10,
+                duration: 0,
+                chance: 1.0
+            }
+        ],
+        tags: ['trap', 'trigger', 'plate']
     },
 
     chasm: {
@@ -317,8 +371,8 @@ export const InteractableDefinitions: Record<string, InteractableDefinition> = {
         description: 'A deep chasm. Falling in would be dangerous.',
         blocking: false, // Can walk into it but triggers effects
         effects: [
-            { type: 'fall_damage', value: 20, target: 'actor' },
-            { type: 'level_transition', value: 1, target: 'actor' }
+            { type: EffectID.FallDamage, value: 20, target: 'actor' },
+            { type: EffectID.LevelTransition, value: 1, target: 'actor' }
         ],
         tags: ['chasm', 'trap', 'fall', 'dangerous']
     },
@@ -329,6 +383,7 @@ export const InteractableDefinitions: Record<string, InteractableDefinition> = {
         type: InteractableType.CONTAINER,
         graphics: {
             resource: Resources.CommonDecorPng,
+            spriteCoords: { x: 0, y: 0 }, // Chest (Wood, Closed)
             fallbackColor: ex.Color.fromHex('#8B4513')
         },
         description: 'A wooden chest that might contain treasure',
@@ -348,6 +403,7 @@ export const InteractableDefinitions: Record<string, InteractableDefinition> = {
         type: InteractableType.CONTAINER,
         graphics: {
             resource: Resources.CommonDecorPng,
+            spriteCoords: { x: 2, y: 0 }, // Chest (Gold, Closed)
             fallbackColor: ex.Color.fromHex('#FFD700')
         },
         description: 'A gilded chest containing valuable treasures',

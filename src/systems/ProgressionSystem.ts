@@ -1,4 +1,5 @@
 import { GameActor } from '../components/GameActor';
+import { StatsComponent } from '../components/StatsComponent';
 import { EventBus } from '../core/EventBus';
 import { GameEventNames, LevelUpEvent, XpGainEvent } from '../core/GameEvents';
 import { Logger } from '../core/Logger';
@@ -14,7 +15,7 @@ export class ProgressionSystem {
     }
 
     public addXp(actor: GameActor, amount: number) {
-        const stats = actor.getGameComponent('stats') as any;
+        const stats = actor.getGameComponent('stats') as StatsComponent;
         if (!stats) return;
 
         const currentXp = stats.getStat('xp') || 0;
@@ -32,7 +33,7 @@ export class ProgressionSystem {
     }
 
     public levelUp(actor: GameActor) {
-        const stats = actor.getGameComponent('stats') as any;
+        const stats = actor.getGameComponent('stats') as StatsComponent;
         if (!stats) return;
 
         const currentLevel = stats.getStat('level') || 1;

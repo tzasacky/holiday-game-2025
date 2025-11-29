@@ -3,6 +3,7 @@ import { EventBus } from '../core/EventBus';
 import { Logger } from '../core/Logger';
 import { GameEventNames, MovementEvent } from '../core/GameEvents';
 import { Level } from '../dungeon/Level';
+import { GameScene } from '../scenes/GameScene';
 import { GameActor } from '../components/GameActor';
 import { TerrainType, TerrainDefinitions } from '../data/terrain';
 import { InteractableType } from '../data/interactables';
@@ -43,7 +44,7 @@ export class MovementProcessor {
         const { actor, from, to } = event;
 
         // Get level from actor's scene
-        const scene = actor.scene as any;
+        const scene = actor.scene as unknown as GameScene; 
         const level = scene?.level as Level;
 
         if (!level) {
@@ -119,9 +120,11 @@ export class MovementProcessor {
         }
 
         // Check all doors for auto-close behavior
-        for (const entity of level.scene.entities) {
-            if ((entity as any).definition?.type === InteractableType.DOOR) {
-                this.handleDoorAutoClose(entity as any, actor, from, to);
+        // Check all doors for auto-close behavior
+        // Use level.interactables directly instead of scene entities for safety
+        for (const entity of level.interactables) {
+            if (entity.definition?.type === InteractableType.DOOR) {
+                this.handleDoorAutoClose(entity, actor, from, to);
             }
         }
     }
@@ -154,7 +157,7 @@ export class MovementProcessor {
                     target: actor,
                     amount: effect.value || 1,
                     damageType: effect.damageType || 'environmental',
-                    source: `${TerrainType[terrainType]} terrain`
+                    source: `${terrainType} terrain`
                 });
                 break;
 

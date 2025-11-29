@@ -3,12 +3,14 @@ import { ItemEntity, ItemFactory } from '../factories/ItemFactory';
 import { GameEventNames, InventoryAddStartingItemsEvent, ItemPickupAttemptEvent, ItemPickupResultEvent, InventoryChangeEvent } from '../core/GameEvents';
 import { EventBus } from '../core/EventBus';
 import { Logger } from '../core/Logger';
+import { GameActor } from './GameActor';
+import { ItemDestroyedEvent } from '../core/GameEvents';
 
 export class InventoryComponent extends ActorComponent {
     public items: ItemEntity[] = [];
     public maxSize: number;
     
-    constructor(actor: any, config: { size?: number } = {}) {
+    constructor(actor: GameActor, config: { size?: number } = {}) {
         super(actor);
         this.maxSize = config.size || 20;
     }
@@ -33,7 +35,7 @@ export class InventoryComponent extends ActorComponent {
         });
 
         // Listen for item destruction (when consumables are used up)
-        this.listen(GameEventNames.ItemDestroyed, (event: any) => {
+        this.listen(GameEventNames.ItemDestroyed, (event: ItemDestroyedEvent) => {
             Logger.info(`[InventoryComponent] Received ItemDestroyed for ${event.item?.getDisplayName()}`);
             this.removeItemEntity(event.item);
         });
@@ -239,7 +241,7 @@ export class InventoryComponent extends ActorComponent {
         if (index >= 0 && index < this.maxSize) {
             // Extend array if necessary
             while (this.items.length <= index) {
-                this.items.push(null as any);
+                this.items.push(null as unknown as ItemEntity); // TODO: Fix nullability in items array
             }
             this.items[index] = item;
             this.emitInventoryChanged();
@@ -263,5 +265,38 @@ export class InventoryComponent extends ActorComponent {
             this, // Inventory object (this component acts as inventory)
             'change'
         ));
+    }
+
+    saveState(): any {
+        return {
+            maxSize: this.maxSize,
+            items: this.items.map(item => ({
+                id: item.id,
+                count: item.count,
+                identified: item.identified,
+                enchantments: item.enchantments,
+                curses: item.curses
+            }))
+        };
+    }
+
+    loadState(data: any): void {
+        if (data) {
+            this.maxSize = data.maxSize || this.maxSize;
+            this.items = []; // Clear existing items
+            
+            if (data.items && Array.isArray(data.items)) {
+                data.items.forEach((itemData: any) => {
+                    const item = ItemFactory.instance.create(itemData.id, itemData.count);
+                    if (item) {
+                        item.identified = itemData.identified ?? true;
+                        item.enchantments = itemData.enchantments || [];
+                        item.curses = itemData.curses || [];
+                        this.items.push(item);
+                    }
+                });
+            }
+            this.emitInventoryChanged();
+        }
     }
 }

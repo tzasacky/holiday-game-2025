@@ -3,8 +3,6 @@ import { Level } from '../dungeon/Level';
 import { TurnManager } from '../core/TurnManager';
 import { UIManager } from '../ui/UIManager';
 import { GameActor } from '../components/GameActor';
-import { ActorFactory } from '../factories/ActorFactory';
-import { UnifiedSystemInit } from '../core/UnifiedSystemInit';
 import { Logger } from '../core/Logger';
 import { GameEventNames, DieEvent, LevelTransitionEvent } from '../core/GameEvents';
 import { EventBus } from '../core/EventBus';
@@ -16,164 +14,182 @@ export class GameScene extends ex.Scene {
     public level: Level | null = null;
     private hero: GameActor | null = null;
 
-    public onInitialize(engine: ex.Engine) {}
+    // Constructor to initialize with a specific level
+    constructor(level: Level) {
+        super();
+        this.level = level;
+    }
+
+    public onInitialize(engine: ex.Engine) {
+        // Setup level entities once when scene is created
+        if (this.level) {
+            this.setupLevel(this.level);
+        }
+    }
     
     public onActivate(context: ex.SceneActivationContext<unknown>): void {
-        // Add all level actors to the now-active scene
-        if (this.level) {
-            Logger.info(`[GameScene] Adding ${this.level.actors.length} actors from level to scene`);
-            this.level.actors.forEach(actor => {
-                if (!this.actors.includes(actor)) {
-                    this.add(actor);
-                    // Ensure actor is initialized if it wasn't already
-                    if (!actor.isInitialized && actor instanceof GameActor) {
-                         // GameActor components handle initialization
-                    }
-                }
-            });
+        Logger.info(`[GameScene] Activating scene for level ${this.level?.depth}`);
+        
+        // 1. Re-attach Hero
+        const hero = LevelManager.instance.getPlayer();
+        if (hero) {
+            this.hero = hero;
             
-            // Add mobs to scene  
-            this.level.mobs.forEach((mob: any) => {
-                if (!this.actors.includes(mob)) {
-                    mob.z = 1;
-                    this.add(mob);
-                    if (!mob.isInitialized) {
-                        mob._initialize(this.engine);
-                    }
-                }
-            });
-            
-            const hero = this.level.actors.find(a => a.isPlayer) as GameActor;
-            if (hero) {
-                this.hero = hero;
-                TurnManager.instance.registerActor(hero);
-                
-                // Register with level management system
-                LevelManager.instance.registerPlayer(hero);
-                LevelManager.instance.setCurrentLevel(this.level);
-                GameState.instance.registerHero(hero);
-                GameState.instance.registerLevel(this.level);
-                
-                // Register all non-player actors with TurnManager
-                this.level.actors.forEach(actor => {
-                    if (!actor.isPlayer) {
-                        TurnManager.instance.registerActor(actor);
-                    }
-                });
-                
-                UIManager.instance.showUI();
-                UIManager.instance.update(hero); // Initialize HUD
-
-                // Initialize Canvas UI (Hotbar only)
-                this.initializeCanvasUI(hero);
-                
-                // Discover the starting floor
-                DungeonNavigator.instance.discoverFloor(this.level.depth);
-                
-                Logger.info(`[GameScene] Initial setup complete - Level ${this.level.depth} with ${this.level.actors.length} actors`);
+            // Ensure hero is not in the scene before adding (safety check)
+            if (!this.actors.includes(hero)) {
+                hero.z = 20; // Ensure hero is above floor items (Z=0) and interactables (Z=5) and mobs (Z=10)
+                this.add(hero);
+                Logger.info(`[GameScene] Re-attached hero to scene`);
             }
             
-            // Set up camera to follow hero
-            if (hero) {
-                this.camera.strategy.lockToActor(hero);
-                this.camera.zoom = 1.5;
-            }
+            // Update hero position based on entrance/exit
+            // If coming from a transition, DungeonNavigator/Level should have set the correct position on the hero
+            // or we can set it here if we have context data.
+            // For now, assume hero.pos is correct or set by DungeonNavigator before transition.
             
-            // Start Turns
-            TurnManager.instance.processTurns();
+            // Register with managers
+            GameState.instance.registerHero(hero);
+            
+            // Update UI
+            UIManager.instance.showUI();
+            UIManager.instance.update(hero);
+            
+            // Camera
+            this.camera.strategy.lockToActor(hero);
+            this.camera.zoom = 1.5;
+        } else {
+            Logger.error('[GameScene] No hero found in LevelManager during activation!');
         }
         
-        // Listen for death events to clean up level data
-        EventBus.instance.on(GameEventNames.Death, (event: DieEvent) => {
-             if (this.level) {
-                 const index = this.level.actors.indexOf(event.actor);
-                 if (index > -1) {
-                     this.level.actors.splice(index, 1);
-                     Logger.info(`[GameScene] Removed ${event.actor.name} from level actors`);
-                 }
-                 const mobIndex = this.level.mobs.indexOf(event.actor);
-                 if (mobIndex > -1) {
-                     this.level.mobs.splice(mobIndex, 1);
-                 }
-             }
-        });
-
-        // Listen for level transition events (completed transitions)
-        EventBus.instance.on(GameEventNames.LevelTransition, (event: LevelTransitionEvent) => {
-            this.handleLevelTransitionComplete(event);
-        });
+        // 2. Register Level and add Hero to level's actors list
+        if (this.level) {
+            LevelManager.instance.setCurrentLevel(this.level);
+            GameState.instance.registerLevel(this.level);
+            DungeonNavigator.instance.discoverFloor(this.level.depth);
+            
+            // Add hero to level's actors list if not already there
+            if (this.hero && !this.level.actors.includes(this.hero)) {
+                this.level.actors.push(this.hero);
+                Logger.info(`[GameScene] Added hero to level ${this.level.depth} actors list`);
+            }
+        }
+        
+        // 3. Register Actors with TurnManager
+        // Since onDeactivate clears the TurnManager, we must re-register ALL actors
+        // (Hero + Mobs) every time we activate the scene.
+        
+        // Register Hero
+        if (this.hero) {
+            TurnManager.instance.registerActor(this.hero);
+            Logger.info(`[GameScene] Registered hero with TurnManager`);
+        }
+        
+        // Register Mobs/Actors
+        if (this.level) {
+            this.level.actors.forEach(actor => {
+                if (!actor.isPlayer) {
+                    TurnManager.instance.registerActor(actor);
+                }
+            });
+            Logger.info(`[GameScene] Registered ${this.level.actors.length - (this.hero ? 1 : 0)} mobs with TurnManager`);
+        }
+        
+        // 4. Start Turns
+        TurnManager.instance.processTurns();
+        
+        // Listen for death events
+        EventBus.instance.on(GameEventNames.Death, this.handleDeath);
+        
+        // Listen for level transition events
+        EventBus.instance.on(GameEventNames.LevelTransition, this.handleLevelTransitionComplete);
     }
 
+    public onDeactivate(context: ex.SceneActivationContext<unknown>): void {
+        Logger.info(`[GameScene] Deactivating scene for level ${this.level?.depth}`);
+        
+        // 1. Save State - REMOVED
+        // Handled by DungeonNavigator.transitionToFloor BEFORE moving the player.
+        // Saving here would overwrite the correct state with the new level's player position.
+        // DungeonNavigator.instance.saveCurrentLevel();
+        
+        // 2. Remove Hero from level's actors list
+        // This ensures hero is only in one level's actors list at a time
+        if (this.hero && this.level) {
+            const index = this.level.actors.indexOf(this.hero);
+            if (index > -1) {
+                this.level.actors.splice(index, 1);
+                Logger.info(`[GameScene] Removed hero from level ${this.level.depth} actors list`);
+            }
+        }
+        
+        // 3. Stop Turns
+        TurnManager.instance.clear(); // This clears the turn queue, but doesn't kill actors
+        
+        // Cleanup listeners
+        EventBus.instance.off(GameEventNames.Death, this.handleDeath);
+        EventBus.instance.off(GameEventNames.LevelTransition, this.handleLevelTransitionComplete);
+    }
+
+    private handleDeath = (event: DieEvent) => {
+         if (this.level) {
+             const index = this.level.actors.indexOf(event.actor);
+             if (index > -1) {
+                 this.level.actors.splice(index, 1);
+                 Logger.info(`[GameScene] Removed ${event.actor.name} from level actors`);
+             }
+             const mobIndex = this.level.mobs.indexOf(event.actor);
+             if (mobIndex > -1) {
+                 this.level.mobs.splice(mobIndex, 1);
+             }
+             
+             // Check for Game Over
+             if (event.actor.isPlayer) {
+                 Logger.info('[GameScene] Hero died! Triggering Game Over...');
+                 EventBus.instance.emit(GameEventNames.GameOver, {});
+             }
+         }
+    }
+
+    private handleLevelTransitionComplete = (event: LevelTransitionEvent) => {
+        Logger.info(`[GameScene] Level transition requested: ${event.direction} to ${event.toLevel}`);
+        // Transition is handled by DungeonNavigator switching scenes
+        // We just need to ensure we don't block it.
+    }
+
+    private async setupLevel(level: Level): Promise<void> {
+        Logger.info(`[GameScene] Setting up level ${level.depth} with ${level.actors.length} actors`);
+        
+        // Add tilemaps
+        if (!this.tileMaps.includes(level.floorMap)) this.add(level.floorMap);
+        if (!this.tileMaps.includes(level.objectMap)) this.add(level.objectMap);
+        
+        // Add actors (EXCEPT HERO - Hero is added in onActivate)
+        // Add actors (EXCEPT HERO - Hero is added in onActivate)
+        // Note: We do NOT register with TurnManager here anymore.
+        // Registration happens in onActivate to ensure it persists across scene switches.
+        level.actors.forEach(actor => {
+            if (!actor.isPlayer && !this.actors.includes(actor)) {
+                actor.z = 10; 
+                this.add(actor);
+            }
+        });
+        
+        // Add items
+        level.items.forEach(item => {
+            if (!this.actors.includes(item)) this.add(item);
+        });
+        
+        // Add interactables
+        level.interactables.forEach(interactable => {
+            if (!this.actors.includes(interactable)) this.add(interactable);
+        });
+        
+        // Ensure graphics are updated
+        await level.updateTileGraphics();
+    }
+    
     public onPostUpdate(engine: ex.Engine, delta: number) {
         // UI updates are handled via events
-    }
-
-    private async handleLevelTransitionComplete(event: LevelTransitionEvent): Promise<void> {
-        Logger.info(`[GameScene] Level transition completed: ${event.direction} from ${event.fromLevel} to ${event.toLevel}`);
-        
-        try {
-            // Get the new level from DungeonNavigator
-            const newLevel = DungeonNavigator.instance.getCurrentLevel();
-            if (!newLevel) {
-                Logger.error(`[GameScene] No level found for floor ${event.toLevel}`);
-                return;
-            }
-
-            // Clear current scene
-            this.clear();
-
-            // Set new level and connect it to this scene
-            this.level = newLevel;
-            newLevel.scene = this; // Connect level to the GameScene
-            LevelManager.instance.setCurrentLevel(newLevel);
-
-            // Add level's tilemaps to the scene
-            this.add(newLevel.floorMap);
-            this.add(newLevel.objectMap);
-
-            // Refresh level graphics to ensure they're properly rendered
-            await newLevel.updateTileGraphics();
-
-            // Find hero in new level
-            const hero = newLevel.actors.find(a => a.isPlayer) as GameActor;
-            if (hero) {
-                this.hero = hero;
-                
-                // Register with managers
-                LevelManager.instance.registerPlayer(hero);
-                GameState.instance.registerHero(hero);
-                
-                // Add all actors to scene
-                newLevel.actors.forEach(actor => {
-                    this.add(actor);
-                    TurnManager.instance.registerActor(actor);
-                });
-
-                // Add mobs to scene
-                newLevel.mobs.forEach((mob: any) => {
-                    mob.z = 1;
-                    this.add(mob);
-                    TurnManager.instance.registerActor(mob);
-                });
-
-                // Update UI
-                UIManager.instance.update(hero);
-                
-                // Reinitialize Canvas UI
-                this.initializeCanvasUI(hero);
-
-                // Set up camera
-                this.camera.strategy.lockToActor(hero);
-                this.camera.zoom = 1.5;
-
-                Logger.info(`[GameScene] Successfully loaded level ${event.toLevel} with ${newLevel.actors.length} actors`);
-            } else {
-                Logger.error(`[GameScene] No player found in level ${event.toLevel}`);
-            }
-
-        } catch (error) {
-            Logger.error(`[GameScene] Failed to handle level transition: ${error}`);
-        }
     }
     
     // Utility methods for external access
@@ -190,7 +206,6 @@ export class GameScene extends ex.Scene {
     }
 
     public checkUIHit(screenPos: ex.Vector): boolean {
-        // Inventory and Hotbar are now DOM, so they handle their own clicks via pointer-events
         return false;
     }
     

@@ -3,6 +3,7 @@ import { ItemEntity } from '../factories/ItemFactory';
 import { EventBus } from '../core/EventBus';
 import { GameEventNames } from '../core/GameEvents';
 import { Logger } from '../core/Logger';
+import { InventoryComponent } from '../components/InventoryComponent';
 
 export class HotbarUI {
     private container: HTMLElement | null = null;
@@ -73,11 +74,11 @@ export class HotbarUI {
     public refresh() {
         if (!this.hero) return;
 
-        const inventory = this.hero.getGameComponent('inventory') as any;
+        const inventory = this.hero.getGameComponent<InventoryComponent>('inventory');
         if (!inventory) return;
 
         for (let i = 0; i < this.SLOT_COUNT; i++) {
-            const item = inventory.getItemByIndex?.(i) || inventory.items?.[i] || null;
+            const item = inventory.getItemByIndex(i);
             this.updateSlot(i, item);
         }
     }
@@ -137,8 +138,10 @@ export class HotbarUI {
     private handleSlotClick(index: number) {
         if (!this.hero) return;
         
-        const inventory = this.hero.getGameComponent('inventory') as any;
-        const item = inventory.getItemByIndex?.(index) || inventory.items?.[index];
+        const inventory = this.hero.getGameComponent<InventoryComponent>('inventory');
+        if (!inventory) return;
+
+        const item = inventory.getItemByIndex(index);
         
         if (item) {
             item.use(this.hero);

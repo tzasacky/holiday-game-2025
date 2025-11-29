@@ -7,6 +7,7 @@ import { Logger } from '../core/Logger';
 import { RegistryKey } from '../constants/RegistryKeys';
 import { GameEventNames, ItemUseEvent, ItemDestroyedEvent, ItemCreatedEvent } from '../core/GameEvents';
 import { GameActor } from '../components/GameActor';
+import { EquipmentComponent } from '../components/EquipmentComponent';
 
 /**
  * ItemEntity - Data container for items (no logic)
@@ -59,7 +60,7 @@ export class ItemEntity {
             }
             
             // Equip the item - EquipmentComponent.equip() will auto-determine slot and handle swapping
-            const success = (equipmentComp as any).equip?.(this);
+            const success = (equipmentComp as EquipmentComponent).equip?.(this);
             
             if (success) {
                 console.log(`[ItemEntity] Successfully equipped ${this.definition.name}`);

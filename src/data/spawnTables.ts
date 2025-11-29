@@ -1,4 +1,5 @@
 import { ActorID } from '../constants/ActorIDs';
+import { SpawnTableID } from '../constants/SpawnTableID';
 
 export interface SpawnEntry {
   actorId: ActorID;
@@ -10,7 +11,7 @@ export interface SpawnEntry {
 }
 
 export interface SpawnTableDefinition {
-  id: string;
+  id: SpawnTableID;
   name: string;
   entries: SpawnEntry[];
   floorScaling?: {
@@ -19,9 +20,9 @@ export interface SpawnTableDefinition {
   };
 }
 
-export const BaseSpawnTables: Record<string, SpawnTableDefinition> = {
-  early_floors: {
-    id: 'early_floors',
+export const BaseSpawnTables: Record<SpawnTableID, SpawnTableDefinition> = {
+  [SpawnTableID.EarlyFloors]: {
+    id: SpawnTableID.EarlyFloors,
     name: 'Early Floor Spawns',
     entries: [
       { actorId: ActorID.SNOW_SPRITE, weight: 60, maxFloor: 5, tags: ['common', 'basic'] },
@@ -34,8 +35,8 @@ export const BaseSpawnTables: Record<string, SpawnTableDefinition> = {
     }
   },
 
-  mid_floors: {
-    id: 'mid_floors', 
+  [SpawnTableID.MidFloors]: {
+    id: SpawnTableID.MidFloors, 
     name: 'Mid Floor Spawns',
     entries: [
       { actorId: ActorID.SNOW_GOLEM, weight: 40, minFloor: 5, maxFloor: 12, tags: ['uncommon', 'construct'] },
@@ -48,8 +49,8 @@ export const BaseSpawnTables: Record<string, SpawnTableDefinition> = {
     }
   },
 
-  late_floors: {
-    id: 'late_floors',
+  [SpawnTableID.LateFloors]: {
+    id: SpawnTableID.LateFloors,
     name: 'Late Floor Spawns', 
     entries: [
       { actorId: ActorID.KRAMPUS, weight: 30, minFloor: 12, tags: ['boss', 'legendary'] },
@@ -59,12 +60,27 @@ export const BaseSpawnTables: Record<string, SpawnTableDefinition> = {
       strengthBonus: 0.15,
       hpBonus: 0.2
     }
-  }
+  },
+  
+  // Placeholders for missing tables to satisfy type check
+  [SpawnTableID.IceCreatures]: {
+      id: SpawnTableID.IceCreatures,
+      name: 'Ice Creatures',
+      entries: [],
+  },
+  [SpawnTableID.CorruptedCreatures]: {
+      id: SpawnTableID.CorruptedCreatures,
+      name: 'Corrupted Creatures',
+      entries: [],
+  },
+  [SpawnTableID.BossSpawns]: { id: SpawnTableID.BossSpawns, name: 'Boss Spawns', entries: [] },
+  [SpawnTableID.EliteSpawns]: { id: SpawnTableID.EliteSpawns, name: 'Elite Spawns', entries: [] },
+  [SpawnTableID.HolidayCreatures]: { id: SpawnTableID.HolidayCreatures, name: 'Holiday Creatures', entries: [] }
 };
 
-export const SpecialSpawnTables: Record<string, SpawnTableDefinition> = {
-  boss_spawns: {
-    id: 'boss_spawns',
+export const SpecialSpawnTables: Partial<Record<SpawnTableID, SpawnTableDefinition>> = {
+  [SpawnTableID.BossSpawns]: {
+    id: SpawnTableID.BossSpawns,
     name: 'Boss Room Spawns',
     entries: [
       { actorId: ActorID.KRAMPUS, weight: 50, minFloor: 8, tags: ['boss', 'legendary'] },
@@ -76,8 +92,8 @@ export const SpecialSpawnTables: Record<string, SpawnTableDefinition> = {
     }
   },
 
-  elite_spawns: {
-    id: 'elite_spawns', 
+  [SpawnTableID.EliteSpawns]: {
+    id: SpawnTableID.EliteSpawns, 
     name: 'Elite Enemy Spawns',
     entries: [
       { actorId: ActorID.FROST_GIANT, weight: 40, minFloor: 6, tags: ['elite', 'giant'] },
@@ -90,8 +106,8 @@ export const SpecialSpawnTables: Record<string, SpawnTableDefinition> = {
     }
   },
 
-  holiday_creatures: {
-    id: 'holiday_creatures',
+  [SpawnTableID.HolidayCreatures]: {
+    id: SpawnTableID.HolidayCreatures,
     name: 'Holiday Themed Creatures',
     entries: [
       { actorId: ActorID.SNOWMAN, weight: 40, minFloor: 1, maxFloor: 8, tags: ['themed', 'construct'] },
@@ -102,22 +118,22 @@ export const SpecialSpawnTables: Record<string, SpawnTableDefinition> = {
 };
 
 // Floor-based table mapping
-export const FloorSpawnTableMapping: Record<number, string[]> = {
-  1: ['early_floors', 'holiday_creatures'],
-  2: ['early_floors', 'holiday_creatures'], 
-  3: ['early_floors', 'holiday_creatures'],
-  4: ['early_floors', 'holiday_creatures'],
-  5: ['early_floors', 'mid_floors', 'holiday_creatures'],
-  6: ['mid_floors', 'holiday_creatures'],
-  7: ['mid_floors', 'holiday_creatures'],
-  8: ['mid_floors', 'elite_spawns', 'holiday_creatures'],
-  9: ['mid_floors', 'elite_spawns'],
-  10: ['mid_floors', 'late_floors', 'elite_spawns'],
-  11: ['mid_floors', 'late_floors', 'elite_spawns'],
-  12: ['late_floors', 'elite_spawns'],
-  13: ['late_floors', 'elite_spawns'],
-  14: ['late_floors', 'elite_spawns'],
-  15: ['late_floors', 'boss_spawns']
+export const FloorSpawnTableMapping: Record<number, SpawnTableID[]> = {
+  1: [SpawnTableID.EarlyFloors, SpawnTableID.HolidayCreatures],
+  2: [SpawnTableID.EarlyFloors, SpawnTableID.HolidayCreatures], 
+  3: [SpawnTableID.EarlyFloors, SpawnTableID.HolidayCreatures],
+  4: [SpawnTableID.EarlyFloors, SpawnTableID.HolidayCreatures],
+  5: [SpawnTableID.EarlyFloors, SpawnTableID.MidFloors, SpawnTableID.HolidayCreatures],
+  6: [SpawnTableID.MidFloors, SpawnTableID.HolidayCreatures],
+  7: [SpawnTableID.MidFloors, SpawnTableID.HolidayCreatures],
+  8: [SpawnTableID.MidFloors, SpawnTableID.EliteSpawns, SpawnTableID.HolidayCreatures],
+  9: [SpawnTableID.MidFloors, SpawnTableID.EliteSpawns],
+  10: [SpawnTableID.MidFloors, SpawnTableID.LateFloors, SpawnTableID.EliteSpawns],
+  11: [SpawnTableID.MidFloors, SpawnTableID.LateFloors, SpawnTableID.EliteSpawns],
+  12: [SpawnTableID.LateFloors, SpawnTableID.EliteSpawns],
+  13: [SpawnTableID.LateFloors, SpawnTableID.EliteSpawns],
+  14: [SpawnTableID.LateFloors, SpawnTableID.EliteSpawns],
+  15: [SpawnTableID.LateFloors, SpawnTableID.BossSpawns]
 };
 
 // Combine all spawn tables for easy lookup
@@ -129,8 +145,8 @@ export const AllSpawnTables: Record<string, SpawnTableDefinition> = {
 /**
  * Get the appropriate spawn table ID for a given floor number
  */
-export function getSpawnTableForFloor(floorNumber: number): string {
+export function getSpawnTableForFloor(floorNumber: number): SpawnTableID {
   const tables = FloorSpawnTableMapping[floorNumber] || FloorSpawnTableMapping[15];
   // Return the first table in the list (primary table for this floor)
-  return tables[0] || 'early_floors';
+  return tables[0] || SpawnTableID.EarlyFloors;
 }

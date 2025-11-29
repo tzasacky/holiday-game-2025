@@ -7,6 +7,12 @@ import { Pathfinding } from '../core/Pathfinding';
 import { TerrainType } from '../data/terrain';
 import { InteractableType } from '../data/interactables';
 import * as ex from 'excalibur';
+import { Level } from '../dungeon/Level';
+import { InteractableEntity } from '../entities/InteractableEntity';
+import { CombatComponent } from './CombatComponent';
+import { InteractionType } from '../constants/InteractionType';
+import { GameScene } from '../scenes/GameScene';
+import { LevelManager } from '../core/LevelManager';
 
 export interface PlayerAction {
     type: GameActionType;
@@ -61,12 +67,13 @@ export class PlayerInputComponent extends ActorComponent {
     }
 
     private handleTurn(): void {
-        const scene = this.actor.scene as any;
-        const level = scene?.level;
+        // Use LevelManager to get the current level, which is more reliable than actor.scene during transitions
+        const level = LevelManager.instance.getCurrentLevel();
         
         if (!level) {
-            Logger.warn('[PlayerInputComponent] No level found');
-            this.actor.spend(10);
+            Logger.warn(`[PlayerInputComponent] HandleTurn: No current level in LevelManager!`);
+            // If no level found (e.g. during transition), just return without spending action
+            // This prevents infinite loops or crashes during scene switches
             return;
         }
 
@@ -98,7 +105,7 @@ export class PlayerInputComponent extends ActorComponent {
     /**
      * Follow the current path
      */
-    private followPath(level: any): void {
+    private followPath(level: Level): void {
         const nextStep = this.actor.getNextPathStep();
         
         if (!nextStep) {
@@ -110,7 +117,7 @@ export class PlayerInputComponent extends ActorComponent {
         // Check for interactions at next step
         const interaction = Pathfinding.getInteractionAt(level, nextStep.x, nextStep.y);
         
-        if (interaction === 'entity_interact') {
+        if (interaction && interaction !== InteractionType.ActorAttack && interaction !== InteractionType.None) {
             // New entity-based interaction system
             const interactableEntity = level.getInteractableAt(nextStep.x, nextStep.y);
             if (interactableEntity) {
@@ -125,29 +132,8 @@ export class PlayerInputComponent extends ActorComponent {
             }
         }
         
-        // Legacy terrain-based door handling
-        const terrain = level.getTile(nextStep.x, nextStep.y);
-        if (terrain === TerrainType.Door || terrain === TerrainType.LockedDoor || terrain === TerrainType.SecretDoor) {            
-            if (interaction === 'door_open') {
-                Logger.info(`[PlayerInputComponent] Opening legacy door at ${nextStep} during pathfinding`);
-                level.terrainData[nextStep.x][nextStep.y] = TerrainType.Floor;
-                level.updateTileGraphics();
-            } else if (interaction === 'door_locked') {
-                Logger.info(`[PlayerInputComponent] Legacy door is locked at ${nextStep}`);
-                this.actor.clearPath();
-                this.actor.spend(10);
-                return;
-            } else if (interaction === 'secret_door') {
-                Logger.info(`[PlayerInputComponent] Discovered legacy secret door at ${nextStep}!`);
-                level.terrainData[nextStep.x][nextStep.y] = TerrainType.Floor;
-                level.updateTileGraphics();
-            }
-            
-            // Clear path after opening door - player will continue on next click
-            this.actor.clearPath();
-            this.actor.spend(10);
-            return;
-        }
+        // Legacy terrain-based door handling removed
+        // All doors are now InteractableEntities handled by entity_interact above
 
         // Check if next step is walkable
         if (!level.isWalkable(nextStep.x, nextStep.y, this.actor.entityId)) {
@@ -177,7 +163,7 @@ export class PlayerInputComponent extends ActorComponent {
     /**
      * Handle click target - compute path or direct move
      */
-    private handleClickTarget(clickTarget: ex.Vector, level: any): PlayerAction {
+    private handleClickTarget(clickTarget: ex.Vector, level: Level): PlayerAction {
         const currentPos = this.actor.gridPos;
         const dist = currentPos.distance(clickTarget);
         
@@ -217,7 +203,7 @@ export class PlayerInputComponent extends ActorComponent {
     /**
      * Process a player action
      */
-    private processAction(action: PlayerAction, level: any): void {
+    private processAction(action: PlayerAction, level: Level): void {
         switch (action.type) {
             case GameActionType.MoveNorth:
             case GameActionType.MoveSouth:
@@ -229,7 +215,7 @@ export class PlayerInputComponent extends ActorComponent {
                 // Check for interaction before movement
                 const interaction = Pathfinding.getInteractionAt(level, toPos.x, toPos.y);
                 
-                if (interaction === 'entity_interact') {
+                if (interaction && interaction !== InteractionType.ActorAttack && interaction !== InteractionType.None) {
                     // New entity-based interaction system
                     const interactableEntity = level.getInteractableAt(toPos.x, toPos.y);
                     if (interactableEntity) {
@@ -242,27 +228,7 @@ export class PlayerInputComponent extends ActorComponent {
                     }
                 }
                 
-                // Legacy terrain-based door handling
-                const terrain = level.getTile(toPos.x, toPos.y);
-                if (terrain === TerrainType.Door || terrain === TerrainType.LockedDoor || terrain === TerrainType.SecretDoor) {
-                    if (interaction === 'door_open') {
-                        Logger.info(`[PlayerInputComponent] Opening legacy door at ${toPos}`);
-                        level.terrainData[toPos.x][toPos.y] = TerrainType.Floor;
-                        level.updateTileGraphics();
-                    } else if (interaction === 'door_locked') {
-                        Logger.info(`[PlayerInputComponent] Legacy door is locked at ${toPos}`);
-                        this.actor.spend(10);
-                        break;
-                    } else if (interaction === 'secret_door') {
-                        Logger.info(`[PlayerInputComponent] Discovered legacy secret door at ${toPos}!`);
-                        level.terrainData[toPos.x][toPos.y] = TerrainType.Floor;
-                        level.updateTileGraphics();
-                    }
-                    
-                    // Door interaction completed, spend action but don't move
-                    this.actor.spend(10);
-                    break;
-                }
+                // Legacy terrain-based door handling removed
                 
                 // Check if walkable
                 if (level.isWalkable(toPos.x, toPos.y, this.actor.entityId)) {
@@ -280,7 +246,7 @@ export class PlayerInputComponent extends ActorComponent {
                 } else {
                     // Check for interaction
                     const interaction = Pathfinding.getInteractionAt(level, toPos.x, toPos.y);
-                    if (interaction === 'entity_interact') {
+                    if (interaction && interaction !== InteractionType.ActorAttack && interaction !== InteractionType.None) {
                         // New entity-based interaction system
                         const interactableEntity = level.getInteractableAt(toPos.x, toPos.y);
                         if (interactableEntity) {
@@ -309,26 +275,15 @@ export class PlayerInputComponent extends ActorComponent {
                                 interactableEntity.interact(this.actor);
                             }
                         }
-                    } else if (interaction === 'actor_attack') {
+                    } else if (interaction === InteractionType.ActorAttack) {
                         // Bump-to-attack
                         const blocker = level.getActorAt(toPos.x, toPos.y);
                         if (blocker) {
-                            const combat = this.actor.getGameComponent('combat') as any;
+                            const combat = this.actor.getGameComponent<CombatComponent>('combat');
                             if (combat) {
                                 combat.attack(blocker.entityId);
                             }
                         }
-                    } else if (interaction === 'door_open') {
-                        // Legacy terrain-based door
-                        Logger.info(`[PlayerInputComponent] Opening legacy door at ${toPos}`);
-                        level.terrainData[toPos.x][toPos.y] = TerrainType.Floor;
-                        level.updateTileGraphics();
-                    } else if (interaction === 'door_locked') {
-                        Logger.info(`[PlayerInputComponent] Legacy door is locked at ${toPos}`);
-                    } else if (interaction === 'secret_door') {
-                        Logger.info(`[PlayerInputComponent] Discovered legacy secret door at ${toPos}!`);
-                        level.terrainData[toPos.x][toPos.y] = TerrainType.Floor;
-                        level.updateTileGraphics();
                     }
                 }
                 

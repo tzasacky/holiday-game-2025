@@ -42,7 +42,13 @@ game.start(loader).then(async () => {
     }
 
     // Register Game Over Scene
-    game.add('gameover', new GameOverScene());
+    game.add('gameover', {
+        scene: new GameOverScene(),
+        transitions: {
+            in: new ex.FadeInOut({ duration: 1000, direction: 'in', color: ex.Color.Black }),
+            out: new ex.FadeInOut({ duration: 500, direction: 'out', color: ex.Color.Black })
+        }
+    });
     
     // Listen for Game Over event
     EventBus.instance.on(GameEventNames.GameOver, () => {
@@ -54,8 +60,9 @@ game.start(loader).then(async () => {
         // Use new staged initialization system
         const { gameScene, level } = await GameInitializer.initializeGame(game);
         
-        // Start the game
-        game.goToScene('game');
+        // Start the game - go to level 1
+        // Since DungeonNavigator now creates 'level_1', we should go there.
+        game.goToScene('level_1');
         
         Logger.info("🎮 Game is ready to play!");
         

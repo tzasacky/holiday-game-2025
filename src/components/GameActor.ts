@@ -6,6 +6,10 @@ import { GameEventNames, ActorSpendTimeEvent, ActorTurnEvent } from '../core/Gam
 import { GraphicsManager } from '../data/graphics';
 import { ComponentType } from '../constants/RegistryKeys';
 import { Logger } from '../core/Logger';
+import { StatsComponent } from './StatsComponent';
+import { CombatComponent } from './CombatComponent';
+import { PlayerInputComponent } from './PlayerInputComponent';
+import { EquipmentComponent } from './EquipmentComponent';
 
 /**
  * GameActor - Minimal actor container with component-based architecture
@@ -54,32 +58,32 @@ export class GameActor extends GameEntity {
     
     // ONLY compatibility getters - NO logic here
     get hp(): number { 
-        const statsComponent = this.getGameComponent('stats') as any;
+        const statsComponent = this.getGameComponent<StatsComponent>('stats');
         return statsComponent?.getStat('hp') ?? 0;
     }
     
     get maxHp(): number {
-        const statsComponent = this.getGameComponent('stats') as any;
+        const statsComponent = this.getGameComponent<StatsComponent>('stats');
         return statsComponent?.getStat('maxHp') ?? 0;
     }
     
     get totalDamage(): number {
-        const combatComponent = this.getGameComponent('combat') as any;
+        const combatComponent = this.getGameComponent<CombatComponent>('combat');
         return combatComponent?.getTotalDamage() ?? 0;
     }
     
     get totalDefense(): number {
-        const combatComponent = this.getGameComponent('combat') as any;
+        const combatComponent = this.getGameComponent<CombatComponent>('combat');
         return combatComponent?.getTotalDefense() ?? 0;
     }
     
     get warmth(): number {
-        const statsComponent = this.getGameComponent('stats') as any;
+        const statsComponent = this.getGameComponent<StatsComponent>('stats');
         return statsComponent?.getStat('warmth') ?? 0;
     }
     
     set warmth(value: number) {
-        const statsComponent = this.getGameComponent('stats') as any;
+        const statsComponent = this.getGameComponent<StatsComponent>('stats');
         if (statsComponent) {
             statsComponent.setStat('warmth', value);
         }
@@ -87,15 +91,15 @@ export class GameActor extends GameEntity {
     
     // Queue action for PlayerInputComponent
     queueAction(actionType: any): void {
-        const playerInputComp = this.getGameComponent(ComponentType.PLAYER_INPUT);
+        const playerInputComp = this.getGameComponent<PlayerInputComponent>(ComponentType.PLAYER_INPUT);
         if (playerInputComp) {
-            (playerInputComp as any).queueAction(actionType);
+            playerInputComp.queueAction(actionType);
         }
     }
     
     // Equipment helpers
     equip(item: any): boolean {
-        const equipmentComponent = this.getGameComponent('equipment') as any;
+        const equipmentComponent = this.getGameComponent<EquipmentComponent>('equipment');
         if (equipmentComponent) {
             return equipmentComponent.equip(item);
         }
@@ -103,17 +107,17 @@ export class GameActor extends GameEntity {
     }
 
     get weapon(): any {
-        const equipmentComponent = this.getGameComponent('equipment') as any;
+        const equipmentComponent = this.getGameComponent<EquipmentComponent>('equipment');
         return equipmentComponent ? equipmentComponent.getEquipment('weapon') : null;
     }
 
     get armor(): any {
-        const equipmentComponent = this.getGameComponent('equipment') as any;
+        const equipmentComponent = this.getGameComponent<EquipmentComponent>('equipment');
         return equipmentComponent ? equipmentComponent.getEquipment('armor') : null;
     }
 
     get accessories(): any[] {
-        const equipmentComponent = this.getGameComponent('equipment') as any;
+        const equipmentComponent = this.getGameComponent<EquipmentComponent>('equipment');
         const accessory = equipmentComponent ? equipmentComponent.getEquipment('accessory') : null;
         return accessory ? [accessory] : [];
     }
@@ -122,8 +126,8 @@ export class GameActor extends GameEntity {
     async act(): Promise<boolean> {
         // If this is a player, check if we have input ready
         if (this.isPlayer) {
-            const playerInput = this.getGameComponent(ComponentType.PLAYER_INPUT) as any;
-            if (playerInput && typeof playerInput.hasPendingAction === 'function') {
+            const playerInput = this.getGameComponent<PlayerInputComponent>(ComponentType.PLAYER_INPUT);
+            if (playerInput) {
                 if (!playerInput.hasPendingAction()) {
                     // Player needs to wait for input
                     // We still emit ActorTurn to let listeners know it's their turn (e.g. to update UI)
@@ -156,6 +160,12 @@ export class GameActor extends GameEntity {
         
         // Listen for time spending events from components - use a more direct approach
         this.setupTimeEventListener();
+    }
+
+    onAdd(engine: ex.Engine): void {
+        super.onAdd(engine);
+        // Ensure graphics are configured when added to a scene (important for reused actors)
+        GraphicsManager.instance.configureActor(this);
     }
 
     
@@ -244,5 +254,10 @@ export class GameActor extends GameEntity {
                 Logger.debug(`[GameActor] ${this.name} spent ${event.time} time. Total: ${this.time}`);
             }
         });
+    }
+
+    public kill(): void {
+        Logger.debug(`[GameActor] ${this.name} killed`);
+        super.kill();
     }
 }

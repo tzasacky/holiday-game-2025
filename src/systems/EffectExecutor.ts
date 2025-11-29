@@ -6,7 +6,8 @@ import { EffectID } from '../constants';
 import { Logger } from '../core/Logger';
 import { GameActor } from '../components/GameActor';
 import { DataManager } from '../core/DataManager';
-import { AbilityDefinition } from '../data/abilities';
+import { AbilityDefinition, AbilityEffect } from '../data/abilities';
+import { DamageType } from '../data/mechanics';
 
 /**
  * EffectExecutor - Applies effects from data definitions
@@ -64,7 +65,7 @@ export class EffectExecutor {
             return;
         }
         
-        abilityDef.effects.forEach((effect: any) => { // Type as any for now as AbilityEffect might differ from ItemEffect
+        abilityDef.effects.forEach((effect: AbilityEffect) => { 
              // Map AbilityEffect to ItemEffect structure if needed
              const itemEffect: ItemEffect = {
                  type: effect.type,
@@ -160,7 +161,7 @@ export class EffectExecutor {
             target,
             amount,
             source,
-            EffectID.Physical as any // Cast to DamageType if needed
+            DamageType.Physical
         ));
     }
     

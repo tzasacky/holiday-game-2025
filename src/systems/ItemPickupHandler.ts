@@ -4,6 +4,7 @@ import { Logger } from '../core/Logger';
 import { GameEventNames, MovementEvent, ItemPickupAttemptEvent } from '../core/GameEvents';
 import { Level } from '../dungeon/Level';
 import { GameActor } from '../components/GameActor';
+import { GameScene } from '../scenes/GameScene';
 
 /**
  * Handles automatic item pickup when a player moves onto items
@@ -43,8 +44,10 @@ export class ItemPickupHandler {
         }
 
         // Get level from actor's scene
-        const scene = actor.scene as any;
-        const level = scene?.level as Level;
+        // Get level from actor's scene
+        // Safe cast to GameScene which we know has a level property
+        const scene = actor.scene as unknown as GameScene;
+        const level = scene?.level;
 
         if (!level) {
             return;

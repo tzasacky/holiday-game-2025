@@ -7,6 +7,8 @@ import { DungeonNavigator } from './DungeonNavigator';
 import { LevelManager } from './LevelManager';
 import * as ex from 'excalibur';
 import { Logger } from './Logger';
+import { TerrainType } from '../data/terrain';
+import { MaterialType } from '../data/biomes';
 
 // Serialization Interfaces
 export interface SerializedItem {
@@ -33,15 +35,29 @@ export interface SerializedActor {
     componentData: Record<string, any>; // Serialized component states
 }
 
+export interface SerializedInteractable {
+    id: string;
+    type: string; // InteractableID
+    x: number;
+    y: number;
+    state: string; // 'active', 'inactive', 'looted', etc.
+    customState?: any; // For specific interactable data (e.g. chest contents)
+}
+
 export interface SerializedLevel {
     seed: number;
     depth: number;
     width: number;
     height: number;
-    terrain: any[][]; // Terrain data (TerrainType[][])
+    biomeId: string; // BiomeID
+    terrain: TerrainType[][]; // TerrainType[][]
+    materials: MaterialType[][]; // MaterialType[][]
     actors: SerializedActor[];
     items: { x: number; y: number; item: SerializedItem }[];
+    interactables: SerializedInteractable[];
     explored: boolean[][];
+    entrancePoint?: { x: number; y: number }; // Stairs Up position
+    exitPoint?: { x: number; y: number }; // Stairs Down position
 }
 
 export interface GameSaveData {
@@ -164,17 +180,21 @@ export class GameState {
         // Serialize hero components
         const componentData: Record<string, any> = {};
         
-        // TODO: Get all components from hero and call saveState()
-        // This will require the actor to have a getComponents() method
-        // For now, serialize basic properties
+        this.hero.gameComponents.forEach((component, name) => {
+            try {
+                componentData[name] = component.saveState();
+            } catch (error) {
+                Logger.error(`[GameState] Failed to serialize component ${name}: ${error}`);
+            }
+        });
         
         return {
             id: this.hero.id.toString(),
-            defName: 'Hero', // TODO: Use actual definition name
+            defName: 'Hero',
             x: this.hero.pos.x,
             y: this.hero.pos.y,
-            time: 0, // TODO: Get from turn system
-            actPriority: 0, // TODO: Get from turn system
+            time: this.hero.time,
+            actPriority: this.hero.actPriority,
             isPlayer: this.hero.isPlayer,
             componentData
         };
@@ -188,9 +208,23 @@ export class GameState {
         
         // Restore hero position
         this.hero.pos = new ex.Vector(heroData.x, heroData.y);
+        this.hero.gridPos = new ex.Vector(Math.floor(heroData.x / 32), Math.floor(heroData.y / 32));
+        this.hero.time = heroData.time;
+        this.hero.actPriority = heroData.actPriority;
         
-        // TODO: Restore component states using loadState()
-        // This will require iterating through components
+        // Restore component states
+        if (heroData.componentData) {
+            Object.entries(heroData.componentData).forEach(([name, data]) => {
+                const component = this.hero!.getGameComponent(name);
+                if (component) {
+                    try {
+                        component.loadState(data);
+                    } catch (error) {
+                        Logger.error(`[GameState] Failed to deserialize component ${name}: ${error}`);
+                    }
+                }
+            });
+        }
         
         Logger.info('[GameState] Hero state restored');
     }

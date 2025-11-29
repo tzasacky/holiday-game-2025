@@ -1,4 +1,5 @@
 import * as ex from 'excalibur';
+import { ItemEntity } from '../factories/ItemFactory';
 
 /**
  * Unified UI Design System for Holiday Roguelike
@@ -205,15 +206,23 @@ export class UITheme {
     }
     
     static createText(text: string, style: keyof typeof UITheme.Fonts = 'body', color?: ex.Color): ex.Text {
-        const font = UITheme.createFont(style, color ? { color } as any : undefined);
-        return new ex.Text({ text, font });
+        const font = UITheme.createFont(style);
+        return new ex.Text({ text, font, color: color || UITheme.Fonts[style].color });
     }
     
     static getItemRarityColor(item: any): ex.Color {
-        if (item.cursed) return UITheme.Colors.cursed;
-        if (item.legendary) return UITheme.Colors.legendary;
-        if (item.rare) return UITheme.Colors.rare;
-        if (item.uncommon) return UITheme.Colors.uncommon;
+        // Handle both ItemEntity and plain definition objects
+        const isEntity = item instanceof ItemEntity;
+        const definition = isEntity ? item.definition : item;
+        const curses = isEntity ? item.curses : [];
+
+        if (curses && curses.length > 0) return UITheme.Colors.cursed;
+        if (definition.cursed) return UITheme.Colors.cursed; // Fallback for definition
+        
+        if (definition.rarity === 'legendary') return UITheme.Colors.legendary;
+        if (definition.rarity === 'epic') return UITheme.Colors.epic;
+        if (definition.rarity === 'rare') return UITheme.Colors.rare;
+        if (definition.rarity === 'uncommon') return UITheme.Colors.uncommon;
         return UITheme.Colors.common;
     }
     

@@ -2,6 +2,9 @@ import { GameActor } from '../components/GameActor';
 import { ItemEntity } from '../factories/ItemFactory';
 import { EquipmentSystem } from './EquipmentSystem';
 import { Logger } from '../core/Logger';
+import { StatsComponent } from '../components/StatsComponent';
+import { InventoryComponent } from '../components/InventoryComponent';
+import { EquipmentComponent } from '../components/EquipmentComponent';
 
 interface IdentificationProcess {
     item: ItemEntity;
@@ -42,7 +45,7 @@ export class IdentificationSystem {
         let identificationTime = IdentificationSystem.BASE_IDENTIFICATION_TIME;
         
         // Faster identification for high wisdom/intelligence
-        const stats = actor.getGameComponent('stats') as any;
+        const stats = actor.getGameComponent('stats') as StatsComponent;
         const intelligence = stats?.getStat('intelligence') || 0;
         const wisdomBonus = Math.max(0, intelligence - IdentificationSystem.WISDOM_BONUS_THRESHOLD);
         identificationTime = Math.max(25, identificationTime - Math.floor(wisdomBonus * 5));
@@ -117,7 +120,7 @@ export class IdentificationSystem {
     }
 
     private hasIdentificationAid(actor: GameActor): boolean {
-        const inventory = actor.getGameComponent('inventory') as any;
+        const inventory = actor.getGameComponent('inventory') as InventoryComponent;
         if (!inventory || !inventory.items) return false;
         
         return inventory.items.some((item: any) => 
@@ -126,7 +129,7 @@ export class IdentificationSystem {
     }
 
     private isItemEquipped(actor: GameActor, item: ItemEntity): boolean {
-        const equipment = actor.getGameComponent('equipment') as any;
+        const equipment = actor.getGameComponent('equipment') as EquipmentComponent;
         if (!equipment) return false;
         return equipment.getEquipment('weapon') === item || equipment.getEquipment('armor') === item;
     }

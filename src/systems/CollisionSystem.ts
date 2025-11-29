@@ -7,6 +7,8 @@ import { EffectID } from '../constants/EffectIDs';
 import { DamageSource } from '../constants/DamageSources';
 import { Level } from '../dungeon/Level';
 import * as ex from 'excalibur';
+import { GameScene } from '../scenes/GameScene';
+import { GameActor } from '../components/GameActor';
 
 /**
  * CollisionSystem - Handles environmental effects when actors move
@@ -41,8 +43,9 @@ export class CollisionSystem {
     const { actor, to } = event;
     
     // Get level from actor's scene
-    const scene = actor.scene as any;
-    const level = scene?.level as Level;
+    // Get level from actor's scene
+    const scene = actor.scene as unknown as GameScene;
+    const level = scene?.level;
     
     if (!level) {
       Logger.warn('[CollisionSystem] No level found for movement event');
@@ -56,7 +59,7 @@ export class CollisionSystem {
   /**
    * Apply environmental effects from terrain
    */
-  private applyEnvironmentalEffects(actor: any, position: ex.Vector, level: Level): void {
+  private applyEnvironmentalEffects(actor: GameActor, position: ex.Vector, level: Level): void {
     const terrainType = level.getTile(position.x, position.y);
     const consequences = this.getTerrainConsequences(terrainType, level);
     
@@ -106,31 +109,8 @@ export class CollisionSystem {
   private getTerrainConsequences(terrainType: TerrainType, level: Level): any[] {
     const consequences: any[] = [];
     
-    // Get terrain effects from biome environmental hazards
-    if (level.biome?.gameplay?.environmentalHazards) {
-      level.biome.gameplay.environmentalHazards.forEach(hazard => {
-        if (Math.random() < hazard.probability) {
-          consequences.push({
-            type: 'damage',
-            data: {
-              damageType: hazard.damageType,
-              amount: hazard.damagePerTurn || 1,
-              source: hazard.type
-            }
-          });
-          
-          if (hazard.effect) {
-            consequences.push({
-              type: 'effect',
-              data: {
-                effectId: hazard.effect,
-                duration: 10 // Default duration
-              }
-            });
-          }
-        }
-      });
-    }
+    // Environmental hazards removed in favor of TerrainFeatures
+    // TODO: Implement new hazard system based on TerrainFeatures
 
     // Terrain-specific consequences
     switch (terrainType) {
@@ -206,13 +186,7 @@ export class CollisionSystem {
       ));
     }
     
-    // Special terrain interactions
-    if (terrainType === TerrainType.StairsDown) {
-      EventBus.instance.emit(GameEventNames.LevelTransitionRequest, new LevelTransitionRequestEvent(
-        actorId,
-        'down',
-        DamageSource.Stairs
-      ));
-    }
+    // Special terrain interactions removed - handled by InteractableEntity
+    // StairsDown is now an interactable entity
   }
 }

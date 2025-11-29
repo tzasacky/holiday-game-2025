@@ -1,6 +1,7 @@
 import * as ex from 'excalibur';
 import { InteractableComponent } from '../components/InteractableComponent';
 import { InteractableDefinition } from '../data/interactables';
+import { GameEntity } from '../core/GameEntity';
 
 // Type definition for interacting entities
 interface InteractingEntity {
@@ -13,25 +14,22 @@ interface InteractingEntity {
  * Does NOT participate in turn management or combat systems
  * Extends ex.Actor directly, NOT GameEntity (which is for turn-based actors)
  */
-export class InteractableEntity extends ex.Actor {
+export class InteractableEntity extends GameEntity {
     public interactableComponent: InteractableComponent;
     public definition: InteractableDefinition;
 
-    public gridPos: ex.Vector;
-
     constructor(gridPos: ex.Vector, definition: InteractableDefinition, config: any = {}) {
-        super({ 
+        super(gridPos, { 
             width: 32, 
             height: 32, 
-            collisionType: ex.CollisionType.Fixed 
+            collisionType: ex.CollisionType.Fixed,
+            z: 5 // Ensure it renders above floor/walls 
         });
         
-        this.gridPos = gridPos;
         this.definition = definition;
         this.name = definition.name;
         
-        // Position on grid
-        this.pos = this.gridPos.scale(32).add(ex.vec(16, 16));
+        // Position on grid handled by GameEntity super()
         
         // Create the interactable component
         this.interactableComponent = new InteractableComponent(this, definition, config);
@@ -68,8 +66,20 @@ export class InteractableEntity extends ex.Actor {
         return this.interactableComponent.currentState;
     }
 
+    public get state() {
+        return this.interactableComponent.currentState;
+    }
+
+    public get blocksMovement(): boolean {
+        return this.interactableComponent.shouldBlockMovement();
+    }
+
     public setLevelId(levelId: string): void {
         this.interactableComponent.setLevelId(levelId);
+    }
+
+    public setState(state: any): void {
+        this.interactableComponent.forceState(state);
     }
 
     onInitialize(engine: ex.Engine): void {

@@ -3,6 +3,7 @@ import { EventBus } from '../core/EventBus';
 import { GameEventNames, HealthChangeEvent, WarmthChangeEvent } from '../core/GameEvents';
 import { GameActor } from '../components/GameActor';
 import { Logger } from '../core/Logger';
+import { StatsComponent } from '../components/StatsComponent';
 
 export class HUD extends UIComponent {
     private hpBar: HTMLElement | null = null;
@@ -27,7 +28,8 @@ export class HUD extends UIComponent {
             // GameActor doesn't have direct hp/maxHp properties anymore, they are in StatsComponent.
             // However, for now, let's assume the stats are accessible or we wait for an event.
             // Actually, we should query the stats component.
-            const stats = this.hero.getGameComponent('stats') as any; // Temporary cast until StatsComponent is fully typed/imported
+            // Actually, we should query the stats component.
+            const stats = this.hero.getGameComponent<StatsComponent>('stats');
             if (stats) {
                  this.updateHealth(stats.getStat('hp'), stats.getStat('maxHp'));
                  this.updateWarmth(stats.getStat('warmth'), stats.getStat('maxWarmth'));
@@ -76,8 +78,49 @@ export class HUD extends UIComponent {
 
     public update(): void {
         if (this.hero) {
-            this.updateHealth(this.hero.hp, this.hero.maxHp);
-            this.updateWarmth(this.hero.warmth, 100);
+            const stats = this.hero.getGameComponent<StatsComponent>('stats');
+            if (stats) {
+                this.updateHealth(stats.getStat('hp'), stats.getStat('maxHp'));
+                this.updateWarmth(stats.getStat('warmth'), stats.getStat('maxWarmth'));
+                this.updateStats(stats);
+            }
         }
+    }
+
+    private updateStats(stats: StatsComponent): void {
+        const hud = document.getElementById('hud');
+        if (!hud) return;
+
+        let statsContainer = document.getElementById('hero-stats-container');
+        if (!statsContainer) {
+            // Create container if it doesn't exist, appending to main HUD
+            statsContainer = document.createElement('div');
+            statsContainer.id = 'hero-stats-container';
+            statsContainer.style.marginTop = '8px';
+            statsContainer.style.paddingTop = '8px';
+            statsContainer.style.borderTop = '1px solid var(--color-border)';
+            statsContainer.style.fontSize = '12px';
+            statsContainer.style.display = 'grid';
+            statsContainer.style.gridTemplateColumns = '1fr 1fr';
+            statsContainer.style.gap = '4px';
+            hud.appendChild(statsContainer);
+        }
+
+        const str = stats.getStat('strength');
+        const def = stats.getStat('defense');
+        const acc = stats.getStat('accuracy');
+        const crit = stats.getStat('critRate');
+
+        // Format percentages (assuming 0-1 range, e.g. 0.95 -> 95%)
+        // If values are already 0-100, this will show 9500%, so we check range
+        const accText = acc <= 1 ? Math.round(acc * 100) : Math.round(acc);
+        const critText = crit <= 1 ? Math.round(crit * 100) : Math.round(crit);
+
+        statsContainer.innerHTML = `
+            <div style="color: var(--color-text-secondary)">STR: <span style="color: var(--color-text)">${str}</span></div>
+            <div style="color: var(--color-text-secondary)">DEF: <span style="color: var(--color-text)">${def}</span></div>
+            <div style="color: var(--color-text-secondary)">ACC: <span style="color: var(--color-text)">${accText}%</span></div>
+            <div style="color: var(--color-text-secondary)">CRT: <span style="color: var(--color-text)">${critText}%</span></div>
+        `;
     }
 }

@@ -13,4 +13,6 @@ export enum LootTableID {
     BOSS_LOOT = 'boss_loot',
     PUZZLE_REWARD_LOOT = 'puzzle_reward_loot',
     CRAFTING_LOOT = 'crafting_loot',
+    CorruptedTreasure = 'corrupted_treasure_loot',
+    KrampusBoss = 'krampus_boss_loot'
 }

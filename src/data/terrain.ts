@@ -1,22 +1,20 @@
-import { EffectID } from '../constants/EffectIDs';
-import { InteractableID } from '../constants/InteractableIDs';
-
 export enum TerrainType {
     Wall = 'wall',
     Floor = 'floor',
     Water = 'water',
     Chasm = 'chasm',
-    // Doors
-    Door = 'door', // Regular door (can be opened/closed)
-    LockedDoor = 'locked_door', // Requires key
-    SecretDoor = 'secret_door', // Hidden until discovered
     // Holiday Specific
-    Ice = EffectID.Ice, // Slippery
+    Ice = 'ice', // Slippery
     DeepSnow = 'deep_snow', // Slow movement
-    Fireplace = InteractableID.Fireplace, // Warmth source
-    Decoration = 'decoration', // Blocker but visual
-    StairsDown = 'stairs_down', // Exit to next level
-    Bridge = 'bridge' // Walkable over water
+}
+
+export interface TerrainEffect {
+    type: 'damage' | 'effect' | 'sound';
+    value?: number;
+    damageType?: string;
+    effectId?: string;
+    duration?: number;
+    soundId?: string;
 }
 
 export interface TerrainData {
@@ -26,23 +24,15 @@ export interface TerrainData {
     cost: number; // Movement cost (1 = normal, 2 = slow)
     isSlippery?: boolean;
     isWarmthSource?: boolean;
+    effects?: TerrainEffect[];
 }
 
 export const TerrainDefinitions: Record<TerrainType, TerrainData> = {
     [TerrainType.Wall]: { type: TerrainType.Wall, isSolid: true, isTransparent: false, cost: 0 },
     [TerrainType.Floor]: { type: TerrainType.Floor, isSolid: false, isTransparent: true, cost: 1 },
-    [TerrainType.Water]: { type: TerrainType.Water, isSolid: false, isTransparent: true, cost: 2 }, // Wading? Or solid for now? Let's say walkable but slow/wet
+    [TerrainType.Water]: { type: TerrainType.Water, isSolid: true, isTransparent: true, cost: 0 }, // Impassable (requires bridge)
     [TerrainType.Chasm]: { type: TerrainType.Chasm, isSolid: true, isTransparent: true, cost: 0 },
     
-    // Doors - walkable but can be closed/locked
-    [TerrainType.Door]: { type: TerrainType.Door, isSolid: false, isTransparent: true, cost: 1 },
-    [TerrainType.LockedDoor]: { type: TerrainType.LockedDoor, isSolid: true, isTransparent: true, cost: 0 },
-    [TerrainType.SecretDoor]: { type: TerrainType.SecretDoor, isSolid: true, isTransparent: false, cost: 0 },
-    
     [TerrainType.Ice]: { type: TerrainType.Ice, isSolid: false, isTransparent: true, cost: 1, isSlippery: true },
-    [TerrainType.DeepSnow]: { type: TerrainType.DeepSnow, isSolid: false, isTransparent: true, cost: 2 },
-    [TerrainType.Fireplace]: { type: TerrainType.Fireplace, isSolid: true, isTransparent: true, cost: 0, isWarmthSource: true },
-    [TerrainType.Decoration]: { type: TerrainType.Decoration, isSolid: true, isTransparent: true, cost: 0 },
-    [TerrainType.StairsDown]: { type: TerrainType.StairsDown, isSolid: false, isTransparent: true, cost: 1 },
-    [TerrainType.Bridge]: { type: TerrainType.Bridge, isSolid: false, isTransparent: true, cost: 1 }
+    [TerrainType.DeepSnow]: { type: TerrainType.DeepSnow, isSolid: false, isTransparent: true, cost: 2 }
 };

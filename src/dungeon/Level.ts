@@ -2,17 +2,24 @@ import * as ex from 'excalibur';
 import { GameActor } from '../components/GameActor';
 import { WorldItemEntity } from '../items/WorldItemEntity';
 import { Room } from './Room';
-import { BiomeDefinition } from '../data/biomes';
-import { TerrainType } from '../data/terrain';
+import { BiomeDefinition, MaterialType } from '../data/biomes';
+import { TerrainType, TerrainDefinitions } from '../data/terrain';
 import { Trigger } from '../core/Trigger';
 import { Logger } from '../core/Logger';
-import { CommonTiles } from '../data/commonTiles';
 import { InteractableEntity } from '../entities/InteractableEntity';
+import { SerializedLevel, SerializedActor, SerializedItem, SerializedInteractable } from '../core/GameState';
+import { ActorFactory } from '../factories/ActorFactory';
+import { ItemFactory } from '../factories/ItemFactory';
+import { DataManager } from '../core/DataManager';
+import { InteractableDefinition } from '../data/interactables';
+import { BiomeDefinitions } from '../data/biomes';
+import { BiomeID } from '../constants/BiomeID';
 
 export class Level {
     public width: number;
     public height: number;
     public levelId: string;
+    public floorNumber: number;
     
     // Layers
     public floorMap: ex.TileMap; // Z = -1
@@ -26,8 +33,9 @@ export class Level {
     public entrancePoint: ex.Vector; // Where hero spawns (stairs up on floor 2+, entrance on floor 1)
     public exitPoint: ex.Vector | null = null; // Stairs down
     public terrainData: TerrainType[][] = [];
+    public materialData: MaterialType[][] = []; // [NEW] Stores material for each tile
     public biome: BiomeDefinition;
-    public scene: ex.Scene;
+    public scene: ex.Scene | null = null;
     
     // Compatibility properties
     public depth: number = 1;
@@ -36,12 +44,14 @@ export class Level {
     public get terrain(): TerrainType[][] { return this.terrainData; }
     public set terrain(v: TerrainType[][]) { this.terrainData = v; }
 
-    constructor(width: number, height: number, biome: BiomeDefinition, scene: ex.Scene, levelId: string = 'level_1') {
+    constructor(width: number, height: number, biome: BiomeDefinition, levelId: string = 'level_1') {
         this.width = width;
         this.height = height;
         this.biome = biome;
-        this.scene = scene;
         this.levelId = levelId;
+        // Extract floor number from levelId (e.g. "level_1" -> 1)
+        const match = levelId.match(/level_(\d+)/);
+        this.floorNumber = match ? parseInt(match[1]) : 1;
         this.entrancePoint = ex.vec(0, 0); // Will be set by generator
 
         // Floor Layer (Background)
@@ -64,10 +74,18 @@ export class Level {
         
         // Initialize terrain data
         this.terrainData = new Array(width).fill(null).map(() => new Array(height).fill(TerrainType.Wall));
+        
+        // Initialize material data (default to biome default or Stone)
+        const defaultMaterial = biome.visuals.defaultMaterial || MaterialType.Stone; 
+        this.materialData = new Array(width).fill(null).map(() => new Array(height).fill(defaultMaterial));
+    }
 
-
+    public addToScene(scene: ex.Scene) {
+        this.scene = scene;
         scene.add(this.floorMap);
         scene.add(this.objectMap);
+        
+        // Entities are added by GameScene.setupLevel, but we can ensure they are tracked here if needed
     }
 
     private tilesetSpriteSheet?: ex.SpriteSheet;
@@ -93,7 +111,8 @@ export class Level {
                     floorTile.clearGraphics();
                     
                     // Get floor graphics from TileGraphicsManager
-                    const floorGraphic = graphics.instance.getTileGraphic(TerrainType.Floor, this.biome);
+                    const material = this.materialData[x][y];
+                    const floorGraphic = graphics.instance.getTileGraphic(TerrainType.Floor, this.biome, x, y, material);
                     floorTile.addGraphic(floorGraphic);
                     floorTile.solid = false; // Floor is never solid
                 }
@@ -105,7 +124,8 @@ export class Level {
                     
                     // Only add graphics for non-floor terrain
                     if (terrainType !== TerrainType.Floor) {
-                        const objectGraphic = graphics.instance.getTileGraphic(terrainType, this.biome);
+                        const material = this.materialData[x][y];
+                        const objectGraphic = graphics.instance.getTileGraphic(terrainType, this.biome, x, y, material);
                         objectTile.addGraphic(objectGraphic);
                     }
                     
@@ -119,6 +139,8 @@ export class Level {
         Logger.info('[Level] Tile graphics update complete');
     }
 
+    public interactables: InteractableEntity[] = [];
+
     public addMob(mob: GameActor) {
         this.mobs.push(mob);
         this.actors.push(mob);
@@ -129,7 +151,9 @@ export class Level {
 
     public addItem(item: WorldItemEntity) {
         this.items.push(item);
-        this.scene.add(item);
+        if (this.scene) {
+            this.scene.add(item);
+        }
         Logger.info(`[Level] Added item ${item.name || 'unnamed'} to level`);
     }
     
@@ -149,13 +173,29 @@ export class Level {
         Logger.info(`[Level] Added actor ${actor.name || 'unnamed'} to level actors list`);
     }
 
+    public addInteractable(entity: InteractableEntity) {
+        this.interactables.push(entity);
+        if (this.scene) {
+            this.scene.add(entity);
+        }
+        Logger.info(`[Level] Added interactable ${entity.name} to level`);
+    }
+
     public addEntity(entity: ex.Actor) {
-        this.scene.add(entity);
+        if (entity instanceof InteractableEntity) {
+            this.addInteractable(entity);
+        } else {
+            if (this.scene) {
+                this.scene.add(entity);
+            }
+        }
     }
 
     public addTrigger(trigger: Trigger) {
         this.triggers.push(trigger);
-        this.scene.add(trigger);
+        if (this.scene) {
+            this.scene.add(trigger);
+        }
     }
 
     public update(engine: ex.Engine, delta: number) {
@@ -181,8 +221,8 @@ export class Level {
             // Check grid position match
             const gridPos = a.pos.clone().setTo(Math.floor(a.pos.x / 32), Math.floor(a.pos.y / 32));
             // Or if actors have a gridPos property (GameEntity does)
-            if ((a as any).gridPos) {
-                 return (a as any).gridPos.x === x && (a as any).gridPos.y === y;
+            if (a.gridPos) {
+                 return a.gridPos.x === x && a.gridPos.y === y;
             }
             // Fallback to world pos check
             return Math.floor(a.pos.x / 32) === x && Math.floor(a.pos.y / 32) === y;
@@ -190,16 +230,13 @@ export class Level {
     }
 
     public getInteractableAt(x: number, y: number): InteractableEntity | null {
-        // Get all entities from the scene at this position
-        const allEntities = this.scene.entities.filter(entity => {
-            if (entity instanceof InteractableEntity) {
-                const gridPos = entity.gridPos;
-                return gridPos.x === x && gridPos.y === y;
-            }
-            return false;
+        // Use internal list instead of scene entities
+        const interactable = this.interactables.find(entity => {
+            const gridPos = entity.gridPos;
+            return gridPos.x === x && gridPos.y === y;
         });
 
-        return allEntities.length > 0 ? (allEntities[0] as InteractableEntity) : null;
+        return interactable || null;
     }
 
     public getItemAt(x: number, y: number): WorldItemEntity | null {
@@ -228,11 +265,11 @@ export class Level {
     }
 
     public getAllAllies(): GameActor[] {
-        return this.actors.filter(a => !(a as any).isEnemy);
+        return this.actors.filter(a => !a.hasTag('enemy'));
     }
 
     public getAllEnemies(): GameActor[] {
-        return this.actors.filter(a => (a as any).isEnemy);
+        return this.actors.filter(a => a.hasTag('enemy'));
     }
 
     public getDistance(x1: number, y1: number, x2: number, y2: number): number {
@@ -251,7 +288,7 @@ export class Level {
         Logger.info(`[Level] Revealing future events to ${actor.name} - TODO: Implement with UI system`);
     }
     public getActorById(id: string): GameActor | undefined {
-        return this.actors.find(a => a.id.toString() === id || (a as any).entityId === id || a.name === id);
+        return this.actors.find(a => a.id.toString() === id || a.entityId === id || a.name === id);
     }
 
     // ===== CENTRALIZED COLLISION API =====
@@ -296,9 +333,10 @@ export class Level {
             return false;
         }
 
-        // Check terrain - walls are always solid
+        // Check terrain solidity from definitions
         const terrain = this.getTile(x, y);
-        if (terrain === TerrainType.Wall) {
+        const terrainDef = TerrainDefinitions[terrain];
+        if (terrainDef && terrainDef.isSolid) {
             return false;
         }
 
@@ -348,5 +386,148 @@ export class Level {
             default:
                 return 1; // Normal movement
         }
+    }
+
+    public setMaterial(x: number, y: number, material: MaterialType): void {
+        if (this.inBounds(x, y)) {
+            this.materialData[x][y] = material;
+        }
+    }
+
+    public getMaterial(x: number, y: number): MaterialType {
+        if (this.inBounds(x, y)) {
+            return this.materialData[x][y];
+        }
+        return MaterialType.Stone; // Default
+    }
+
+    public serialize(): SerializedLevel {
+        Logger.info(`[Level] Serializing level ${this.floorNumber}`);
+        
+        // Serialize Actors
+        const serializedActors: SerializedActor[] = [];
+        for (const actor of this.actors) {
+            if (!actor.isPlayer) {
+                // Basic serialization for now - ideally use a method on actor
+                serializedActors.push({
+                    id: actor.id.toString(),
+                    defName: actor.name, // Assuming name matches definition for now
+                    x: actor.pos.x,
+                    y: actor.pos.y,
+                    time: 0,
+                    actPriority: 0,
+                    isPlayer: false,
+                    componentData: {} // TODO: Component serialization
+                });
+            }
+        }
+
+        // Serialize Items
+        const serializedItems = this.items.map(itemEntity => ({
+            x: itemEntity.item.gridPos?.x || 0,
+            y: itemEntity.item.gridPos?.y || 0,
+            item: {
+                id: itemEntity.item.id,
+                name: itemEntity.item.definition.name,
+                count: itemEntity.item.count,
+                identified: itemEntity.item.identified,
+                enchantments: itemEntity.item.enchantments,
+                curses: itemEntity.item.curses,
+                stackable: itemEntity.item.definition.stackable
+            }
+        }));
+
+        // Serialize Interactables
+        const serializedInteractables: SerializedInteractable[] = this.interactables.map(entity => ({
+            id: entity.id.toString(),
+            type: entity.definition.id,
+            x: entity.gridPos.x,
+            y: entity.gridPos.y,
+            state: entity.currentState,
+            customState: {} // TODO: Custom state
+        }));
+
+        return {
+            seed: this.seed,
+            depth: this.floorNumber,
+            width: this.width,
+            height: this.height,
+            biomeId: this.biome.id,
+            terrain: this.terrainData,
+            materials: this.materialData,
+            actors: serializedActors,
+            items: serializedItems,
+            interactables: serializedInteractables,
+            explored: this.explored || [],
+            entrancePoint: this.entrancePoint ? { x: this.entrancePoint.x, y: this.entrancePoint.y } : undefined,
+            exitPoint: this.exitPoint ? { x: this.exitPoint.x, y: this.exitPoint.y } : undefined
+        };
+    }
+
+    public static async deserialize(data: SerializedLevel): Promise<Level> {
+        Logger.info(`[Level] Deserializing level ${data.depth}`);
+        
+        // Restore Biome
+        const biome = BiomeDefinitions[data.biomeId as BiomeID] || BiomeDefinitions[BiomeID.SnowyVillage];
+        
+        // Create Level
+        // Create Level
+        const level = new Level(data.width, data.height, biome, `level_${data.depth}`);
+        level.seed = data.seed;
+        level.terrainData = data.terrain;
+        level.materialData = data.materials || level.materialData; // Fallback if missing
+        level.explored = data.explored;
+        
+        // Restore entrance and exit points
+        if (data.entrancePoint) {
+            level.entrancePoint = new ex.Vector(data.entrancePoint.x, data.entrancePoint.y);
+        }
+        if (data.exitPoint) {
+            level.exitPoint = new ex.Vector(data.exitPoint.x, data.exitPoint.y);
+        }
+
+        // Restore Actors
+        for (const actorData of data.actors) {
+             const pos = new ex.Vector(actorData.x, actorData.y);
+             // Try to create actor using factory
+             const actor = ActorFactory.instance.createActor(actorData.defName, pos);
+             if (actor) {
+                 level.addActor(actor);
+             } else {
+                 Logger.warn(`[Level] Failed to restore actor ${actorData.defName} at ${pos}`);
+             }
+        }
+        
+        // Restore Items
+        for (const itemData of data.items) {
+            const pos = new ex.Vector(itemData.x, itemData.y);
+            const itemEntity = ItemFactory.instance.createAt(itemData.item.id, pos, itemData.item.count);
+            if (itemEntity) {
+                // Restore properties
+                itemEntity.identified = itemData.item.identified ?? true;
+                itemEntity.enchantments = itemData.item.enchantments || [];
+                itemEntity.curses = itemData.item.curses || [];
+                
+                // Create WorldItemEntity
+                const worldItem = new WorldItemEntity(pos, itemEntity);
+                level.addItem(worldItem);
+            }
+        }
+
+        // Restore Interactables
+        for (const interactableData of data.interactables) {
+             const definition = DataManager.instance.query<InteractableDefinition>('interactable', interactableData.type);
+             if (definition) {
+                 const pos = new ex.Vector(interactableData.x, interactableData.y);
+                 const entity = new InteractableEntity(pos, definition, { levelId: level.levelId });
+                 entity.setState(interactableData.state);
+                 level.addInteractable(entity);
+             } else {
+                 Logger.warn(`[Level] Failed to restore interactable ${interactableData.type}`);
+             }
+        }
+
+        await level.updateTileGraphics();
+        return level;
     }
 }

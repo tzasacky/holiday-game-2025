@@ -117,4 +117,19 @@ export class StatsComponent extends ActorComponent {
         const maxWarmth = this.getStat('maxWarmth');
         if (warmth > maxWarmth) this.setStat('warmth', maxWarmth);
     }
+
+    saveState(): any {
+        return Object.fromEntries(this.stats);
+    }
+
+    loadState(data: any): void {
+        if (data) {
+            Object.entries(data).forEach(([key, value]) => {
+                this.stats.set(key, value as number);
+            });
+            // Re-emit events to update UI
+            this.setStat('hp', this.getStat('hp'));
+            this.setStat('warmth', this.getStat('warmth'));
+        }
+    }
 }

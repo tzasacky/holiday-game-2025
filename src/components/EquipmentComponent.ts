@@ -1,7 +1,8 @@
 import { ActorComponent } from './ActorComponent';
 import { ItemType } from '../data/items';
-import { ItemEntity } from '../factories/ItemFactory';
+import { ItemEntity, ItemFactory } from '../factories/ItemFactory';
 import { InventoryComponent } from './InventoryComponent';
+import { GameActor } from './GameActor';
 import { GameEventNames, ItemEquipEvent, ItemUnequipEvent, StatsRecalculateEvent, EquipmentUnequipRequestEvent } from '../core/GameEvents';
 import { Logger } from '../core/Logger';
 
@@ -12,7 +13,7 @@ export class EquipmentComponent extends ActorComponent {
         ['accessory', null]
     ]);
 
-    constructor(actor: any) {
+    constructor(actor: GameActor) {
         super(actor);
     }
 
@@ -51,9 +52,9 @@ export class EquipmentComponent extends ActorComponent {
         this.slots.set(slot, item);
         
         // Remove from inventory since it's now equipped
-        const inventoryComp = this.actor.getGameComponent('inventory');
+        const inventoryComp = this.actor.getGameComponent('inventory') as InventoryComponent;
         if (inventoryComp) {
-            (inventoryComp as any).removeItemEntity?.(item);
+            inventoryComp.removeItemEntity(item);
         }
         
         // Emit equipped event
@@ -120,6 +121,49 @@ export class EquipmentComponent extends ActorComponent {
                 return 'accessory';
             default:
                 return null; // Item not equippable
+        }
+    }
+
+    saveState(): any {
+        const slotsData: Record<string, any> = {};
+        this.slots.forEach((item, slot) => {
+            if (item) {
+                slotsData[slot] = {
+                    id: item.id,
+                    count: item.count,
+                    identified: item.identified,
+                    enchantments: item.enchantments,
+                    curses: item.curses
+                };
+            }
+        });
+        return { slots: slotsData };
+    }
+
+    loadState(data: any): void {
+        if (data && data.slots) {
+            Object.entries(data.slots).forEach(([slot, itemData]: [string, any]) => {
+                const item = ItemFactory.instance.create(itemData.id, itemData.count);
+                if (item) {
+                    item.identified = itemData.identified ?? true;
+                    item.enchantments = itemData.enchantments || [];
+                    item.curses = itemData.curses || [];
+                    this.slots.set(slot, item);
+                    
+                    // Emit equipped event to update stats/UI
+                    this.emit(GameEventNames.EquipmentEquipped, new ItemEquipEvent(
+                        this.actor,
+                        item,
+                        slot
+                    ));
+                }
+            });
+            
+            // Trigger stat recalculation
+            this.emit(GameEventNames.StatsRecalculate, new StatsRecalculateEvent(
+                this.actor.entityId,
+                'equipment_loaded'
+            ));
         }
     }
 }

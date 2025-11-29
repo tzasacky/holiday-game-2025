@@ -17,7 +17,14 @@ export enum GameActionType {
 export class InputManager {
     private static _instance: InputManager;
     private engine!: ex.Engine;
-    private gameScene: GameScene | null = null;
+    
+    // Dynamic getter for current game scene
+    private get gameScene(): GameScene | null {
+        if (this.engine && this.engine.currentScene instanceof GameScene) {
+            return this.engine.currentScene as GameScene;
+        }
+        return null;
+    }
 
     private lastClickTarget: ex.Vector | null = null;
     private isUIInteractionActive: boolean = false;
@@ -33,9 +40,6 @@ export class InputManager {
 
     public initialize(engine: ex.Engine) {
         this.engine = engine;
-        
-        // Get reference to game scene
-        this.gameScene = engine.currentScene as GameScene;
         
         // Setup pointer listeners
         this.engine.input.pointers.on('down', (evt) => {
@@ -102,9 +106,9 @@ export class InputManager {
         // This keeps game input separate from UI input
     }
     
-    public setGameScene(gameScene: GameScene) {
-        this.gameScene = gameScene;
-    }
+
+    
+    // setGameScene removed as we access engine.currentScene dynamically
     
     private queueGameAction(action: GameActionType) {
         if (!this.gameScene) return;
@@ -127,8 +131,8 @@ export class InputManager {
         
         Logger.debug("[InputManager] Toggling inventory");
         // Access the scene's inventory toggle method
-        if ((this.gameScene as any).toggleInventory) {
-            (this.gameScene as any).toggleInventory();
+        if (this.gameScene.toggleInventory) {
+            this.gameScene.toggleInventory();
         }
     }
     

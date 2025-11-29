@@ -2,6 +2,7 @@ import * as ex from 'excalibur';
 import { GameActor } from '../components/GameActor';
 import { GameEntity } from '../core/GameEntity';
 import { DamageType } from '../data/mechanics';
+import { CombatComponent } from '../components/CombatComponent';
 
 export class Projectile extends GameEntity {
     public speed: number = 300;
@@ -39,7 +40,7 @@ export class Projectile extends GameEntity {
         // Hit Actor
         if (otherActor instanceof GameActor) {
             // Use combat component if available, or direct damage event
-            const combat = otherActor.getGameComponent('combat') as any;
+            const combat = otherActor.getGameComponent<CombatComponent>('combat');
             if (combat) {
                 combat.takeDamage(this.damage, this.damageType);
             }
@@ -49,7 +50,7 @@ export class Projectile extends GameEntity {
         
         // Hit Wall (TileMap)
         // If it's not an actor and it's fixed, it's likely a wall
-        if (other.owner instanceof ex.TileMap || (other.owner && (other.owner as any).body?.collisionType === ex.CollisionType.Fixed)) {
+        if (other.owner instanceof ex.TileMap || (other.owner instanceof ex.Actor && other.owner.body.collisionType === ex.CollisionType.Fixed)) {
             this.kill();
         }
     }

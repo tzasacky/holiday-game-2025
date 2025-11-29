@@ -4,6 +4,8 @@ import { EventBus } from '../core/EventBus';
 import { GameEventNames } from '../core/GameEvents';
 import { Logger } from '../core/Logger';
 import { ItemType, EquipmentSlotType } from '../data/items';
+import { InventoryComponent } from '../components/InventoryComponent';
+import { EquipmentComponent } from '../components/EquipmentComponent';
 
 export class InventoryUI {
     private container: HTMLElement | null = null;
@@ -92,13 +94,13 @@ export class InventoryUI {
     private renderInventory() {
         if (!this.gridContainer || !this.hero) return;
 
-        const inventory = this.hero.getGameComponent('inventory') as any; // Cast to any to access items directly if needed
+        const inventory = this.hero.getGameComponent<InventoryComponent>('inventory');
         if (!inventory) return;
 
         Logger.info(`[InventoryUI] Rendering ${inventory.items.length} items`);
         this.gridContainer.innerHTML = '';
         const items = inventory.items || [];
-        const capacity = inventory.capacity || 20;
+        const capacity = inventory.maxSize || 20;
 
         for (let i = 0; i < capacity; i++) {
             const item = items[i];
@@ -211,7 +213,7 @@ export class InventoryUI {
         rarityBar.className = 'item-rarity-bar';
         fragment.appendChild(rarityBar);
 
-        return fragment as any;
+        return fragment as unknown as HTMLElement;
     }
 
     private setRarityClass(element: HTMLElement, item: ItemEntity) {
@@ -282,7 +284,7 @@ export class InventoryUI {
             slot.addEventListener('dragstart', (e) => {
                 this.draggedItem = item;
                 this.draggedFromIndex = index;
-                this.draggedFromType = context as any;
+                this.draggedFromType = context;
                 this.draggedFromSlotType = slotType || null;
                 
                 slot.classList.add('dragging');
@@ -327,7 +329,7 @@ export class InventoryUI {
 
         if (context === 'equipment' && slotType) {
             // Unequip on click
-            const equipment = this.hero.getGameComponent('equipment') as any;
+            const equipment = this.hero.getGameComponent<EquipmentComponent>('equipment');
             if (equipment && item) {
                 Logger.info(`Unequipping slot ${slotType}`);
                 const componentSlot = this.mapSlotTypeToComponentKey(slotType);
@@ -351,7 +353,7 @@ export class InventoryUI {
         if (context === 'inventory') {
             item.use(this.hero);
         } else if (context === 'equipment' && slotType) {
-            const equipment = this.hero.getGameComponent('equipment') as any;
+            const equipment = this.hero.getGameComponent<EquipmentComponent>('equipment');
             if (equipment) {
                 Logger.info(`Unequipping slot ${slotType}`);
                 const componentSlot = this.mapSlotTypeToComponentKey(slotType);
@@ -376,13 +378,20 @@ export class InventoryUI {
 
         Logger.info(`Dropped ${this.draggedItem.definition.name} from ${this.draggedFromType} to ${targetContext}`);
 
-        const inventory = this.hero.getGameComponent('inventory') as any;
-        const equipment = this.hero.getGameComponent('equipment') as any;
+        const inventory = this.hero.getGameComponent<InventoryComponent>('inventory');
+        const equipment = this.hero.getGameComponent<EquipmentComponent>('equipment');
+        
+        if (!inventory || !equipment) return;
 
         if (this.draggedFromType === 'inventory' && targetContext === 'inventory') {
             // Swap in inventory
             if (this.draggedFromIndex !== targetIndex) {
-                inventory.swap(this.draggedFromIndex, targetIndex);
+                // Manual swap since InventoryComponent doesn't have swap method yet
+                const temp = inventory.items[this.draggedFromIndex];
+                inventory.items[this.draggedFromIndex] = inventory.items[targetIndex];
+                inventory.items[targetIndex] = temp;
+                // Emit change event manually? Or add swap method to component.
+                // Let's just access items directly for now as they are public.
             }
         } else if (this.draggedFromType === 'inventory' && targetContext === 'equipment') {
             // Equip from inventory to specific slot

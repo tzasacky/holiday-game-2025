@@ -1,0 +1,17 @@
+export enum RoomTypeID {
+  Basic = 'basic_room',
+  Combat = 'combat_room',
+  Treasure = 'treasure_room',
+  Boss = 'boss_room',
+  Safe = 'safe_room',
+  Ambush = 'ambush_room',
+  Puzzle = 'puzzle_room',
+  Workshop = 'workshop_room',
+  Entrance = 'entrance_room',
+  Exit = 'exit_room',
+  Shop = 'shop_room',
+  Library = 'library_room',
+  Armory = 'armory_room',
+  Kitchen = 'kitchen_room',
+  Bedroom = 'bedroom_room',
+}

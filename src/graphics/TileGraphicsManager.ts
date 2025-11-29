@@ -1,14 +1,15 @@
 import * as ex from 'excalibur';
 import { ResourceManager } from '../core/ResourceManager';
-import { CommonTiles } from '../data/commonTiles';
-import { BiomeDefinition } from '../data/biomes';
+import { BiomeDefinition, MaterialType, TileVariant } from '../data/biomes';
 import { TerrainType } from '../data/terrain';
 import { Logger } from '../core/Logger';
+import { PerlinNoise } from '../dungeon/algorithms/PerlinNoise';
 
 export class TileGraphicsManager {
     private static _instance: TileGraphicsManager;
     private spriteSheets: Map<string, ex.SpriteSheet> = new Map();
     private initialized: boolean = false;
+    private noise: PerlinNoise;
 
     public static get instance(): TileGraphicsManager {
         if (!this._instance) {
@@ -17,7 +18,9 @@ export class TileGraphicsManager {
         return this._instance;
     }
 
-    private constructor() {}
+    private constructor() {
+        this.noise = new PerlinNoise(Date.now());
+    }
 
     public async initialize(): Promise<void> {
         if (this.initialized) {
@@ -33,23 +36,11 @@ export class TileGraphicsManager {
             await ResourceManager.instance.ensureAllLoaded();
         }
 
-        // Initialize CommonTiles system
-        await this.initializeCommonTiles();
-
         // Initialize biome tilesets
         await this.initializeBiomeTilesets();
 
         this.initialized = true;
         Logger.info('[TileGraphicsManager] Initialization complete');
-    }
-
-    private async initializeCommonTiles(): Promise<void> {
-        try {
-            CommonTiles.instance.initialize();
-            Logger.info('[TileGraphicsManager] CommonTiles initialized successfully');
-        } catch (error) {
-            Logger.error('[TileGraphicsManager] Failed to initialize CommonTiles:', error);
-        }
     }
 
     private async initializeBiomeTilesets(): Promise<void> {
@@ -58,22 +49,32 @@ export class TileGraphicsManager {
         Logger.debug('[TileGraphicsManager] Biome tilesets will be loaded on-demand');
     }
 
-    public getTileGraphic(terrainType: TerrainType, biome: BiomeDefinition): ex.Graphic {
+    public getTileGraphic(
+        terrainType: TerrainType, 
+        biome: BiomeDefinition, 
+        x: number = 0, 
+        y: number = 0, 
+        material: MaterialType = MaterialType.Stone
+    ): ex.Graphic {
         if (!this.initialized) {
             Logger.warn('[TileGraphicsManager] Not initialized, returning fallback graphic');
             return this.createFallbackGraphic(terrainType);
         }
 
-        // 1. Try CommonTiles first (doors, stairs, etc.)
-        if (CommonTiles.instance.has(terrainType)) {
-            const sprite = CommonTiles.instance.getSprite(terrainType);
-            if (sprite) {
-                return sprite;
+        // 1. Try biome-specific sprite with material and noise
+        const biomeGraphics = biome.visuals.tileGraphics[terrainType];
+        
+        // Check for material-specific variants first (New System)
+        if (biome.visuals.materials && biome.visuals.materials[material]) {
+            const materialVariants = biome.visuals.materials[material][terrainType];
+            if (materialVariants && materialVariants.length > 0) {
+                const variant = this.getTileVariant(materialVariants, x, y);
+                const sprite = this.getBiomeSprite(biome, variant.spriteCoords);
+                if (sprite) return sprite;
             }
         }
 
-        // 2. Try biome-specific sprite
-        const biomeGraphics = biome.visuals.tileGraphics[terrainType];
+        // Fallback to legacy single sprite coord (Old System)
         if (biomeGraphics?.spriteCoords && biome.visuals.tileset) {
             const sprite = this.getBiomeSprite(biome, biomeGraphics.spriteCoords);
             if (sprite) {
@@ -84,6 +85,42 @@ export class TileGraphicsManager {
         // 3. Fallback to colored rectangle
         const color = biomeGraphics?.color || this.getDefaultColor(terrainType);
         return this.createColoredRectangle(color);
+    }
+
+    private getTileVariant(variants: TileVariant[], x: number, y: number): TileVariant {
+        if (variants.length === 1) return variants[0];
+
+        // Use Perlin noise to select variant
+        // Scale coordinates to get smooth noise patches
+        const scale = 0.2; // Increased from 0.1 for more frequent variation
+        const noiseValue = (this.noise.noise(x * scale, y * scale) + 1) / 2; // 0 to 1
+
+        // Calculate total weight
+        const totalWeight = variants.reduce((sum, v) => sum + v.weight, 0);
+        
+        // Map noise value to weighted selection
+        // We use the noise value as a "roll" across the weighted distribution
+        // However, for "patches", we might want specific noise ranges to map to specific variants.
+        // But weighted random selection based on noise is a good start for "organic" feel.
+        
+        // Better approach for patches: Use noise thresholds.
+        // But since we don't have explicit thresholds in TileVariant, let's use the weighted random approach
+        // but seeded with the noise value * totalWeight.
+        
+        // Actually, to get "patches" of specific variants (like mossy stone), we want consistent selection for similar noise values.
+        // So we map the 0-1 noise value directly to the cumulative weight distribution.
+        
+        let currentWeight = 0;
+        const targetWeight = noiseValue * totalWeight;
+        
+        for (const variant of variants) {
+            currentWeight += variant.weight;
+            if (targetWeight <= currentWeight) {
+                return variant;
+            }
+        }
+        
+        return variants[variants.length - 1];
     }
 
     private getBiomeSprite(biome: BiomeDefinition, spriteCoords: [number, number]): ex.Sprite | null {
@@ -147,17 +184,10 @@ export class TileGraphicsManager {
         const defaultColors: Record<TerrainType, ex.Color> = {
             [TerrainType.Wall]: ex.Color.Gray,
             [TerrainType.Floor]: ex.Color.White,
-            [TerrainType.Door]: ex.Color.Brown,
-            [TerrainType.LockedDoor]: ex.Color.Yellow,
-            [TerrainType.SecretDoor]: ex.Color.Gray,
             [TerrainType.Water]: ex.Color.Blue,
             [TerrainType.Ice]: ex.Color.Cyan,
             [TerrainType.DeepSnow]: ex.Color.fromHex('#F0F8FF'),
-            [TerrainType.Chasm]: ex.Color.Black,
-            [TerrainType.StairsDown]: ex.Color.fromHex('#8B4513'),
-            [TerrainType.Bridge]: ex.Color.fromHex('#DEB887'),
-            [TerrainType.Fireplace]: ex.Color.Red,
-            [TerrainType.Decoration]: ex.Color.Purple
+            [TerrainType.Chasm]: ex.Color.Black
         };
 
         return defaultColors[terrainType] || ex.Color.Magenta;

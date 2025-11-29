@@ -1,7 +1,6 @@
 import * as ex from 'excalibur';
 import { RoomTemplate } from '../data/roomTemplates';
-
-export type RoomType = 'normal' | 'boss' | 'treasure' | 'puzzle' | 'ambush' | 'safe' | 'shop';
+import { RoomTypeID } from '../constants/RoomTypeID';
 
 export class Room {
     public x: number;
@@ -10,12 +9,13 @@ export class Room {
     public height: number;
 
     // Room metadata for enhanced generation
-    public roomType: RoomType = 'normal';
+    public roomType: RoomTypeID = RoomTypeID.Basic;
     public template?: RoomTemplate;
     public tags: string[] = [];
     public isSpecial: boolean = false;
     public entrances: ex.Vector[] = []; // Door locations
     public cleared: boolean = false;
+    public connections: Room[] = []; // Connected rooms (graph adjacency)
 
     constructor(x: number, y: number, width: number, height: number) {
         this.x = x;

@@ -15,6 +15,7 @@ export enum ItemID {
     SteelToyHammer = 'steel_toy_hammer',
     EnchantedToyHammer = 'enchanted_toy_hammer',
     NutcrackerHammer = 'nutcracker_hammer',
+    HolidayHammer = 'holiday_hammer',
     
     // Christmas Wands (many varieties)
     SparklerWand = 'sparkler_wand',

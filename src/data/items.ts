@@ -119,7 +119,7 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
             durability: 60
         },
         effects: [
-            { type: 'frost_chance', value: 15 }
+            { type: EffectID.FrostChance, value: 15 }
         ],
         allowedEnchantments: [EnchantmentType.FROST, EnchantmentType.SHARPNESS],
         possibleCurses: [CurseType.MELTING, CurseType.BRITTLE],
@@ -160,7 +160,7 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
         },
         effects: [
             { type: AbilityID.ChristmasSpirit, value: 25 },
-            { type: 'cold_immunity', value: 100 }
+            { type: EffectID.ColdImmunity, value: 100 }
         ],
         allowedEnchantments: [EnchantmentType.SANTA_BLESSED, EnchantmentType.CHRISTMAS_SPIRIT],
         tags: ['armor', 'legendary', 'santa', 'unique']
@@ -212,7 +212,7 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
         effects: [
             { type: 'light_radius', value: 3 },
             { type: 'luck', value: 10 },
-            { type: 'warmth_generation', value: 5 }
+            { type: EffectID.WarmthGeneration, value: 5 }
         ],
         allowedEnchantments: [EnchantmentType.SANTA_BLESSED, EnchantmentType.LUCK],
         tags: ['artifact', 'light', 'unique', 'guidance']
@@ -243,7 +243,7 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
         maxStack: 50,
         craftingMaterial: true,
         effects: [
-            { type: 'fuel', value: 10 }
+            { type: EffectID.Fuel, value: 10 }
         ],
         tags: ['fuel', 'naughty', 'crafting']
     },
@@ -284,7 +284,7 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
         graphics: { spriteIndex: 4, resource: Resources.ItemsWeaponsPng },
         description: 'A well-formed icicle dagger',
         stats: { damage: 5, accuracy: 92, weight: 1, durability: 50 },
-        effects: [{ type: 'frost_chance', value: 10 }],
+        effects: [{ type: EffectID.FrostChance, value: 10 }],
         tags: ['weapon', 'dagger', EffectID.Ice]
     },
 
@@ -296,7 +296,7 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
         graphics: { spriteIndex: 2, resource: Resources.ItemsWeaponsPng },
         description: 'An exceptionally sharp icicle dagger',
         stats: { damage: 7, accuracy: 95, weight: 1, durability: 70 },
-        effects: [{ type: 'frost_chance', value: 20 }],
+        effects: [{ type: EffectID.FrostChance, value: 20 }],
         tags: ['weapon', 'dagger', EffectID.Ice]
     },
 
@@ -308,7 +308,7 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
         graphics: { spriteIndex: 3, resource: Resources.ItemsWeaponsPng },
         description: 'A flawless icicle dagger of legendary sharpness',
         stats: { damage: 10, accuracy: 98, weight: 1, durability: 100 },
-        effects: [{ type: 'frost_chance', value: 30 }],
+        effects: [{ type: EffectID.FrostChance, value: 30 }],
         tags: ['weapon', 'dagger', EffectID.Ice, 'perfect']
     },
 
@@ -354,7 +354,7 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
         graphics: { spriteIndex: 11, resource: Resources.ItemsWeaponsPng },
         description: 'A toy hammer imbued with magic',
         stats: { damage: 12, accuracy: 85, weight: 3, durability: 120 },
-        effects: [{ type: 'stun_chance', value: 15 }],
+        effects: [{ type: EffectID.StunChance, value: 15 }],
         tags: ['weapon', 'hammer', 'toy', 'magic']
     },
 
@@ -367,10 +367,24 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
         description: 'The legendary hammer of the Nutcracker himself',
         stats: { damage: 18, accuracy: 90, weight: 3, durability: 200 },
         effects: [
-            { type: 'stun_chance', value: 25 },
-            { type: 'armor_break', value: 3 }
+            { type: EffectID.StunChance, value: 25 },
+            { type: EffectID.ArmorBreak, value: 3 }
         ],
         tags: ['weapon', 'hammer', 'toy', 'legendary', 'nutcracker']
+    },
+
+    [ItemID.HolidayHammer]: {
+        id: ItemID.HolidayHammer,
+        name: 'Holiday Hammer',
+        type: ItemType.WEAPON,
+        rarity: ItemRarity.RARE,
+        graphics: { spriteIndex: 13, resource: Resources.ItemsWeaponsPng },
+        description: 'A festive hammer that packs a punch',
+        stats: { damage: 14, accuracy: 88, weight: 4, durability: 150 },
+        effects: [
+            { type: EffectID.Knockback, value: 2 }
+        ],
+        tags: ['weapon', 'hammer', 'holiday']
     },
 
     // === CONSUMABLES (Comprehensive) ===
@@ -384,7 +398,7 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
         description: 'A simple snowball for throwing',
         stackable: true,
         maxStack: 20,
-        effects: [{ type: 'damage', value: 3 }],
+        effects: [{ type: EffectID.Damage, value: 3 }],
         tags: ['consumable', 'projectile', 'throwable']
     },
 
@@ -397,7 +411,7 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
         description: 'A densely packed snowball',
         stackable: true,
         maxStack: 15,
-        effects: [{ type: 'damage', value: 5 }],
+        effects: [{ type: EffectID.Damage, value: 5 }],
         tags: ['consumable', 'projectile', 'throwable']
     },
 
@@ -411,8 +425,8 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
         stackable: true,
         maxStack: 10,
         effects: [
-            { type: 'damage', value: 8 },
-            { type: 'slow_chance', value: 30 }
+            { type: EffectID.Damage, value: 8 },
+            { type: EffectID.SlowChance, value: 30 }
         ],
         tags: ['consumable', 'projectile', 'throwable', EffectID.Ice]
     },
@@ -426,7 +440,7 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
         graphics: { spriteIndex: 24, resource: Resources.ItemsConsumablesPng },
         description: 'Adds a random enchantment to an item',
         stackable: false,
-        effects: [{ type: 'enchant_random', value: 1 }],
+        effects: [{ type: EffectID.EnchantRandom, value: 1 }],
         tags: ['consumable', 'scroll', 'enchantment']
     },
 
@@ -491,7 +505,7 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
         graphics: { spriteIndex: 2, resource: Resources.ItemsConsumablesPng },
         description: 'Permanently increases max HP',
         stackable: false,
-        effects: [{ type: 'max_hp_increase', value: 5 }],
+        effects: [{ type: EffectID.MaxHpIncrease, value: 5 }],
         tags: ['consumable', 'permanent', 'progression']
     },
 
@@ -503,7 +517,7 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
         graphics: { spriteIndex: 9, resource: Resources.ItemsConsumablesPng },
         description: 'Permanently increases strength',
         stackable: false,
-        effects: [{ type: 'strength_permanent', value: 1 }],
+        effects: [{ type: EffectID.StrengthPermanent, value: 1 }],
         tags: ['consumable', 'permanent', 'progression']
     },
 
@@ -517,7 +531,7 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
         stackable: false,
         effects: [
             { type: AbilityID.Heal, value: 50 },
-            { type: 'max_hp_increase', value: 10 },
+            { type: EffectID.MaxHpIncrease, value: 10 },
             { type: AbilityID.ChristmasSpirit, value: 100 }
         ],
         tags: ['consumable', 'permanent', 'legendary', 'santa']
@@ -533,8 +547,8 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
         graphics: { spriteIndex: 16, resource: Resources.ItemsEquipmentPng },
         description: 'Grants resistance to cold',
         effects: [
-            { type: 'cold_resistance', value: 50 },
-            { type: 'frost_damage_bonus', value: 2 }
+            { type: EffectID.ColdResistance, value: 50 },
+            { type: EffectID.FrostDamageBonus, value: 2 }
         ],
         tags: ['artifact', 'ring', 'frost', 'resistance']
     },
@@ -546,7 +560,7 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
         rarity: ItemRarity.UNCOMMON,
         graphics: { spriteIndex: 17, resource: Resources.ItemsEquipmentPng },
         description: 'Provides constant warmth',
-        effects: [{ type: 'warmth_generation', value: 3 }],
+        effects: [{ type: EffectID.WarmthGeneration, value: 3 }],
         tags: ['artifact', 'ring', 'warmth']
     },
 
@@ -571,7 +585,7 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
         description: 'A magical snow globe that protects its owner',
         effects: [
             { type: EffectID.DefenseBoost, value: 3 },
-            { type: 'cold_immunity', value: 25 }
+            { type: EffectID.ColdImmunity, value: 25 }
         ],
         tags: ['artifact', 'protection', 'winter']
     },
@@ -584,8 +598,8 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
         graphics: { spriteIndex: 25, resource: Resources.ItemsEquipmentPng },
         description: 'Summons reindeer to aid you',
         effects: [
-            { type: 'movement_speed', value: 15 },
-            { type: 'dash_cooldown_reduction', value: 2 }
+            { type: EffectID.MovementSpeed, value: 15 },
+            { type: EffectID.DashCooldownReduction, value: 2 }
         ],
         tags: ['artifact', 'reindeer', 'movement']
     },
@@ -598,8 +612,8 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
         graphics: { spriteIndex: 26, resource: Resources.ItemsEquipmentPng },
         description: 'Always points to the stairs',
         effects: [
-            { type: 'stairs_detection', value: 1 },
-            { type: 'treasure_detection', value: 5 }
+            { type: EffectID.StairsDetection, value: 1 },
+            { type: EffectID.TreasureDetection, value: 5 }
         ],
         tags: ['artifact', 'elf', 'utility', 'detection']
     },
@@ -675,7 +689,7 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
         graphics: { spriteIndex: 16, resource: Resources.ItemsWeaponsPng },
         description: 'A wand that shoots sparkles',
         stats: { damage: 4, accuracy: 85, weight: 1 },
-        effects: [{ type: 'fire_damage', value: 2 }],
+        effects: [{ type: EffectID.FireDamage, value: 2 }],
         tags: ['weapon', 'wand', EffectID.Fire]
     },
 
@@ -687,7 +701,7 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
         graphics: { spriteIndex: 17, resource: Resources.ItemsWeaponsPng },
         description: 'A magical candlestick',
         stats: { damage: 5, accuracy: 80, weight: 2 },
-        effects: [{ type: 'light', value: 2 }],
+        effects: [{ type: EffectID.Light, value: 2 }],
         tags: ['weapon', 'wand', 'light']
     },
 
@@ -699,7 +713,7 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
         graphics: { spriteIndex: 18, resource: Resources.ItemsWeaponsPng },
         description: 'Wand wrapped in holly',
         stats: { damage: 6, accuracy: 85, weight: 1 },
-        effects: [{ type: 'nature_damage', value: 3 }],
+        effects: [{ type: EffectID.NatureDamage, value: 3 }],
         tags: ['weapon', 'wand', 'nature']
     },
 
@@ -711,7 +725,7 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
         graphics: { spriteIndex: 19, resource: Resources.ItemsWeaponsPng },
         description: 'Wand of festive magic',
         stats: { damage: 7, accuracy: 85, weight: 1 },
-        effects: [{ type: 'charm_chance', value: 10 }],
+        effects: [{ type: EffectID.CharmChance, value: 10 }],
         tags: ['weapon', 'wand', 'charm']
     },
 
@@ -735,7 +749,7 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
         graphics: { spriteIndex: 21, resource: Resources.ItemsWeaponsPng },
         description: 'Wand topped with a bright star',
         stats: { damage: 10, accuracy: 90, weight: 1 },
-        effects: [{ type: 'light_blast', value: 8 }],
+        effects: [{ type: EffectID.LightBlast, value: 8 }],
         tags: ['weapon', 'wand', 'star', 'light']
     },
 
@@ -747,7 +761,7 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
         graphics: { spriteIndex: 22, resource: Resources.ItemsWeaponsPng },
         description: 'Every spell jingles merrily',
         stats: { damage: 8, accuracy: 88, weight: 1 },
-        effects: [{ type: 'sound_attack', value: 6 }],
+        effects: [{ type: EffectID.SoundAttack, value: 6 }],
         tags: ['weapon', 'wand', 'sound']
     },
 
@@ -759,7 +773,7 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
         graphics: { spriteIndex: 23, resource: Resources.ItemsWeaponsPng },
         description: 'Surprisingly powerful for a cookie',
         stats: { damage: 11, accuracy: 92, weight: 1 },
-        effects: [{ type: 'healing_on_hit', value: 2 }],
+        effects: [{ type: EffectID.HealingOnHit, value: 2 }],
         tags: ['weapon', 'wand', 'food']
     },
 
@@ -771,7 +785,7 @@ export const ItemDefinitions: Record<ItemID, ItemDefinition> = {
         graphics: { spriteIndex: 24, resource: Resources.ItemsWeaponsPng },
         description: 'Explosive festive magic',
         stats: { damage: 14, accuracy: 85, weight: 2 },
-        effects: [{ type: 'aoe_damage', value: 5 }],
+        effects: [{ type: EffectID.AoeDamage, value: 5 }],
         tags: ['weapon', 'wand', EffectID.Fire, 'aoe']
     },
 

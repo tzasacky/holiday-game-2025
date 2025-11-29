@@ -105,7 +105,7 @@ export const ActorDefinitions: Record<string, ActorDefinition> = {
         baseStats: {
             maxHp: 100,
             maxWarmth: 100,
-            strength: 10,
+            strength: 100,
             defense: 0,
             accuracy: 95,
             critRate: 5

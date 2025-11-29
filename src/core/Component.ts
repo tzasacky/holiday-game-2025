@@ -51,7 +51,7 @@ export abstract class Component implements ComponentSaveState {
     onDetach(): void {
         // Clean up all event listeners
         this.eventHandlers.forEach(({ event, handler }) => {
-            EventBus.instance.off(event as any, handler);
+            EventBus.instance.off(event as keyof GameEventMap, handler);
         });
         this.eventHandlers = [];
     }

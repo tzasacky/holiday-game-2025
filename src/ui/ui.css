@@ -101,7 +101,61 @@
   white-space: nowrap;
 }
 
-/* Hotbar styles removed (now Canvas-based) */
+/* Hotbar */
+#hotbar {
+  position: absolute;
+  bottom: var(--spacing-lg);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: var(--spacing-sm);
+  background-color: var(--color-background);
+  padding: var(--spacing-sm);
+  border: 2px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  pointer-events: auto;
+}
+
+.hotbar-slot {
+  width: 48px;
+  height: 48px;
+  background-color: var(--color-panel-light);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-sm);
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.hotbar-slot:hover {
+  border-color: var(--color-text-secondary);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.hotbar-hotkey {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  font-size: 10px;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.inventory-btn {
+  font-weight: bold;
+  font-size: 18px;
+  color: var(--color-text);
+  background-color: var(--color-panel);
+}
+
+.inventory-btn:hover {
+  background-color: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary-dark);
+}
 
 /* Game Journal */
 #game-journal {
@@ -179,4 +233,257 @@
   border: 1px solid var(--color-border);
   border-bottom: 1px solid var(--color-background); /* Hide bottom border */
   font-weight: bold;
+}
+
+/* Inventory Screen */
+.modal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  pointer-events: auto; /* Block clicks to game */
+}
+
+.modal-content {
+  background-color: var(--color-panel);
+  border: 2px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  width: 600px;
+  max-width: 90%;
+  max-height: 90%;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--color-panel-light);
+  border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--color-text);
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 24px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.close-btn:hover {
+  color: var(--color-text);
+}
+
+.inventory-layout {
+  display: flex;
+  padding: var(--spacing-lg);
+  gap: var(--spacing-xl);
+  flex: 1;
+  overflow-y: auto;
+}
+
+.equipment-panel {
+  width: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.equipment-panel h3,
+.inventory-container h3 {
+  margin: 0 0 var(--spacing-sm) 0;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--spacing-xs);
+}
+
+.equipment-slots {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  align-items: center;
+  margin-top: var(--spacing-md);
+}
+
+.equipment-slot-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.slot-label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.inventory-container {
+  flex: 1;
+}
+
+.inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 48px);
+  grid-auto-rows: 48px;
+  gap: 12px;
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-md);
+  /* Optional: background for the grid area */
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: var(--border-radius-sm);
+  max-height: 600px;
+  overflow-y: auto;
+  justify-content: center;
+}
+
+/* Item Slots */
+.item-slot,
+.equipment-slot {
+  width: 48px;
+  height: 48px;
+  background-color: var(--color-panel-light);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-sm);
+  position: relative;
+  cursor: pointer;
+  transition: border-color 0.2s, background-color 0.2s;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.item-slot:hover,
+.equipment-slot:hover {
+  border-color: var(--color-text-secondary);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.item-slot.selected,
+.equipment-slot.selected {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.item-slot.drag-over,
+.equipment-slot.drag-over {
+  border-color: var(--color-accent);
+  background-color: rgba(245, 158, 11, 0.1);
+}
+
+/* Item Content */
+.item-icon {
+  /* width and height set by JS for sprites, or 100% for fallback */
+  background-position: center;
+  image-rendering: pixelated;
+  /* Removed background-size: contain to prevent spritesheet squashing */
+}
+
+.item-count {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  font-size: 10px;
+  padding: 1px 3px;
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.item-rarity-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+}
+
+/* Rarity Colors */
+.rarity-common .item-rarity-bar {
+  background-color: #9ca3af;
+}
+.rarity-uncommon .item-rarity-bar {
+  background-color: #22c55e;
+}
+.rarity-rare .item-rarity-bar {
+  background-color: #3b82f6;
+}
+.rarity-epic .item-rarity-bar {
+  background-color: #8b5cf6;
+}
+.rarity-legendary .item-rarity-bar {
+  background-color: #f59e0b;
+}
+.rarity-cursed .item-rarity-bar {
+  background-color: #dc2626;
+}
+
+/* Modal Footer */
+.modal-footer {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-top: 1px solid var(--color-border);
+  background-color: var(--color-panel-light);
+  border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
+}
+
+.item-info {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  min-height: 1.2em;
+}
+
+/* Dragging */
+.dragging {
+  opacity: 0.5;
+}
+
+/* Tooltip */
+#ui-tooltip {
+  position: absolute;
+  background-color: var(--color-background-dark);
+  border: 1px solid var(--color-border-light);
+  padding: var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
+  pointer-events: none;
+  z-index: 3000;
+  max-width: 250px;
+  font-size: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  display: none;
+}
+
+.tooltip-title {
+  font-weight: bold;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.tooltip-desc {
+  color: var(--color-text-secondary);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.tooltip-stats {
+  color: var(--color-accent);
+  font-size: 11px;
 }

@@ -2,8 +2,6 @@ import * as ex from 'excalibur';
 import { Level } from '../dungeon/Level';
 import { TurnManager } from '../core/TurnManager';
 import { UIManager } from '../ui/UIManager';
-import { Hotbar } from '../ui/Hotbar';
-import { InventoryScreen } from '../ui/InventoryScreen';
 import { GameActor } from '../components/GameActor';
 import { ActorFactory } from '../factories/ActorFactory';
 import { UnifiedSystemInit } from '../core/UnifiedSystemInit';
@@ -17,8 +15,6 @@ import { GameState } from '../core/GameState';
 export class GameScene extends ex.Scene {
     public level: Level | null = null;
     private hero: GameActor | null = null;
-    private hotbar: Hotbar | null = null;
-    private inventoryScreen: InventoryScreen | null = null;
 
     public onInitialize(engine: ex.Engine) {}
     
@@ -68,7 +64,7 @@ export class GameScene extends ex.Scene {
                 UIManager.instance.showUI();
                 UIManager.instance.update(hero); // Initialize HUD
 
-                // Initialize Canvas UI
+                // Initialize Canvas UI (Hotbar only)
                 this.initializeCanvasUI(hero);
                 
                 // Discover the starting floor
@@ -190,12 +186,11 @@ export class GameScene extends ex.Scene {
     }
 
     public toggleInventory() {
-        this.inventoryScreen?.toggle();
+        UIManager.instance.toggleInventory();
     }
 
     public checkUIHit(screenPos: ex.Vector): boolean {
-        if (this.hotbar?.isPointInBounds(screenPos)) return true;
-        if (this.inventoryScreen?.isVisible() && this.inventoryScreen.isPointInBounds(screenPos)) return true;
+        // Inventory and Hotbar are now DOM, so they handle their own clicks via pointer-events
         return false;
     }
     
@@ -216,17 +211,6 @@ export class GameScene extends ex.Scene {
     }
 
     private initializeCanvasUI(hero: GameActor) {
-        // Hotbar
-        this.hotbar = new Hotbar(hero, () => {
-            this.inventoryScreen?.toggle();
-        });
-        this.add(this.hotbar);
-        
-        // Register hotbar with UIManager so InputManager can access it
-        UIManager.instance.registerHotbar(this.hotbar);
-
-        // Inventory Screen
-        this.inventoryScreen = new InventoryScreen(hero);
-        this.add(this.inventoryScreen);
+        // Canvas UI removed in favor of DOM UI
     }
 }

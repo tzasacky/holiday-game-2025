@@ -46,16 +46,29 @@ export class ItemEntity {
         console.log(`[ItemEntity] use() called for ${this.definition.name} (type: ${this.definition.type})`);
         Logger.debug(`[ItemEntity] Using ${this.definition.name}`);
         
-        // Weapons and equipment should be equipped, not "used"
+        // Weapons and equipment should be equipped
         if (this.definition.type === ItemType.WEAPON || this.definition.type === ItemType.ARMOR) {
-            console.log(`[ItemEntity] Item is equipment, should be equipped not consumed`);
-            // TODO: Implement equipment system or show message
-            console.warn(`[ItemEntity] Equipment items should be equipped via right-click or drag-and-drop`);
+            console.log(`[ItemEntity] Equipping ${this.definition.name}`);
+            
+            const equipmentComp = user.getGameComponent('equipment');
+            const inventoryComp = user.getGameComponent('inventory');
+            
+            if (!equipmentComp || !inventoryComp) {
+                console.warn(`[ItemEntity] User missing equipment or inventory component`);
+                return;
+            }
+            
+            // Equip the item - EquipmentComponent.equip() will auto-determine slot and handle swapping
+            const success = (equipmentComp as any).equip?.(this);
+            
+            if (success) {
+                console.log(`[ItemEntity] Successfully equipped ${this.definition.name}`);
+                // Don't remove from inventory here - let the equipment system handle it
+            } else {
+                console.warn(`[ItemEntity] Failed to equip ${this.definition.name}`);
+            }
             return;
         }
-        
-        // Emit use event for effects
-        EventBus.instance.emit(GameEventNames.ItemUse, new ItemUseEvent(user, this));
         
         // Only consumables are destroyed on use
         if (this.definition.type === ItemType.CONSUMABLE) {
@@ -66,6 +79,10 @@ export class ItemEntity {
                 EventBus.instance.emit(GameEventNames.ItemDestroyed, new ItemDestroyedEvent(this));
             }
         }
+
+        // Emit use event for effects (after count update so UI reflects it)
+        Logger.info(`[ItemEntity] Emitting ItemUse event for ${this.definition.name}, new count: ${this.count}`);
+        EventBus.instance.emit(GameEventNames.ItemUse, new ItemUseEvent(user, this));
     }
     
     /**

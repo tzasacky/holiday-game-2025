@@ -102,6 +102,9 @@ export class StatsComponent extends ActorComponent {
         }
         const current = this.getStat(name);
         this.setStat(name, current + delta);
+        
+        // Enforce caps immediately after modification
+        this.applyCaps();
     }
     
     // Apply caps based on max stats

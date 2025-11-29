@@ -132,6 +132,15 @@ export class Level {
         this.scene.add(item);
         Logger.info(`[Level] Added item ${item.name || 'unnamed'} to level`);
     }
+    
+    public removeItem(item: WorldItemEntity) {
+        const index = this.items.indexOf(item);
+        if (index > -1) {
+            this.items.splice(index, 1);
+            Logger.info(`[Level] Removed item ${item.name || 'unnamed'} from level items list`);
+        }
+    }
+
 
     public addActor(actor: GameActor) {
         this.actors.push(actor);

@@ -1,6 +1,7 @@
 import { ActorComponent } from './ActorComponent';
 import { ItemType } from '../data/items';
 import { ItemEntity } from '../factories/ItemFactory';
+import { InventoryComponent } from './InventoryComponent';
 import { GameEventNames, ItemEquipEvent, ItemUnequipEvent, StatsRecalculateEvent, EquipmentUnequipRequestEvent } from '../core/GameEvents';
 import { Logger } from '../core/Logger';
 
@@ -16,11 +17,8 @@ export class EquipmentComponent extends ActorComponent {
     }
 
     protected setupEventListeners(): void {
-        this.listen(GameEventNames.EquipmentEquipped, (event: ItemEquipEvent) => {
-            if (this.isForThisActor(event)) {
-                this.equip(event.item);
-            }
-        });
+        // Removed EquipmentEquipped listener to prevent infinite loop
+        // The equip() method emits this event, so listening to it and calling equip() causes recursion.
 
         this.listen(GameEventNames.EquipmentUnequipRequest, (event: EquipmentUnequipRequestEvent) => {
             if (this.isForThisActor(event)) {
@@ -34,16 +32,29 @@ export class EquipmentComponent extends ActorComponent {
         if (!slot) return false;
 
         const currentItem = this.slots.get(slot);
+        
+        // If equipping the exact same item instance, do nothing
+        if (currentItem === item) return true;
+
         if (currentItem) {
             // Check if item is cursed and can't be unequipped
             if (currentItem.definition.cursed) {
                 Logger.warn(`Cannot unequip ${currentItem.getDisplayName()} - it's cursed!`);
                 return false;
             }
+            
+            // Unequip current item
+            // unequip() now handles adding back to inventory
             this.unequip(slot);
         }
 
         this.slots.set(slot, item);
+        
+        // Remove from inventory since it's now equipped
+        const inventoryComp = this.actor.getGameComponent('inventory');
+        if (inventoryComp) {
+            (inventoryComp as any).removeItemEntity?.(item);
+        }
         
         // Emit equipped event
         this.emit(GameEventNames.EquipmentEquipped, new ItemEquipEvent(
@@ -66,6 +77,16 @@ export class EquipmentComponent extends ActorComponent {
         if (!item) return null;
 
         this.slots.set(slot, null);
+        
+        // Add back to inventory
+        const inventoryComp = this.actor.getGameComponent('inventory') as InventoryComponent;
+        if (inventoryComp) {
+            const added = inventoryComp.addItemEntity(item);
+            if (!added) {
+                Logger.warn(`Inventory full! Dropping ${item.definition.name} on ground.`);
+                // Logic to drop on ground
+            }
+        }
         
         // Emit unequipped event (no direct method call)
         this.emit(GameEventNames.EquipmentUnequipped, new ItemUnequipEvent(

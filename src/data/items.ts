@@ -22,6 +22,12 @@ export enum ItemRarity {
     UNIQUE = 'unique'
 }
 
+export enum EquipmentSlotType {
+    MainHand = 'mainHand',
+    Body = 'body',
+    Accessory = 'accessory'
+}
+
 export interface ItemGraphics {
     spriteIndex: number; // Index in the items sprite sheet
     resource?: ex.ImageSource; // Optional custom resource

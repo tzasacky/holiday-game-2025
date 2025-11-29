@@ -1,5 +1,5 @@
 import { EventBus } from '../core/EventBus';
-import { GameEventNames, ItemUseEvent, AbilityCastEvent, StatChangeEvent, DamageDealtEvent, BuffApplyEvent, ConditionApplyEvent, PermanentEffectApplyEvent, WarmthChangeEvent, LogEvent } from '../core/GameEvents';
+import { GameEventNames, ItemUseEvent, AbilityCastEvent, StatChangeEvent, StatModifyEvent, DamageDealtEvent, BuffApplyEvent, ConditionApplyEvent, PermanentEffectApplyEvent, WarmthChangeEvent, LogEvent } from '../core/GameEvents';
 import { ItemEffect } from '../data/items';
 import { AbilityID } from '../constants';
 import { EffectID } from '../constants';
@@ -141,11 +141,11 @@ export class EffectExecutor {
     }
     
     private applyHeal(target: GameActor, amount: number, source?: GameActor): void {
-        EventBus.instance.emit(GameEventNames.StatModify, new StatChangeEvent(
+        EventBus.instance.emit(GameEventNames.StatModify, new StatModifyEvent(
             target,
             'hp',
-            0, 
-            0
+            amount, 
+            'flat'
         ));
         
         EventBus.instance.emit(GameEventNames.Log, new LogEvent(
@@ -165,11 +165,11 @@ export class EffectExecutor {
     }
     
     private applyWarmth(target: GameActor, amount: number): void {
-        EventBus.instance.emit(GameEventNames.WarmthChange, new WarmthChangeEvent(
+        EventBus.instance.emit(GameEventNames.StatModify, new StatModifyEvent(
             target,
-            0, // current placeholder
-            100, // max placeholder
-            amount
+            'warmth',
+            amount, 
+            'flat'
         ));
         
         EventBus.instance.emit(GameEventNames.Log, new LogEvent(

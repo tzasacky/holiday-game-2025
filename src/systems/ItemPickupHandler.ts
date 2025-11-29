@@ -63,7 +63,24 @@ export class ItemPickupHandler {
             
             try {
                 // Trigger the item's interact method which handles the pickup logic
-                worldItem.interact(actor);
+                // The interact method should return true if pickup was successful
+                const pickupSuccessful = worldItem.interact(actor);
+
+                if (pickupSuccessful) {
+                    // Remove the item entity from the game world
+                    worldItem.kill();
+                    
+                    // Remove from level's items list so it can't be picked up again
+                    if (level) {
+                        level.removeItem(worldItem);
+                    }
+                    
+                    // Emit pickup event for UI updates
+                    EventBus.instance.emit(GameEventNames.ItemPickup, {
+                        actor: actor,
+                        item: worldItem.item // Assuming worldItem.item is the actual item data
+                    });
+                }
             } catch (error) {
                 Logger.error(`[ItemPickupHandler] Error picking up item ${worldItem.item.getDisplayName()}:`, error);
             }

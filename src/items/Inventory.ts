@@ -11,6 +11,17 @@ export class Inventory extends ex.EventEmitter<any> {
         super();
         this.capacity = capacity;
         this.items = new Array(capacity).fill(null);
+        
+        // Listen for item destruction to remove from inventory
+        EventBus.instance.on(GameEventNames.ItemDestroyed, (event: any) => { // Cast to any or ItemDestroyedEvent
+            if (event.item && this.hasItem(event.item.id)) {
+                // Check if we hold this specific instance
+                const index = this.items.indexOf(event.item);
+                if (index !== -1) {
+                    this.removeItem(event.item);
+                }
+            }
+        });
     }
 
     public addItem(item: ItemEntity): boolean {

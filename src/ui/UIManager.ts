@@ -2,6 +2,8 @@ import * as ex from 'excalibur';
 import { GameActor } from '../components/GameActor';
 import { HUD } from './HUD';
 import { GameJournal, LogCategory } from './GameJournal';
+import { InventoryUI } from './InventoryUI';
+import { HotbarUI } from './HotbarUI';
 
 export class UIManager {
     private static _instance: UIManager;
@@ -9,10 +11,9 @@ export class UIManager {
     // DOM UI Components
     private hud: HUD | null = null;
     private gameJournal: GameJournal | null = null;
+    private inventoryUI: InventoryUI | null = null;
+    private hotbarUI: HotbarUI | null = null;
     private engine: ex.Engine | null = null;
-    
-    // Excalibur UI Components (ScreenElements)
-    private hotbar: any | null = null; // Import Hotbar type if needed
     
     private constructor() {}
 
@@ -26,10 +27,14 @@ export class UIManager {
     public initialize(engine: ex.Engine) {
         this.engine = engine;
         // Initialize DOM components
-        // HUD requires a hero, but we might not have one yet. 
-        // It's better to initialize HUD when we have a hero via update() or a separate method.
-        // For now, we'll instantiate GameJournal which is independent.
         this.gameJournal = new GameJournal();
+        this.inventoryUI = new InventoryUI();
+        this.hotbarUI = new HotbarUI();
+        
+        // Listen for custom toggle event from HotbarUI
+        document.addEventListener('toggle-inventory', () => {
+            this.toggleInventory();
+        });
         
         // Add initial welcome message
         this.logToJournal('Welcome to the Holiday Dungeon!', LogCategory.System);
@@ -43,19 +48,28 @@ export class UIManager {
         
         // Update HUD
         this.hud.update();
+
+        // Update Inventory UI
+        if (this.inventoryUI) {
+            this.inventoryUI.setHero(hero);
+        }
+        
+        // Update Hotbar UI
+        if (this.hotbarUI) {
+            this.hotbarUI.setHero(hero);
+        }
     }
     
-    /**
-     * Register the hotbar instance so InputManager can access it
-     */
-    public registerHotbar(hotbar: any) {
-        this.hotbar = hotbar;
-    }
-
     public showUI() {
         const uiLayer = document.getElementById('ui-layer');
         if (uiLayer) {
             uiLayer.style.display = 'flex';
+        }
+    }
+
+    public toggleInventory() {
+        if (this.inventoryUI) {
+            this.inventoryUI.toggle();
         }
     }
 
@@ -90,15 +104,12 @@ export class UIManager {
         this.logToJournal(message, LogCategory.Movement, '#6b7280');
     }
 
-    public getHotbar(): any {
-        return this.hotbar;
+    public getHotbar(): HotbarUI | null {
+        return this.hotbarUI;
     }
 
     public get isInventoryVisible(): boolean {
-        const scene = this.engine?.currentScene as any;
-        if (scene && scene.isInventoryOpen) {
-            return scene.isInventoryOpen();
-        }
-        return false;
+        // TODO: Expose isOpen state from InventoryUI
+        return false; 
     }
 }

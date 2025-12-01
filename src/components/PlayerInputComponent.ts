@@ -103,63 +103,64 @@ export class PlayerInputComponent extends ActorComponent {
     }
 
     /**
-     * Follow the current path
-     */
-    private followPath(level: Level): void {
-        const nextStep = this.actor.getNextPathStep();
-        
-        if (!nextStep) {
-            this.actor.clearPath();
-            this.actor.spend(10);
-            return;
-        }
+ * Follow the current path
+ */
+private followPath(level: Level): void {
+    const nextStep = this.actor.getNextPathStep();
+    
+    if (!nextStep) {
+        this.actor.clearPath();
+        this.actor.spend(10);
+        return;
+    }
 
-        // Check for interactions at next step
-        const interaction = Pathfinding.getInteractionAt(level, nextStep.x, nextStep.y);
+    // Check for interactions at next step
+    const interaction = Pathfinding.getInteractionAt(level, nextStep.x, nextStep.y);
+    
+    // Only stop pathfinding for doors and enemies
+    if (interaction === InteractionType.DoorOpen || 
+        interaction === InteractionType.DoorLocked ||
+        interaction === InteractionType.ActorAttack) {
         
-        if (interaction && interaction !== InteractionType.ActorAttack && interaction !== InteractionType.None) {
-            // New entity-based interaction system
+        if (interaction === InteractionType.DoorOpen || interaction === InteractionType.DoorLocked) {
+            // Handle door interaction
             const interactableEntity = level.getInteractableAt(nextStep.x, nextStep.y);
             if (interactableEntity) {
                 Logger.info(`[PlayerInputComponent] Interacting with ${interactableEntity.name} at ${nextStep} during pathfinding`);
-                
-                // Simple interaction during pathfinding - let the interactable handle movement via events
                 interactableEntity.interact(this.actor);
-                // Clear path after interaction - player will continue on next click
-                this.actor.clearPath();
-                this.actor.spend(10);
-                return;
             }
         }
+        // For enemies, just stop the path - combat will be handled separately
         
-        // Legacy terrain-based door handling removed
-        // All doors are now InteractableEntities handled by entity_interact above
-
-        // Check if next step is walkable
-        if (!level.isWalkable(nextStep.x, nextStep.y, this.actor.entityId)) {
-            Logger.debug('[PlayerInputComponent] Path blocked, clearing');
-            this.actor.clearPath();
-            this.actor.spend(10);
-            return;
-        }
-
-        // Move to next step
-        const oldPos = this.actor.gridPos.clone();
-        this.actor.gridPos = nextStep.clone();
-        this.actor.animateMovement(nextStep);
-        this.actor.advancePath();
-
-        // Emit movement event for observers (CollisionSystem, UI, etc.)
-        EventBus.instance.emit(GameEventNames.Movement, {
-            actorId: this.actor.entityId,
-            actor: this.actor,
-            from: oldPos,
-            to: nextStep
-        });
-
+        this.actor.clearPath();
         this.actor.spend(10);
+        return;
     }
 
+    // Check if next step is walkable
+    if (!level.isWalkable(nextStep.x, nextStep.y, this.actor.entityId)) {
+        Logger.debug('[PlayerInputComponent] Path blocked, clearing');
+        this.actor.clearPath();
+        this.actor.spend(10);
+        return;
+    }
+
+    // Move to next step
+    const oldPos = this.actor.gridPos.clone();
+    this.actor.gridPos = nextStep.clone();
+    this.actor.animateMovement(nextStep, oldPos);  // Pass old position for direction
+    this.actor.advancePath();
+
+    // Emit movement event for observers (CollisionSystem, UI, etc.)
+    EventBus.instance.emit(GameEventNames.Movement, {
+        actorId: this.actor.entityId,
+        actor: this.actor,
+        from: oldPos,
+        to: nextStep
+    });
+
+    this.actor.spend(10);
+}
     /**
      * Handle click target - compute path or direct move
      */
@@ -234,7 +235,7 @@ export class PlayerInputComponent extends ActorComponent {
                 if (level.isWalkable(toPos.x, toPos.y, this.actor.entityId)) {
                     const oldPos = this.actor.gridPos.clone();
                     this.actor.gridPos = toPos.clone();
-                    this.actor.animateMovement(toPos);
+                    this.actor.animateMovement(toPos, oldPos);  // Pass old position
                     
                     // Emit movement event
                     EventBus.instance.emit(GameEventNames.Movement, {
@@ -261,7 +262,7 @@ export class PlayerInputComponent extends ActorComponent {
                                 if (wasBlocking && !interactableEntity.shouldBlockMovement()) {
                                     const oldPos = this.actor.gridPos.clone();
                                     this.actor.gridPos = toPos.clone();
-                                    this.actor.animateMovement(toPos);
+                                    this.actor.animateMovement(toPos, oldPos);  // Pass old position
                                     
                                     // Emit movement event
                                     EventBus.instance.emit(GameEventNames.Movement, {

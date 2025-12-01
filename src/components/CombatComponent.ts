@@ -1,3 +1,4 @@
+import * as ex from 'excalibur';
 import { ActorComponent } from './ActorComponent';
 import { GameEventNames, AttackEvent, DamageEvent, DamageDealtEvent, StatModifyEvent, DieEvent, LogEvent } from '../core/GameEvents';
 import { DamageType } from '../data/mechanics';
@@ -10,7 +11,7 @@ import { TurnManager } from '../core/TurnManager';
 import { LevelManager } from '../core/LevelManager';
 
 export class CombatComponent extends ActorComponent {
-    private lastAttackTime = 0;
+    private isAttacking = false;
     
     protected setupEventListeners(): void {
         // Listen for combat commands
@@ -37,7 +38,7 @@ export class CombatComponent extends ActorComponent {
         // But GameEventNames.Damage maps to DamageEvent which has a target.
         this.listen(GameEventNames.Damage, (event: DamageEvent) => {
             if (event.target === this.actor) {
-                this.takeDamage(event.damage, event.type, event.source, event.isCounterAttack);
+                this.takeDamage(event.damage, event.type, event.source);
             }
         });
         
@@ -88,14 +89,18 @@ export class CombatComponent extends ActorComponent {
     }
     
     // Public method to initiate attack
-    public attack(targetId: string, isCounterAttack: boolean = false): void {
-        this.handleAttack(targetId, isCounterAttack);
+    public attack(targetId: string): void {
+        this.handleAttack(targetId);
     }
     
-    private handleAttack(targetId: string, isCounterAttack: boolean = false): void {
-        const now = Date.now();
-        if (!isCounterAttack && now - this.lastAttackTime < 500) return; // Attack cooldown (skip for counter-attacks)
-        if (!isCounterAttack) this.lastAttackTime = now;
+    private handleAttack(targetId: string): void {
+        // Prevent multiple simultaneous attacks (including counter-attacks)
+        if (this.isAttacking) {
+            Logger.debug(`[CombatComponent] ${this.actor.name} is already attacking, skipping`);
+            return;
+        }
+        
+        this.isAttacking = true;
         
         // Resolve target
         const target = this.getActorById(targetId);
@@ -111,32 +116,58 @@ export class CombatComponent extends ActorComponent {
         
         if (hitRoll > accuracy) {
             Logger.debug(`[CombatComponent] ${this.actor.name} MISSED ${target.name}! (${hitRoll.toFixed(1)} > ${accuracy})`);
-            // Emit miss event?
+            this.isAttacking = false;
             return;
         }
         
         // Calculate damage
         const damage = this.calculateDamage();
         
+        // Clear any existing damage label before showing attack animation
+        if (this.actor.currentDamageLabel) {
+            this.actor.currentDamageLabel.kill();
+            this.actor.currentDamageLabel = null;
+        }
+        
+        // Play attack animation (4 frames @ 200ms = 800ms)
+        const attackAnim = this.actor.getAttackAnimationName(target.gridPos);
+        if (this.actor.graphics.getGraphic(attackAnim)) {
+            this.actor.graphics.use(attackAnim);
+        }
+        
         // Emit attack event
         EventBus.instance.emit(GameEventNames.Attack, new AttackEvent(
             this.actor,
             target,
             damage,
-            isCounterAttack
+            false
         ));
         
-        // Send damage to target
-        EventBus.instance.emit(GameEventNames.Damage, new DamageEvent(
-            target,
-            damage,
-            DamageType.Physical,
-            this.actor,
-            isCounterAttack
-        ));
+        // Delay damage application to show attack animation first (400ms for half animation)
+        setTimeout(() => {
+            // Send damage to target
+            EventBus.instance.emit(GameEventNames.Damage, new DamageEvent(
+                target,
+                damage,
+                DamageType.Physical,
+                this.actor,
+                false
+            ));
+            
+            // After hurt animation completes, return to idle (another 400ms)
+            setTimeout(() => {
+                this.isAttacking = false;
+                
+                // Return to idle animation
+                const idleAnim = this.getIdleAnimation();
+                if (this.actor.graphics.getGraphic(idleAnim)) {
+                    this.actor.graphics.use(idleAnim);
+                }
+            }, 400);
+        }, 400);
     }
     
-    public takeDamage(amount: number, type: DamageType, source?: GameActor, isCounterAttack: boolean = false): void {
+    public takeDamage(amount: number, type: DamageType, source?: GameActor): void {
         // Calculate final damage with defense
         let finalDamage = amount;
         if (type === DamageType.Physical) {
@@ -146,9 +177,30 @@ export class CombatComponent extends ActorComponent {
         
         Logger.debug(`[CombatComponent] ${this.actor.name} taking ${finalDamage} damage (${amount} - ${this.getTotalDefense()} defense)`);
         
-        // Get HP before damage
+        // Play hurt animation (4 frames @ 200ms = 800ms)
+        if (source) {
+            const hurtAnim = this.actor.getHurtAnimationName(source.gridPos);
+            if (this.actor.graphics.getGraphic(hurtAnim)) {
+                this.actor.graphics.use(hurtAnim);
+                
+                // Return to idle after hurt animation (400ms)
+                setTimeout(() => {
+                    if (!this.actor.isDead) {
+                        const idleAnim = this.getIdleAnimation();
+                        if (this.actor.graphics.getGraphic(idleAnim)) {
+                            this.actor.graphics.use(idleAnim);
+                        }
+                    }
+                }, 400);
+            }
+        }
+        
+        // Get HP before damage to calculate actual damage dealt
         const statsComp = this.actor.getGameComponent<StatsComponent>('stats');
         const hpBefore = statsComp?.getStat('hp') ?? 0;
+        
+        // Calculate actual damage that will be dealt (don't count overkill)
+        const actualDamage = Math.min(finalDamage, hpBefore);
         
         // Apply damage to HP
         EventBus.instance.emit(GameEventNames.StatModify, new StatModifyEvent(
@@ -157,6 +209,9 @@ export class CombatComponent extends ActorComponent {
             -finalDamage,
             'flat'
         ));
+        
+        // Show damage number (actual damage, not overkill)
+        this.showDamageText(actualDamage);
         
         // Emit damage dealt event (result)
         EventBus.instance.emit(GameEventNames.DamageDealt, new DamageDealtEvent(
@@ -176,29 +231,74 @@ export class CombatComponent extends ActorComponent {
                 this.actor,
                 source
             ));
-        } else if (source && !isCounterAttack && type === DamageType.Physical) {
-            // Counter-attack logic
-            // Only counter if source is adjacent and it wasn't a counter-attack itself
-            const dist = this.actor.gridPos.distance(source.gridPos);
-            if (dist <= 1.5) {
-                Logger.debug(`[CombatComponent] ${this.actor.name} counter-attacking ${source.name}`);
-                this.attack(source.entityId, true);
-            }
         }
+        // No counter-attack logic - turn system handles retaliation naturally
     }
     
     private handleDeath(): void {
         Logger.info(`[CombatComponent] Handling death for ${this.actor.name}`);
         
-        // Visual cleanup
-        this.actor.actions.clearActions();
-        this.actor.graphics.opacity = 0.5; // Fade out effect
+        // Mark as dead immediately for gameplay (prevents interaction)
+        this.actor.isDead = true;
         
-        // Remove actor after brief delay
+        // Play death animation if available
+        if (this.actor.graphics.getGraphic('death')) {
+            this.actor.graphics.use('death');
+        }
+        
+        // Clean death - no opacity fade
+        this.actor.actions.clearActions();
+        
+        // Delay kill() to match death animation duration (4 frames @ 200ms = 800ms)
+        // Actor is marked dead so it can't be interacted with
         setTimeout(() => {
+            // Clear damage label before removing from scene
+            if (this.actor.currentDamageLabel) {
+                this.actor.currentDamageLabel.kill();
+                this.actor.currentDamageLabel = null;
+            }
             this.actor.kill();
             Logger.info(`[CombatComponent] Killed ${this.actor.name}`);
-        }, 500);
+        }, 800);  // Match death animation duration
+    }
+    
+    private showDamageText(damage: number): void {
+        if (!this.actor.scene || damage <= 0) return;
+        
+        // Clear previous damage label if it exists
+        if (this.actor.currentDamageLabel) {
+            this.actor.currentDamageLabel.kill();
+        }
+        
+        // Create a label for damage text
+        const damageLabel = new ex.Label({
+            text: damage.toString(),
+            pos: this.actor.pos.add(ex.vec(0, -30)),
+            font: new ex.Font({
+                size: 24,
+                color: ex.Color.Red,
+                bold: true,
+                strokeColor: ex.Color.Black,
+                lineWidth: 1.5  // Thinner outline for better readability
+            }),
+            z: 100
+        });
+        
+        this.actor.scene.add(damageLabel);
+        this.actor.currentDamageLabel = damageLabel;
+        
+        // Auto-clear damage label after 3 seconds
+        setTimeout(() => {
+            if (this.actor.currentDamageLabel === damageLabel) {
+                damageLabel.kill();
+                this.actor.currentDamageLabel = null;
+            }
+        }, 3000);
+    }
+    
+    private getIdleAnimation(): string {
+        // Default to idle-down if we can't determine direction
+        return 'idle-down';
     }
     
     getTotalDamage(): number {

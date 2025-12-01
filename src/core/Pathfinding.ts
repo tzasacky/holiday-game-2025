@@ -103,9 +103,9 @@ export class Pathfinding {
             }
         }
 
-        // Check for actors (combat)
+        // Check for actors (combat) - skip dead actors
         const actorAtPos = level.getActorAt(x, y);
-        if (actorAtPos && !actorAtPos.isPlayer) {
+        if (actorAtPos && !actorAtPos.isPlayer && !actorAtPos.isDead) {
             return InteractionType.ActorAttack;
         }
 
@@ -241,7 +241,7 @@ export class Pathfinding {
             }
 
             const actorAtPos = level.getActorAt(x, y);
-            if (actorAtPos) {
+            if (actorAtPos && !actorAtPos.isDead) {
                 return false;
             }
         }

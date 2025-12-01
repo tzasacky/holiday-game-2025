@@ -9,6 +9,9 @@ import { EventBus } from '../core/EventBus';
 import { DungeonNavigator } from '../core/DungeonNavigator';
 import { LevelManager } from '../core/LevelManager';
 import { GameState } from '../core/GameState';
+import { DataManager } from '../core/DataManager';
+import { ActorDefinition } from '../data/actors';
+import { LootSystem } from '../systems/LootSystem';
 
 export class GameScene extends ex.Scene {
     public level: Level | null = null;
@@ -142,12 +145,57 @@ export class GameScene extends ex.Scene {
                  this.level.mobs.splice(mobIndex, 1);
              }
              
+             // Generate loot for enemies
+             if (!event.actor.isPlayer) {
+                 this.generateEnemyLoot(event.actor);
+             }
+             
              // Check for Game Over
              if (event.actor.isPlayer) {
                  Logger.info('[GameScene] Hero died! Triggering Game Over...');
                  EventBus.instance.emit(GameEventNames.GameOver, {});
              }
          }
+    }
+    
+    private generateEnemyLoot(enemy: GameActor): void {
+        // Get actor definition to check for loot table
+        const definition = DataManager.instance.query<ActorDefinition>('actor', enemy.name);
+        
+        if (!definition || !definition.lootTableId) {
+            Logger.debug(`[GameScene] No loot table for ${enemy.name}`);
+            return;
+        }
+        
+        // Roll for loot drop
+        const dropChance = definition.dropChance || 0;
+        if (Math.random() > dropChance) {
+            Logger.debug(`[GameScene] ${enemy.name} did not drop loot (${dropChance * 100}% chance)`);
+            return;
+        }
+        
+        Logger.info(`[GameScene] ${enemy.name} dropped loot!`);
+        
+        // Generate loot using LootSystem
+        const lootItems = LootSystem.instance.generateLootFromEnemy(enemy.name, this.level?.depth || 1);
+        
+        // Spawn each item at the enemy's death location
+        for (const lootItem of lootItems) {
+            const gridPos = ex.vec(
+                Math.floor(enemy.pos.x / 32),
+                Math.floor(enemy.pos.y / 32)
+            );
+            
+            // Spawn via ItemSpawnRequest event
+            EventBus.instance.emit(GameEventNames.ItemSpawnRequest, {
+                itemId: lootItem.itemId,
+                position: gridPos,
+                level: this.level,
+                count: lootItem.quantity
+            });
+            
+            Logger.info(`[GameScene] Spawned ${lootItem.quantity}x ${lootItem.itemId} at ${gridPos}`);
+        }
     }
 
     private handleLevelTransitionComplete = (event: LevelTransitionEvent) => {

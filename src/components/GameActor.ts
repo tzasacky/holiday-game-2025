@@ -29,6 +29,12 @@ export class GameActor extends GameEntity {
     protected currentPathIndex: number = 0;
     protected moving: boolean = false;
     
+    // Damage display
+    public currentDamageLabel: ex.Label | null = null;
+    
+    // Death state (for preventing interaction while visual persists)
+    public isDead: boolean = false;
+    
     constructor(gridPos: ex.Vector, defName: string) {
         super(gridPos);
         this.entityId = `${defName}_${Date.now()}_${Math.random()}`;
@@ -227,25 +233,111 @@ export class GameActor extends GameEntity {
     // ===== MOVEMENT =====
     
     /**
-     * Animate movement to target grid position
-     * This is purely visual - gridPos should already be updated
-     */
-    public animateMovement(targetGridPos: ex.Vector): void {
-        // Calculate pixel position for this grid position
-        const targetPixelPos = new ex.Vector(
-            targetGridPos.x * 32 + 16, // Center of tile
-            targetGridPos.y * 32 + 16
-        );
-
-        // Move directly to position (no tween - movement should be instant for turn-based)
-        // The gridPos is already updated, just sync the visual position
-        this.pos = targetPixelPos;
-        
-        // TODO: Play walk animation based on direction if sprite animations are set up
-        // const direction = targetGridPos.sub(this.gridPos);
-        // this.playAnimation(direction);
+ * Animate movement to target grid position
+ * This is purely visual - gridPos should already be updated
+ */
+public animateMovement(targetGridPos: ex.Vector, fromPos?: ex.Vector): void {
+    // Clear any damage label when moving (new action)
+    if (this.currentDamageLabel) {
+        this.currentDamageLabel.kill();
+        this.currentDamageLabel = null;
     }
+    
+    // Calculate pixel position for this grid position
+    const targetPixelPos = new ex.Vector(
+        targetGridPos.x * 32 + 16, // Center of tile
+        targetGridPos.y * 32 + 16
+    );
 
+    // Calculate direction from provided fromPos or current gridPos
+    const startPos = fromPos || this.gridPos;
+    const direction = targetGridPos.sub(startPos);
+    
+    // Move directly to position (no tween - movement should be instant for turn-based)
+    this.pos = targetPixelPos;
+    
+    // Play walk animation based on direction
+    const animName = this.getWalkAnimationName(direction);
+    if (animName && this.graphics.getGraphic(animName)) {
+        this.graphics.use(animName);
+        Logger.debug(`[GameActor] Playing walk animation: ${animName} for direction ${direction}`);
+        
+        // Return to idle after walk animation completes (400ms)
+        setTimeout(() => {
+            const idleAnim = this.getIdleAnimationName(direction);
+            if (this.graphics.getGraphic(idleAnim)) {
+                this.graphics.use(idleAnim);
+            }
+        }, 400);
+    } else {
+        Logger.warn(`[GameActor] Could not find walk animation: ${animName}`);
+    }
+}
+
+/**
+ * Get the walk animation name for a direction vector
+ */
+private getWalkAnimationName(direction: ex.Vector): string | null {
+    // Normalize to get primary direction
+    const absX = Math.abs(direction.x);
+    const absY = Math.abs(direction.y);
+    
+    if (absX === 0 && absY === 0) {
+        return null; // No movement
+    }
+    
+    // Determine primary direction (prefer horizontal over vertical if equal)
+    if (absX > absY) {
+        return direction.x > 0 ? 'right-walk' : 'left-walk';
+    } else {
+        return direction.y > 0 ? 'down-walk' : 'up-walk';
+    }
+}
+
+/**
+ * Get the idle animation name for a direction vector
+ */
+public getIdleAnimationName(direction: ex.Vector): string {
+    const absX = Math.abs(direction.x);
+    const absY = Math.abs(direction.y);
+    
+    // Determine primary direction (prefer horizontal over vertical if equal)
+    if (absX > absY) {
+        return direction.x > 0 ? 'idle-right' : 'idle-left';
+    } else {
+        return direction.y > 0 ? 'idle-down' : 'idle-up';
+    }
+}
+
+/**
+ * Get the attack animation name for a direction to target
+ */
+public getAttackAnimationName(targetPos: ex.Vector): string {
+    const direction = targetPos.sub(this.gridPos);
+    const absX = Math.abs(direction.x);
+    const absY = Math.abs(direction.y);
+    
+    if (absX > absY) {
+        return direction.x > 0 ? 'attack-right' : 'attack-left';
+    } else {
+        return direction.y > 0 ? 'attack-down' : 'attack-up';
+    }
+}
+
+/**
+ * Get the hurt animation name for a direction from attacker
+ */
+public getHurtAnimationName(attackerPos: ex.Vector): string {
+    const direction = this.gridPos.sub(attackerPos);
+    const absX = Math.abs(direction.x);
+    const absY = Math.abs(direction.y);
+    
+    if (absX > absY) {
+        return direction.x > 0 ? 'hurt-right' : 'hurt-left';
+    } else {
+        return direction.y > 0 ? 'hurt-down' : 'hurt-up';
+    }
+}
     private setupTimeEventListener(): void {
         EventBus.instance.on(GameEventNames.ActorSpendTime, (event: ActorSpendTimeEvent) => {
             // Check if this event is for us (by entityId or name)

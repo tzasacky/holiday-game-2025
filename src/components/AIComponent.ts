@@ -128,7 +128,7 @@ export class AIComponent extends ActorComponent {
         if (level.isWalkable(toPos.x, toPos.y, this.actor.entityId)) {
             const oldPos = this.actor.gridPos.clone();
             this.actor.gridPos = toPos.clone();
-            this.actor.animateMovement(toPos);
+            this.actor.animateMovement(toPos, oldPos);  // Pass old position for direction
             
             // Emit movement event
             EventBus.instance.emit(GameEventNames.Movement, {
@@ -151,14 +151,15 @@ export class AIComponent extends ActorComponent {
             return;
         }
         
-        // Check if adjacent for attack
+        // Check if adjacent for attack BEFORE moving
         const dist = this.actor.gridPos.distance(targetPos);
         if (dist <= 1.5 && player) { // Adjacent and player is visible
             this.state = AIState.Attack;
             this.executeAttack(player);
-            return;
+            return;  // ATTACK ONLY - no movement this turn
         }
         
+        // Not adjacent, so MOVE ONLY - no attack this turn
         // Compute path synchronously
         const path = Pathfinding.findPath(level, this.actor.gridPos, targetPos, { maxDistance: 20 });
         
@@ -172,10 +173,10 @@ export class AIComponent extends ActorComponent {
         // Move one step toward player
         const nextStep = path[0];
         
-        if (level.isWalkable(nextStep.x, nextStep.y, this.actor.entityId)) {
+       if (level.isWalkable(nextStep.x, nextStep.y, this.actor.entityId)) {
             const oldPos = this.actor.gridPos.clone();
             this.actor.gridPos = nextStep.clone();
-            this.actor.animateMovement(nextStep);
+            this.actor.animateMovement(nextStep, oldPos);  // Pass old position for direction
             
             // Emit movement event
             EventBus.instance.emit(GameEventNames.Movement, {
@@ -186,7 +187,7 @@ export class AIComponent extends ActorComponent {
             });
         }
         
-        this.actor.spend(10);
+        this.actor.spend(10);  // Movement spends time - next turn will check for attack
     }
     
     private executeAttack(player: any): void {

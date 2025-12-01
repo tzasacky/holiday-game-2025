@@ -43,10 +43,6 @@ export class WorldItemEntity extends GameEntity {
   public interact(actor: GameActor): boolean {
     this.logger.info(`[WorldItemEntity] ${actor.name} interacting with ${this.item.getDisplayName()}`);
     
-    // Emit pickup event for inventory system to handle  
-    this.logger.info(`[WorldItemEntity] Emitting ItemPickupAttempt for ${this.item.getDisplayName()}`);
-    EventBus.instance.emit(GameEventNames.ItemPickupAttempt, new ItemPickupAttemptEvent(actor, this.item));
-    
     let resultReceived = false;
     
     // Listen for pickup result
@@ -67,6 +63,10 @@ export class WorldItemEntity extends GameEntity {
     };
     
     EventBus.instance.on(GameEventNames.ItemPickupResult, handlePickupResult);
+
+    // Emit pickup event for inventory system to handle  
+    this.logger.info(`[WorldItemEntity] Emitting ItemPickupAttempt for ${this.item.getDisplayName()}`);
+    EventBus.instance.emit(GameEventNames.ItemPickupAttempt, new ItemPickupAttemptEvent(actor, this.item));
     
     // Fallback: if no InventoryComponent responds within next tick, assume pickup failed
     setTimeout(() => {

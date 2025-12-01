@@ -57,10 +57,6 @@ export class GameScene extends ex.Scene {
             // Register with managers
             GameState.instance.registerHero(hero);
             
-            // Update UI
-            UIManager.instance.showUI();
-            UIManager.instance.update(hero);
-            
             // Camera
             this.camera.strategy.lockToActor(hero);
             this.camera.zoom = 1.5;
@@ -113,6 +109,12 @@ export class GameScene extends ex.Scene {
             
             // Update visibility from player position
             this.updatePlayerVisibility();
+        }
+        
+        // Update UI (after visibility is calculated so minimap is correct)
+        if (this.hero) {
+            UIManager.instance.showUI();
+            UIManager.instance.update(this.hero);
         }
         
         // 5. Start Turns
@@ -250,6 +252,11 @@ export class GameScene extends ex.Scene {
         }
         
         Logger.debug(`[GameScene] Updated visibility: ${visibleTiles.size} tiles visible, ${this.level.discoveredTiles.size} discovered`);
+        
+        // Update Minimap/UI
+        if (this.hero) {
+            UIManager.instance.update(this.hero);
+        }
     }
 
     private handleLevelTransitionComplete = (event: LevelTransitionEvent) => {

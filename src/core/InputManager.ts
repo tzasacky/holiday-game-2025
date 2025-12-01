@@ -150,9 +150,7 @@ export class InputManager {
 
     // Helper to get mouse position for movement logic in Hero
     // Consumes the click
-    // Helper to get mouse position for movement logic in Hero
-    // Consumes the click
-    getClickTarget(): ex.Vector | null {
+    public getClickTarget(): ex.Vector | null {
         Logger.debug("[InputManager] getClickTarget called - UI active:", this.isUIInteractionActive, "lastClickTarget:", this.lastClickTarget);
         
         // Don't allow game world clicks if UI is active
@@ -170,9 +168,14 @@ export class InputManager {
         Logger.debug("[InputManager] No click target available");
         return null;
     }
-    
-    // Check if there is a pending click target without consuming it
-    hasClickTarget(): boolean {
+
+    public setClickTarget(target: ex.Vector): void {
+        this.lastClickTarget = target;
+        // Ensure UI interaction is cleared so this click is processed
+        this.isUIInteractionActive = false;
+    }
+
+    public hasClickTarget(): boolean {
         return !!this.lastClickTarget && !this.isUIInteractionActive;
     }
     

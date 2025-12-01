@@ -51,7 +51,15 @@ export class TurnManager {
         this.actors = new PriorityQueue<GameActor>();
     }
 
+    private isProcessingTurns: boolean = false;
+
     public async processTurns() {
+        if (this.isProcessingTurns) {
+            Logger.debug("[TurnManager] Already processing turns, skipping re-entry");
+            return;
+        }
+        
+        this.isProcessingTurns = true;
         Logger.debug("[TurnManager] processTurns starting, actors count:", this.actors.length);
         let processing = true;
         
@@ -59,64 +67,68 @@ export class TurnManager {
         let loops = 0;
         const MAX_LOOPS = 100; 
 
-        while (processing && loops < MAX_LOOPS) {
-            if (this.actors.length === 0) {
-                Logger.debug("[TurnManager] No actors, breaking");
-                break;
-            }
+        try {
+            while (processing && loops < MAX_LOOPS) {
+                if (this.actors.length === 0) {
+                    Logger.debug("[TurnManager] No actors, breaking");
+                    break;
+                }
 
-            // Peek at the next actor
-            const currentActor = this.actors.peek();
-            if (!currentActor) {
-                Logger.debug("[TurnManager] No current actor, breaking");
-                break;
-            }
-            
-            Logger.debug("[TurnManager] Processing actor:", currentActor.name, "isPlayer:", currentActor.isPlayer, "time:", currentActor.time);
-            
-            // Skip killed actors
-            if (currentActor.isKilled()) {
-                Logger.debug(`[TurnManager] Actor ${currentActor.name} is killed, removing from queue`);
-                this.actors.pop();
-                loops++;
-                continue;
-            }
-            
-            // Advance game time
-            if (currentActor.time > TurnManager.now) {
-                TurnManager.now = currentActor.time;
-            }
-
-            // Act
-            // If act() returns false, it means the actor is waiting (e.g. Player input)
-            // and we should stop processing until they are ready.
-            const didAct = await currentActor.act();
-            Logger.debug("[TurnManager] Actor", currentActor.name, "didAct:", didAct);
-            
-            if (!didAct) {
-                // Only stop processing if it's the PLAYER waiting for input
-                if (currentActor.isPlayer) {
-                    Logger.debug("[TurnManager] Player waiting for input, stopping processing");
-                    processing = false;
-                } else {
-                    // Non-player actors that can't act should skip their turn with a small time penalty
-                    Logger.debug("[TurnManager] Mob", currentActor.name, "can't act, skipping turn with time penalty");
-                    currentActor.time += 0.1; // Small time penalty to prevent infinite loops
+                // Peek at the next actor
+                const currentActor = this.actors.peek();
+                if (!currentActor) {
+                    Logger.debug("[TurnManager] No current actor, breaking");
+                    break;
+                }
+                
+                Logger.debug("[TurnManager] Processing actor:", currentActor.name, "isPlayer:", currentActor.isPlayer, "time:", currentActor.time);
+                
+                // Skip killed actors
+                if (currentActor.isKilled()) {
+                    Logger.debug(`[TurnManager] Actor ${currentActor.name} is killed, removing from queue`);
                     this.actors.pop();
+                    loops++;
+                    continue;
+                }
+                
+                // Advance game time
+                if (currentActor.time > TurnManager.now) {
+                    TurnManager.now = currentActor.time;
+                }
+
+                // Act
+                // If act() returns false, it means the actor is waiting (e.g. Player input)
+                // and we should stop processing until they are ready.
+                const didAct = await currentActor.act();
+                Logger.debug("[TurnManager] Actor", currentActor.name, "didAct:", didAct);
+                
+                if (!didAct) {
+                    // Only stop processing if it's the PLAYER waiting for input
+                    if (currentActor.isPlayer) {
+                        Logger.debug("[TurnManager] Player waiting for input, stopping processing");
+                        processing = false;
+                    } else {
+                        // Non-player actors that can't act should skip their turn with a small time penalty
+                        Logger.debug("[TurnManager] Mob", currentActor.name, "can't act, skipping turn with time penalty");
+                        currentActor.time += 0.1; // Small time penalty to prevent infinite loops
+                        this.actors.pop();
+                        this.actors.push(currentActor);
+                        loops++;
+                    }
+                } else {
+                    // Actor acted, they should have updated their time.
+                    // We need to re-insert them into the priority queue to update their position
+                    // Pop and Push is the cleanest way since their key (time) changed
+                    this.actors.pop(); 
                     this.actors.push(currentActor);
+                    
                     loops++;
                 }
-            } else {
-                // Actor acted, they should have updated their time.
-                // We need to re-insert them into the priority queue to update their position
-                // Pop and Push is the cleanest way since their key (time) changed
-                this.actors.pop(); 
-                this.actors.push(currentActor);
-                
-                loops++;
             }
+        } finally {
+            this.isProcessingTurns = false;
+            Logger.debug("[TurnManager] processTurns finished");
         }
-        Logger.debug("[TurnManager] processTurns finished");
     }
     
     // Helper for GameActor to access time

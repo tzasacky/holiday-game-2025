@@ -4,6 +4,9 @@ import { HUD } from './HUD';
 import { GameJournal, LogCategory } from './GameJournal';
 import { InventoryUI } from './InventoryUI';
 import { HotbarUI } from './HotbarUI';
+import { MinimapUI } from './MinimapUI';
+import { Level } from '../dungeon/Level';
+import { LevelManager } from '../core/LevelManager';
 
 export class UIManager {
     private static _instance: UIManager;
@@ -13,6 +16,7 @@ export class UIManager {
     private gameJournal: GameJournal | null = null;
     private inventoryUI: InventoryUI | null = null;
     private hotbarUI: HotbarUI | null = null;
+    private minimapUI: MinimapUI | null = null;
     private engine: ex.Engine | null = null;
     
     private constructor() {}
@@ -30,14 +34,12 @@ export class UIManager {
         this.gameJournal = new GameJournal();
         this.inventoryUI = new InventoryUI();
         this.hotbarUI = new HotbarUI();
+        this.minimapUI = new MinimapUI();
         
         // Listen for custom toggle event from HotbarUI
         document.addEventListener('toggle-inventory', () => {
             this.toggleInventory();
         });
-        
-        // Add initial welcome message
-        this.logToJournal('Welcome to the Holiday Dungeon!', LogCategory.System);
     }
     
     public update(hero: GameActor) {
@@ -57,6 +59,14 @@ export class UIManager {
         // Update Hotbar UI
         if (this.hotbarUI) {
             this.hotbarUI.setHero(hero);
+        }
+
+        // Update Minimap
+        if (this.minimapUI) {
+            const level = LevelManager.instance.getCurrentLevel();
+            if (level) {
+                this.minimapUI.update(hero, level);
+            }
         }
     }
     

@@ -43,6 +43,10 @@ export class Level {
     public explored: any = false;
     public get terrain(): TerrainType[][] { return this.terrainData; }
     public set terrain(v: TerrainType[][]) { this.terrainData = v; }
+    
+    // Fog-of-war tracking
+    public discoveredTiles: Set<string> = new Set(); // Tiles player has seen (persists)
+    public visibleTiles: Set<string> = new Set();    // Tiles currently visible (updates each turn)
 
     constructor(width: number, height: number, biome: BiomeDefinition, levelId: string = 'level_1') {
         this.width = width;

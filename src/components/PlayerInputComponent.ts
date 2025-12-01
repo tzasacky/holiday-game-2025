@@ -252,29 +252,7 @@ private followPath(level: Level): void {
                         const interactableEntity = level.getInteractableAt(toPos.x, toPos.y);
                         if (interactableEntity) {
                             Logger.info(`[PlayerInputComponent] Blocked position - interacting with ${interactableEntity.name} at ${toPos}`);
-                            
-                            // Special handling for doors - if opened, move through them
-                            if (interactableEntity.definition.type === InteractableType.DOOR) {
-                                const wasBlocking = interactableEntity.shouldBlockMovement();
-                                interactableEntity.interact(this.actor);
-                                
-                                // If door was blocking but is now open, move through it
-                                if (wasBlocking && !interactableEntity.shouldBlockMovement()) {
-                                    const oldPos = this.actor.gridPos.clone();
-                                    this.actor.gridPos = toPos.clone();
-                                    this.actor.animateMovement(toPos, oldPos);  // Pass old position
-                                    
-                                    // Emit movement event
-                                    EventBus.instance.emit(GameEventNames.Movement, {
-                                        actorId: this.actor.entityId,
-                                        actor: this.actor,
-                                        from: oldPos,
-                                        to: toPos
-                                    });
-                                }
-                            } else {
-                                interactableEntity.interact(this.actor);
-                            }
+                            interactableEntity.interact(this.actor);
                         }
                     } else if (interaction === InteractionType.ActorAttack) {
                         // Bump-to-attack

@@ -311,7 +311,15 @@ export class InteractableComponent {
                             spriteHeight: 32
                         }
                     });
-                    return commonSheet.getSprite(spriteCoords.x, spriteCoords.y) || new ex.Rectangle({ width: 32, height: 32, color: ex.Color.Magenta });
+                    
+                    // Handle state-based sprite changes for doors
+                    let coords = { ...spriteCoords };
+                    if (this.definition.type === InteractableType.DOOR && this.state === 'open') {
+                        // Open door is typically next to closed door in tileset
+                        coords.x += 1;
+                    }
+                    
+                    return commonSheet.getSprite(coords.x, coords.y) || new ex.Rectangle({ width: 32, height: 32, color: ex.Color.Magenta });
                 }
 
                 return spriteSheet.getSprite(spriteCoords.x, spriteCoords.y) || new ex.Rectangle({ width: 32, height: 32, color: ex.Color.Magenta });

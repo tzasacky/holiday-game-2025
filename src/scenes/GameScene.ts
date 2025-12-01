@@ -12,10 +12,14 @@ import { GameState } from '../core/GameState';
 import { DataManager } from '../core/DataManager';
 import { ActorDefinition } from '../data/actors';
 import { LootSystem } from '../systems/LootSystem';
+import { VisibilitySystem } from '../core/Visibility';
+import { FogOfWarRenderer } from '../systems/FogOfWarRenderer';
+import { VisibilityConfig } from '../config/VisibilityConfig';
 
 export class GameScene extends ex.Scene {
     public level: Level | null = null;
     private hero: GameActor | null = null;
+    private fogRenderer: FogOfWarRenderer | null = null;
 
     // Constructor to initialize with a specific level
     constructor(level: Level) {
@@ -97,7 +101,21 @@ export class GameScene extends ex.Scene {
             Logger.info(`[GameScene] Registered ${this.level.actors.length - (this.hero ? 1 : 0)} mobs with TurnManager`);
         }
         
-        // 4. Start Turns
+        // 4. Initialize Fog-of-War
+        if (this.level && VisibilityConfig.fogOfWarEnabled) {
+            // Create fog renderer if not exists
+            if (!this.fogRenderer) {
+                this.fogRenderer = new FogOfWarRenderer(this.level, this.level.width, this.level.height);
+                const fogActors = this.fogRenderer.createFogActors(this);
+                fogActors.forEach(actor => this.add(actor));
+                Logger.info(`[GameScene] Created fog-of-war renderer`);
+            }
+            
+            // Update visibility from player position
+            this.updatePlayerVisibility();
+        }
+        
+        // 5. Start Turns
         TurnManager.instance.processTurns();
         
         // Listen for death events
@@ -105,6 +123,10 @@ export class GameScene extends ex.Scene {
         
         // Listen for level transition events
         EventBus.instance.on(GameEventNames.LevelTransition, this.handleLevelTransitionComplete);
+        
+        // Listen for actor turns to update fog-of-war
+        EventBus.instance.on(GameEventNames.ActorTurn, this.handleActorTurn);
+        
     }
 
     public onDeactivate(context: ex.SceneActivationContext<unknown>): void {
@@ -131,6 +153,7 @@ export class GameScene extends ex.Scene {
         // Cleanup listeners
         EventBus.instance.off(GameEventNames.Death, this.handleDeath);
         EventBus.instance.off(GameEventNames.LevelTransition, this.handleLevelTransitionComplete);
+        EventBus.instance.off(GameEventNames.ActorTurn, this.handleActorTurn);
     }
 
     private handleDeath = (event: DieEvent) => {
@@ -197,11 +220,48 @@ export class GameScene extends ex.Scene {
             Logger.info(`[GameScene] Spawned ${lootItem.quantity}x ${lootItem.itemId} at ${gridPos}`);
         }
     }
+    
+    /**
+     * Update player visibility and fog-of-war
+     */
+    private updatePlayerVisibility(): void {
+        if (!this.hero || !this.level || !VisibilityConfig.enabled) return;
+        
+        // Get visible tiles from player position
+        const visibleTiles = VisibilitySystem.instance.getVisibleTiles(this.hero, this, VisibilityConfig.playerViewRadius);
+        
+        // Update level's visible and discovered tiles
+        this.level.visibleTiles = visibleTiles;
+        visibleTiles.forEach(tile => this.level!.discoveredTiles.add(tile));
+        
+        // Update fog renderer
+        if (this.fogRenderer) {
+            this.fogRenderer.update();
+        }
+        
+        // Hide/show enemies based on visibility
+        if (VisibilityConfig.fogOfWarEnabled) {
+            this.level.actors.forEach(actor => {
+                if (!actor.isPlayer && !actor.isDead) {
+                    const key = `${actor.gridPos.x},${actor.gridPos.y}`;
+                    actor.graphics.visible = this.level!.visibleTiles.has(key);
+                }
+            });
+        }
+        
+        Logger.debug(`[GameScene] Updated visibility: ${visibleTiles.size} tiles visible, ${this.level.discoveredTiles.size} discovered`);
+    }
 
     private handleLevelTransitionComplete = (event: LevelTransitionEvent) => {
         Logger.info(`[GameScene] Level transition requested: ${event.direction} to ${event.toLevel}`);
         // Transition is handled by DungeonNavigator switching scenes
         // We just need to ensure we don't block it.
+    }
+
+    private handleActorTurn = (event: any) => {
+        if (event.actor?.isPlayer) {
+            this.updatePlayerVisibility();
+        }
     }
 
     private async setupLevel(level: Level): Promise<void> {
@@ -236,6 +296,11 @@ export class GameScene extends ex.Scene {
         await level.updateTileGraphics();
     }
     
+    public onPreUpdate(engine: ex.Engine, delta: number): void {
+        // Clear visibility cache every frame to handle dynamic updates (doors, etc.)
+        VisibilitySystem.instance.newFrame();
+    }
+
     public onPostUpdate(engine: ex.Engine, delta: number) {
         // UI updates are handled via events
     }

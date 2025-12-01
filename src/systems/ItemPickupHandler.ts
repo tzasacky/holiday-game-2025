@@ -28,8 +28,39 @@ export class ItemPickupHandler {
         EventBus.instance.on(GameEventNames.Movement, (event: MovementEvent) => {
             this.handleMovement(event);
         });
+
+        // Listen for successful pickups to remove from level
+        EventBus.instance.on(GameEventNames.ItemPickupResult, (event: any) => {
+            if (event.success) {
+                this.handlePickupSuccess(event);
+            }
+        });
         
-        Logger.info('[ItemPickupHandler] Initialized - listening for Movement events');
+        Logger.info('[ItemPickupHandler] Initialized - listening for Movement and PickupResult events');
+    }
+
+    /**
+     * Handle successful pickup - remove from level
+     */
+    private handlePickupSuccess(event: any): void {
+        const actor = event.actor;
+        const itemEntity = event.item;
+        
+        // Get level
+        const scene = actor.scene as unknown as GameScene;
+        const level = scene?.level;
+        
+        if (!level) return;
+
+        // Find the WorldItemEntity that corresponds to this ItemEntity
+        // We need to find it in the level's items list
+        const worldItem = level.items.find(wi => wi.item === itemEntity);
+        
+        if (worldItem) {
+            Logger.info(`[ItemPickupHandler] Removing picked up item ${itemEntity.getDisplayName()} from level`);
+            level.removeItem(worldItem);
+            // WorldItemEntity handles its own kill() on success
+        }
     }
 
     /**
@@ -43,7 +74,6 @@ export class ItemPickupHandler {
             return;
         }
 
-        // Get level from actor's scene
         // Get level from actor's scene
         // Safe cast to GameScene which we know has a level property
         const scene = actor.scene as unknown as GameScene;
@@ -66,24 +96,11 @@ export class ItemPickupHandler {
             
             try {
                 // Trigger the item's interact method which handles the pickup logic
-                // The interact method should return true if pickup was successful
-                const pickupSuccessful = worldItem.interact(actor);
-
-                if (pickupSuccessful) {
-                    // Remove the item entity from the game world
-                    worldItem.kill();
-                    
-                    // Remove from level's items list so it can't be picked up again
-                    if (level) {
-                        level.removeItem(worldItem);
-                    }
-                    
-                    // Emit pickup event for UI updates
-                    EventBus.instance.emit(GameEventNames.ItemPickup, {
-                        actor: actor,
-                        item: worldItem.item // Assuming worldItem.item is the actual item data
-                    });
-                }
+                // The interact method returns true if interaction started
+                worldItem.interact(actor);
+                
+                // We do NOT remove the item here anymore.
+                // We wait for ItemPickupResult event to confirm success.
             } catch (error) {
                 Logger.error(`[ItemPickupHandler] Error picking up item ${worldItem.item.getDisplayName()}:`, error);
             }

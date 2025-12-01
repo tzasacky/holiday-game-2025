@@ -170,20 +170,6 @@ export class DungeonNavigator {
             fromFloor,
             targetFloor
         ));
-
-        // 5. Switch Scene
-        // Note: The engine will handle calling onDeactivate on the current scene 
-        // and onActivate on the new scene.
-        // const engine = ex.Engine.instance; // REMOVED invalid access 
-        // Actually, DungeonNavigator is a singleton, so we might need to pass the engine or access it globally.
-        // Since we don't have global engine access easily here without passing it, 
-        // we should probably rely on the fact that we are in a scene context usually.
-        // However, we can use the EventBus to request the scene switch if we want to be clean, 
-        // OR we can just assume the caller handles it? No, the plan said DungeonNavigator handles it.
-        // Let's use a hack or better, pass engine to initializeGame and store it?
-        // For now, let's assume we can emit an event that Main handles, OR we can just return the scene key 
-        // and let the caller handle the switch?
-        // The plan said: "Call engine.goToScene(sceneKey)".
         
         // Let's add a reference to the game engine in DungeonNavigator
         if (this.gameEngine) {

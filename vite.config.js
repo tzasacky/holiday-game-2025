@@ -14,6 +14,7 @@ const tiledPlugin = () => {
 }
 
 export default defineConfig({
+    base: '/holiday-game-2025/', // base URL for GitHub Pages
     plugins: [tiledPlugin()], // hint vite that tiled tilesets should be treated as external
     build: {
         assetsInlineLimit: 0, // excalibur cannot handle inlined xml in prod mode

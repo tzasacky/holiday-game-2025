@@ -179,9 +179,8 @@ export class InventoryUI {
             icon.style.backgroundImage = `url(${graphics.resource.path})`;
             
             // Calculate position
-            const index = graphics.spriteIndex;
-            const col = index % 8;
-            const row = Math.floor(index / 8);
+            const col = graphics.col ?? 0;
+            const row = graphics.row ?? 0;
             
             icon.style.backgroundPosition = `-${col * 32}px -${row * 32}px`;
             icon.style.width = '32px';

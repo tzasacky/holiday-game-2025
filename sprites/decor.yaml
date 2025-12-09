@@ -1,0 +1,70 @@
+- file: items/snowy_village_decor.png
+  output: public/assets/items/snowy_village_decor.png
+  generate: false
+  spec:
+    cols: 8
+    rows: 4
+  expectedTotal: 32
+  prompt: |
+    **I. Core Image Parameters & Constraints (CRITICAL)**
+
+    * **Output:** Single **DECORATIVE SPRITESHEET** only.
+    * **Content:** Only **FURNITURE, PROPS, AND OBJECTS**.
+    * **Background:** Solid, contrasting color (e.g., pure white or black). **NO GRIDLINES, NO TEXT, NO OTHER OBJECTS.**
+    * **Style:** **PERFECT PIXEL ART.** **Dungeon Crawler** aesthetic. **Top-Down Perspective.**
+    * **Theme:** **Winter Wonderland / Christmas.**
+    * **Size/Resolution:** Optimize for clear, distinct sprites suitable for a low-resolution pixel art game (e.g., 32x32 per sprite).
+
+    ### **II. Layout Definition (ABSOLUTE CRITICALITY)**
+
+    The spritesheet must be a perfectly arranged **4x8 grid of sprites** (4 rows, 8 columns).
+
+    * **Sprite Specification:** Every sprite must be a **PERFECTLY SQUARE,** distinct object.
+    * **Seamlessness:** These are **individual objects**, NOT seamless tiles. However, they must be centered and clearly separated.
+    * **Arrangement:** The sheet must be arranged exactly as specified below:
+
+    | Row | Col 0 | Col 1 | Col 2 | Col 3 | Col 4 | Col 5 | Col 6 | Col 7 |
+    | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+    | **ROW 1: Furniture** | Window (Lit) | Window (Dark) | Bookshelf (Full) | Bookshelf (Empty) | Table (Round) | Table (Rectangular) | Chair (Front) | Chair (Back) |
+    | **ROW 2: Nature** | Snowy Rock | Frozen Bush | Pine Tree (Small) | Dead Tree (Small) | Snowman Prop (Static) | Ice Crystal | Snow Mound | Log Pile |
+    | **ROW 3: Fences** | Fence (Horizontal) | Fence (Vertical) | Fence (Corner) | Fence (Post) | Stone Wall (Low) | Ice Wall (Low) | Hedge (Snowy) | Gate (Decor only) |
+    | **ROW 4: Clutter** | Crate | Barrel | Sack | Pot/Vase | Lantern (Ground) | Wood Pile | Bucket | Shovel |
+
+    ### **III. Negative Prompts (Strict Exclusions)**
+
+    * **Avoid:** Grids, text, labels, labels on tiles, separation lines, borders, anti-aliasing, non-square tiles, complex perspectives, isometric views, single large image, blurry textures, gradients, non-pixel-art elements.
+
+- file: items/common_decor.png
+  output: public/assets/items/common_decor.png
+  generate: false
+  spec:
+    cols: 8
+    rows: 4
+  expectedTotal: 32
+  prompt: |
+    **I. Core Image Parameters & Constraints (CRITICAL)**
+
+    * **Output:** Single **DECORATIVE SPRITESHEET** only.
+    * **Content:** Only **CONTAINERS, FURNITURE, AND OBJECTS**.
+    * **Background:** Solid, contrasting color (e.g., pure white or black). **NO GRIDLINES, NO TEXT, NO OTHER OBJECTS.**
+    * **Style:** **PERFECT PIXEL ART.** **Dungeon Crawler** aesthetic. **Top-Down Perspective.**
+    * **Size/Resolution:** Optimize for clear, distinct sprites suitable for a low-resolution pixel art game (e.g., 32x32 per sprite).
+
+    ### **II. Layout Definition (ABSOLUTE CRITICALITY)**
+
+    The spritesheet must be a perfectly arranged **4x8 grid of sprites** (4 rows, 8 columns).
+
+    * **Sprite Specification:** Every sprite must be a **PERFECTLY SQUARE,** distinct object.
+    * **Seamlessness:** These are **individual objects**, NOT seamless tiles. However, they must be centered and clearly separated.
+    * **Arrangement:** The sheet must be arranged exactly as specified below:
+
+    | Row | Col 0 | Col 1 | Col 2 | Col 3 | Col 4 | Col 5 | Col 6 | Col 7 |
+    | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+    | **ROW 1: Furniture** | Bed (Head) | Bed (Foot) | Table (Round) | Table (Rectangular) | Chair (Front) | Chair (Back) | Bookshelf | Cabinet |
+    | **ROW 2: Holiday Decor** | Christmas Tree | Snowman Prop | Wreath | Stocking (Decor) | Gift Box (Red) | Gift Box (Green) | Garland | Mistletoe |
+    | **ROW 3: Nature/Outside** | Snowy Rock | Frozen Bush | Pine Tree | Dead Tree | Ice Crystal | Snow Mound | Log Pile | Fence Section |
+    | **ROW 4: Clutter** | Painting (Wall) | Mirror (Wall) | Clock (Wall) | Vase | Crate | Barrel | Sack | Candle Stand (Decor) |
+
+    ### **III. Negative Prompts (Strict Exclusions)**
+
+    * **Avoid:** Grids, text, labels, labels on tiles, separation lines, borders, anti-aliasing, non-square tiles, complex perspectives, isometric views, single large image, blurry textures, gradients, non-pixel-art elements.

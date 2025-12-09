@@ -5,7 +5,7 @@ import * as ex from 'excalibur';
 import { GraphicsManager } from '../data/graphics';
 import { Logger } from '../core/Logger';
 import { RegistryKey } from '../constants/RegistryKeys';
-import { GameEventNames, ItemUseEvent, ItemDestroyedEvent, ItemCreatedEvent } from '../core/GameEvents';
+import { GameEventNames, ItemUseEvent, ItemDestroyedEvent, ItemCreatedEvent, LogEvent } from '../core/GameEvents';
 import { GameActor } from '../components/GameActor';
 import { EquipmentComponent } from '../components/EquipmentComponent';
 
@@ -71,8 +71,22 @@ export class ItemEntity {
             return;
         }
         
-        // Only consumables are destroyed on use
-        if (this.definition.type === ItemType.CONSUMABLE) {
+        // Check if item has any usable effects
+        const hasEffects = this.definition.effects && this.definition.effects.length > 0;
+        const hasSpecialUse = this.hasSpecialUseCase();
+        
+        if (!hasEffects && !hasSpecialUse) {
+            // Item cannot be used - provide feedback
+            EventBus.instance.emit(GameEventNames.Log, new LogEvent(
+                `The ${this.definition.name} can't be used here.`,
+                'System',
+                '#888'
+            ));
+            return;
+        }
+
+        // Only consumables are destroyed on use (unless they have special handling)
+        if (this.definition.type === ItemType.CONSUMABLE && !hasSpecialUse) {
             console.log(`[ItemEntity] Consumable item, reducing count from ${this.count}`);
             this.count--;
             if (this.count <= 0) {
@@ -86,6 +100,70 @@ export class ItemEntity {
         EventBus.instance.emit(GameEventNames.ItemUse, new ItemUseEvent(user, this));
     }
     
+    /**
+     * Check if item has special use case (beyond standard effects)
+     */
+    hasSpecialUseCase(): boolean {
+        // Items that require special handling in EffectExecutor
+        const specialItems = [
+            // Gifts
+            'wrapped_gift',
+            
+            // Basic scrolls  
+            'scroll_of_identify',
+            'scroll_of_enchantment',
+            'scroll_of_mapping', 
+            'scroll_of_remove_curse',
+            'scroll_of_teleport',
+            
+            // Christmas scrolls
+            'scroll_of_winter_warmth',
+            'scroll_of_christmas_spirit', 
+            'scroll_of_santas_blessing',
+            
+            // Utility scrolls
+            'scroll_of_nice_list',
+            'scroll_of_naughty_list',
+            'scroll_of_santas_sight',
+            'scroll_of_elven_blessing',
+            'scroll_of_frost',
+            
+            // Advanced scrolls
+            'scroll_of_reindeer_call',
+            'scroll_of_jingle_all',
+            'scroll_of_mistletoe_portal',
+            'scroll_of_snow_storm',
+            'scroll_of_elven_craftsmanship',
+            
+            // Thrown items
+            'snowball',
+            'packed_snowball',
+            'iceball',
+            'yellow_snowball',
+            'coal_snowball',
+            
+            // Ornament grenades
+            'cracked_ornament_grenade',
+            'glass_ornament_grenade',
+            'silver_ornament_grenade',
+            'gold_ornament_grenade',
+            'platinum_ornament_grenade',
+            
+            // Special consumables
+            'unlabeled_potion',
+            'champagne_flute',
+            'christmas_wish_bone',
+            'angel_feather_revive',
+            'potion_of_cure_disease',
+            
+            // Permanent progression
+            'star_cookie',
+            'liquid_courage',
+            'santas_cookie'
+        ];
+        return specialItems.includes(this.id);
+    }
+
     /**
      * Get sprite for rendering
      */

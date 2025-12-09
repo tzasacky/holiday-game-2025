@@ -6,7 +6,7 @@ import { BiomeDefinition, MaterialType } from '../../data/biomes';
 import { GenerationContext, TileReservation } from './GenerationContext';
 import { BSPGenerator, BSPNode } from './BSPGenerator';
 import { RoomGenerationExecutor } from '../../systems/RoomGenerationExecutor';
-import { getRoomTemplatesForFloor, getRoomDistributionForFloor, RoomTemplate } from '../../data/roomTemplates';
+import { getRoomTemplatesForFloor, getRoomDistributionForFloor, RoomTemplate, RoomGenerationRules } from '../../data/roomTemplates';
 import { LevelGenerator } from './LevelGenerator';
 import { Logger } from '../../core/Logger';
 import { EventBus } from '../../core/EventBus';
@@ -17,6 +17,7 @@ import { LinearFeatureGenerator } from '../features/LinearFeatureGenerator';
 import { PatchFeatureGenerator } from '../features/PatchFeatureGenerator';
 import { RoomTypeID } from '../../constants/RoomTypeID';
 import { InteractableID } from '../../constants/InteractableIDs';
+import { DecorSystem } from '../DecorSystem';
 
 export class AdvancedLevelGenerator implements LevelGenerator {
     private rooms: Room[] = [];
@@ -85,8 +86,19 @@ export class AdvancedLevelGenerator implements LevelGenerator {
             Logger.info(`[AdvancedLevelGenerator] Set entrance at ${level.entrancePoint}`);
         }
 
-        // 10. Room population using RoomGenerationExecutor
-        this.populateRoomsWithTemplates(level, context);
+        // 10. Assign room templates (needed for decor rules)
+        this.assignRoomTemplates(level, context);
+        
+        // 10b. Re-assign room materials now that templates/room types are known
+        // This is needed because initial material assignment happens before templates
+        this.reassignRoomMaterials(level, biome, context);
+        
+        // 11. Paint Decor (Floors, Rugs, Basic Furniture)
+        // We do this BEFORE populating rooms so that interactables (like chests) spawn ON TOP of rugs/floors
+        this.paintDecor(level, biome);
+
+        // 12. Room population - spawns interactables, enemies from templates
+        this.populateRoomsFromTemplates(level, context);
         
         // 11. Place exit staircase
         this.placeExitStaircase(level, context);
@@ -162,8 +174,17 @@ export class AdvancedLevelGenerator implements LevelGenerator {
         const start = Math.floor(Math.min(x1, x2));
         const end = Math.floor(Math.max(x1, x2));
         const yInt = Math.floor(y);
+        const width = biome.corridorWidth || 1;
+        const halfWidth = Math.floor(width / 2);
+
         for (let x = start; x <= end; x++) {
-            this.carvePoint(level, x, yInt, context, biome);
+            for (let w = -halfWidth; w < width - halfWidth; w++) {
+                // Determine if this is the "primary" path (center-ish)
+                // For width 2 (w=-1, 0), we treat 0 as center.
+                // For width 3 (w=-1, 0, 1), 0 is center.
+                const isCenter = (w === 0);
+                this.carvePoint(level, x, yInt + w, context, biome, isCenter);
+            }
         }
     }
 
@@ -171,17 +192,33 @@ export class AdvancedLevelGenerator implements LevelGenerator {
         const start = Math.floor(Math.min(y1, y2));
         const end = Math.floor(Math.max(y1, y2));
         const xInt = Math.floor(x);
+        const width = biome.corridorWidth || 1;
+        const halfWidth = Math.floor(width / 2);
+
         for (let y = start; y <= end; y++) {
-            this.carvePoint(level, xInt, y, context, biome);
+            for (let w = -halfWidth; w < width - halfWidth; w++) {
+                const isCenter = (w === 0);
+                this.carvePoint(level, xInt + w, y, context, biome, isCenter);
+            }
         }
     }
 
-    private carvePoint(level: Level, x: number, y: number, context: GenerationContext, biome: BiomeDefinition) {
+    private carvePoint(level: Level, x: number, y: number, context: GenerationContext, biome: BiomeDefinition, isCenter: boolean) {
         if (x < 0 || x >= level.width || y < 0 || y >= level.height) return;
         
+        // Check if we are hitting a room wall
+        // If so, only carve if we are the "center" of the corridor path
+        // This ensures 1-wide entrances even for wide corridors
+        if (level.terrainData[x][y] === TerrainType.Wall && this.isPointInRoomFootprint(x, y)) {
+            if (!isCenter) return;
+        }
+
         // Only carve if not Locked
         if (context.isAvailable(x, y, TileReservation.Structure)) {
             level.terrainData[x][y] = TerrainType.Floor;
+            
+            // CRITICAL: Mark corridor tiles as protected so decor won't block them
+            level.protectCorridorTile(x, y);
             
             // Corridors get the default material for the biome
             const corridorMaterial = biome.visuals.defaultMaterial || MaterialType.Stone;
@@ -355,10 +392,16 @@ export class AdvancedLevelGenerator implements LevelGenerator {
      * Place a door at a specific position
      */
     private placeDoorAt(level: Level, room: Room, position: ex.Vector, context: GenerationContext): void {
+        // Check if door already exists at this position
+        const existingDoor = level.getInteractableAt(position.x, position.y);
+        if (existingDoor) {
+            Logger.debug(`[AdvancedLevelGenerator] Skipping door at ${position} - already occupied`);
+            return;
+        }
+        
         // Keep terrain as floor for movement
         level.terrainData[position.x][position.y] = TerrainType.Floor;
         
-        // Determine door type
         // Determine door type based on room type
         let doorId: InteractableID = InteractableID.Door;
         
@@ -385,6 +428,20 @@ export class AdvancedLevelGenerator implements LevelGenerator {
         // Create door as interactable entity
         this.createDoorEntity(level, position, doorId);
         room.entrances.push(position);
+        
+        // Protect adjacent floor tiles to prevent blocking decor from blocking the door
+        const adjacentPositions = [
+            { x: position.x - 1, y: position.y },
+            { x: position.x + 1, y: position.y },
+            { x: position.x, y: position.y - 1 },
+            { x: position.x, y: position.y + 1 }
+        ];
+        
+        for (const adj of adjacentPositions) {
+            if (level.inBounds(adj.x, adj.y) && level.getTile(adj.x, adj.y) === TerrainType.Floor) {
+                level.protectTile(adj.x, adj.y);
+            }
+        }
         
         if (doorId === InteractableID.LockedDoor) {
             this.lockedRooms.push(room);
@@ -433,10 +490,18 @@ export class AdvancedLevelGenerator implements LevelGenerator {
 
 
     private getRoomMaterial(room: Room, biome: BiomeDefinition, context: GenerationContext): MaterialType {
+        // 0. Check Room Template Preference (Data-Driven)
+        if (room.template && room.template.materials) {
+            // Prefer floor material if defined, otherwise wall material, otherwise fallback
+            if (room.template.materials.floor) {
+                return room.template.materials.floor as MaterialType;
+            }
+        }
+
         // Default to Wood for Snowy Village as it's cozy
         let material = MaterialType.Wood;
         
-        // 1. Check for Room Type specific preferences
+        // 1. Check for Room Type specific preferences (Legacy Hardcoded Fallback)
         switch (room.roomType) {
             case RoomTypeID.Entrance:
                 return MaterialType.Wood; // Cozy entrance
@@ -471,28 +536,63 @@ export class AdvancedLevelGenerator implements LevelGenerator {
         return material;
     }
 
-    private spawnItems(level: Level, context: GenerationContext) {
-        // Legacy method - items are now spawned via:
-        // 1. InteractableGenerator (chests, containers)  
-        // 2. RoomGenerationExecutor (room-specific loot)
-        // 3. LootSystem (data-driven loot tables)
-        
-        Logger.info('[AdvancedLevelGenerator] Item spawning moved to data-driven systems');
-        
-        // TODO: Remove this method entirely once new system is fully integrated
-    }
-
-    private populateRoomsWithTemplates(level: Level, context: GenerationContext): void {
+    /**
+     * Phase 1: Assign templates to rooms based on room type and floor distribution
+     * Must be called before paintDecor so decorRules are available
+     */
+    private assignRoomTemplates(level: Level, context: GenerationContext): void {
         const floorNumber = level.floorNumber;
         const availableTemplates = getRoomTemplatesForFloor(floorNumber);
         
         if (availableTemplates.length === 0) {
+            console.log('[AdvancedLevelGenerator] No templates available for floor', floorNumber);
             return;
         }
 
         // Assign room types using smart selection
         this.assignRoomTypes(this.rooms, availableTemplates, floorNumber, context, level);
-
+        
+        console.log(`[AdvancedLevelGenerator] Assigned templates to ${this.rooms.filter(r => r.template).length}/${this.rooms.length} rooms`);
+    }
+    
+    /**
+     * Re-assign room materials after templates are known
+     * This ensures indoor rooms (wood/brick/stone) are correctly identified for decor filtering
+     */
+    private reassignRoomMaterials(level: Level, biome: BiomeDefinition, context: GenerationContext): void {
+        for (const room of this.rooms) {
+            // Get the correct material now that roomType is known
+            const correctMaterial = this.getRoomMaterial(room, biome, context);
+            
+            // Re-paint the room with the correct material
+            for (let x = room.x; x < room.x + room.width; x++) {
+                for (let y = room.y; y < room.y + room.height; y++) {
+                    if (level.inBounds(x, y)) {
+                        level.setMaterial(x, y, correctMaterial);
+                    }
+                }
+            }
+            
+            // Also paint walls around room
+            for (let x = room.x - 1; x <= room.x + room.width; x++) {
+                for (let y = room.y - 1; y <= room.y + room.height; y++) {
+                    if (level.inBounds(x, y) && level.getTile(x, y) === TerrainType.Wall) {
+                        level.setMaterial(x, y, correctMaterial);
+                    }
+                }
+            }
+        }
+        
+        console.log(`[AdvancedLevelGenerator] Re-assigned materials for ${this.rooms.length} rooms`);
+    }
+    
+    /**
+     * Phase 2: Populate rooms with interactables and enemies from templates
+     * Called after paintDecor so interactables spawn on top of decor
+     */
+    private populateRoomsFromTemplates(level: Level, context: GenerationContext): void {
+        const floorNumber = level.floorNumber;
+        
         // Populate each room with its template
         this.rooms.forEach(room => {
             if (room.template) {
@@ -506,6 +606,19 @@ export class AdvancedLevelGenerator implements LevelGenerator {
                 RoomGenerationExecutor.instance.populateRoom(request);
             }
         });
+    }
+
+    /** @deprecated Use assignRoomTemplates and populateRoomsFromTemplates instead */
+    private populateRoomsWithTemplates(level: Level, context: GenerationContext): void {
+        this.assignRoomTemplates(level, context);
+        this.populateRoomsFromTemplates(level, context);
+    }
+
+    private paintDecor(level: Level, biome: BiomeDefinition): void {
+        this.rooms.forEach(room => {
+            DecorSystem.instance.paintRoom(level, room, biome);
+        });
+        DecorSystem.instance.paintCorridors(level, biome);
     }
 
     /**
@@ -579,9 +692,40 @@ export class AdvancedLevelGenerator implements LevelGenerator {
         // Always set start room as Entrance
         startRoom.roomType = RoomTypeID.Entrance;
 
-        // 3. Assign Special Rooms to Leaf Nodes
-        // Filter out Exit room and Start room from leaves
-        const availableLeaves = leafNodes.filter(r => r !== endRoom && r !== startRoom);
+        // 3. Enforce Required Room Types for this floor
+        const floorKey = floorNumber as keyof typeof RoomGenerationRules.requiredRoomTypes;
+        const requiredTypes = RoomGenerationRules.requiredRoomTypes[floorKey] || [];
+        const unassignedRooms = rooms.filter(r => r.roomType === RoomTypeID.Basic);
+        
+        for (const requiredType of requiredTypes) {
+            // Find a suitable room for this required type
+            const suitableRoom = unassignedRooms.find(r => {
+                const template = templates.find(t => t.id === requiredType);
+                return template && this.isRoomSuitableForTemplate(r, template);
+            });
+            
+            if (suitableRoom) {
+                const template = templates.find(t => t.id === requiredType);
+                if (template) {
+                    suitableRoom.roomType = requiredType;
+                    suitableRoom.template = template;
+                    suitableRoom.tags = template.tags;
+                    suitableRoom.isSpecial = template.category === 'special';
+                    
+                    // Remove from unassigned list
+                    const index = unassignedRooms.indexOf(suitableRoom);
+                    if (index > -1) unassignedRooms.splice(index, 1);
+                    
+                    Logger.debug(`[AdvancedLevelGenerator] Enforced required room type ${requiredType} on floor ${floorNumber}`);
+                }
+            } else {
+                Logger.warn(`[AdvancedLevelGenerator] Could not place required room type ${requiredType} on floor ${floorNumber} - no suitable rooms`);
+            }
+        }
+
+        // 4. Assign Special Rooms to Leaf Nodes
+        // Filter out Exit room, Start room, and already assigned required rooms from leaves
+        const availableLeaves = leafNodes.filter(r => r !== endRoom && r !== startRoom && r.roomType === RoomTypeID.Basic);
         
         // Shuffle leaves
         for (let i = availableLeaves.length - 1; i > 0; i--) {
@@ -590,8 +734,24 @@ export class AdvancedLevelGenerator implements LevelGenerator {
         }
 
         // Get Special templates (Boss, Treasure, Workshop, etc.)
-        // Filter by floor restrictions
-        const specialTemplates = templates.filter(t => t.category === 'special' && t.id !== RoomTypeID.Entrance && t.id !== RoomTypeID.Exit);
+        // Filter by floor restrictions - this prevents boss rooms on inappropriate floors
+        const specialTemplates = templates.filter(t => {
+            if (t.category !== 'special' || t.id === RoomTypeID.Entrance || t.id === RoomTypeID.Exit) {
+                return false;
+            }
+            
+            // Check floor restrictions
+            if (t.floorRestrictions) {
+                if (t.floorRestrictions.minFloor && floorNumber < t.floorRestrictions.minFloor) {
+                    return false;
+                }
+                if (t.floorRestrictions.maxFloor && floorNumber > t.floorRestrictions.maxFloor) {
+                    return false;
+                }
+            }
+            
+            return true;
+        });
         
         // Track placed counts
         const placedCounts = new Map<string, number>();
@@ -627,7 +787,7 @@ export class AdvancedLevelGenerator implements LevelGenerator {
             Logger.debug(`[AdvancedLevelGenerator] Assigned Special ${template.name} to leaf node`);
         }
         
-        // 4. Assign Flavor Rooms to remaining leaves (and potentially other spots?)
+        // 5. Assign Flavor Rooms to remaining leaves (and potentially other spots?)
         // Any remaining leaves should ideally be Flavor rooms (Library, Armory) rather than Basic
         const flavorTemplates = templates.filter(t => t.category === 'flavor');
         
@@ -648,24 +808,32 @@ export class AdvancedLevelGenerator implements LevelGenerator {
             }
         }
         
-        // 5. Assign Basic/Flavor to remaining rooms
-        // We can mix Basic and Flavor for the rest of the dungeon
-        const basicTemplates = templates.filter(t => t.category === 'basic');
-        const fillerTemplates = [...basicTemplates, ...flavorTemplates]; // Allow flavor in normal spots too?
-        // Maybe just Basic + some Flavor?
-        // Let's stick to Basic for corridors/hubs to keep it simple, or allow Flavor with lower weight.
-        // Actually, selectWeightedTemplate handles weights. If Flavor has low weight, it appears less.
+        // 6. Assign rooms using floor-based distribution (loot table system)
+        // Get the floor distribution weights for this floor
+        const floorDistribution = getRoomDistributionForFloor(floorNumber);
+        console.log(`[AdvancedLevelGenerator] Floor distribution for floor ${floorNumber}:`, floorDistribution);
         
         for (const room of rooms) {
             if (room.roomType !== RoomTypeID.Basic) continue; // Skip already assigned
             
-            // Use weighted selection from all non-special templates
-            const template = this.selectWeightedTemplate(fillerTemplates, context, floorNumber, level);
+            // Use floor distribution to select room type
+            const template = this.selectTemplateByFloorDistribution(
+                templates, 
+                floorDistribution, 
+                context, 
+                floorNumber, 
+                level
+            );
+            
+            console.log(`[AdvancedLevelGenerator] Room at (${room.x},${room.y}) type=${room.roomType}, selected template:`, template?.id || 'null');
             
             if (template) {
                 room.template = template;
                 room.roomType = template.id;
                 room.tags = template.tags;
+                console.log(`[AdvancedLevelGenerator] Assigned template ${template.id} to room at (${room.x},${room.y})`);
+            } else {
+                console.log(`[AdvancedLevelGenerator] ⚠️ NO TEMPLATE for room at (${room.x},${room.y})`);
             }
         }
         
@@ -707,6 +875,49 @@ export class AdvancedLevelGenerator implements LevelGenerator {
         }
 
         return weight;
+    }
+
+    /**
+     * Select a template using floor-based distribution (room loot table system)
+     */
+    private selectTemplateByFloorDistribution(
+        templates: RoomTemplate[],
+        floorDistribution: Record<string, number>,
+        context: GenerationContext,
+        floorNumber: number,
+        level: Level
+    ): RoomTemplate | null {
+        // Get total weight
+        const totalWeight = Object.values(floorDistribution).reduce((sum, weight) => sum + weight, 0);
+        if (totalWeight <= 0) return null;
+
+        // Roll for room type
+        let randomValue = context.random.next() * totalWeight;
+        let selectedRoomType: string | null = null;
+
+        for (const [roomType, weight] of Object.entries(floorDistribution)) {
+            randomValue -= weight;
+            if (randomValue <= 0) {
+                selectedRoomType = roomType;
+                break;
+            }
+        }
+
+        if (!selectedRoomType) {
+            selectedRoomType = Object.keys(floorDistribution)[0]; // Fallback
+        }
+
+        // Find available templates for this room type
+        const availableTemplates = templates.filter(t => t.id === selectedRoomType);
+        
+        if (availableTemplates.length === 0) {
+            // If no template found for selected type, fall back to any available basic template
+            const basicTemplates = templates.filter(t => t.category === 'basic');
+            return basicTemplates.length > 0 ? basicTemplates[context.random.integer(0, basicTemplates.length - 1)] : null;
+        }
+
+        // If multiple templates exist for the same type, pick one
+        return availableTemplates[context.random.integer(0, availableTemplates.length - 1)];
     }
 
     /**
@@ -774,6 +985,70 @@ export class AdvancedLevelGenerator implements LevelGenerator {
     }
 
     /**
+     * Spawn keys for locked rooms
+     * Logic: For every locked room, place a key in a reachable (non-locked) room
+     */
+    private spawnKeys(level: Level, context: GenerationContext): void {
+        if (this.lockedRooms.length === 0) return;
+        
+        // Get all reachable rooms (not locked)
+        // A simple heuristic: rooms that are NOT in the lockedRooms list are candidates
+        // Ideally we'd do a reachability check from start room, but this is a good approximation
+        const candidateRooms = this.rooms.filter(r => !this.lockedRooms.includes(r) && r.roomType !== RoomTypeID.Entrance && r.roomType !== RoomTypeID.Exit);
+        
+        if (candidateRooms.length === 0) {
+            Logger.warn('[AdvancedLevelGenerator] No candidate rooms for key placement!');
+            return;
+        }
+        
+        for (const lockedRoom of this.lockedRooms) {
+            // Pick a random candidate room
+            const keyRoom = candidateRooms[context.random.integer(0, candidateRooms.length - 1)];
+            
+            // Place key in center or random spot
+            const keyPos = keyRoom.center;
+            
+            // Determine key type based on room? For now just generic 'gold_key'
+            // We need an InteractableID for Key or just an Item?
+            // Usually keys are Items, but we might want them to be Interactables for visibility?
+            // Let's assume they are Items for now and use a helper to spawn them
+            // But wait, we don't have a spawnItem method anymore. 
+            // We should spawn an Interactable 'Key' or use the LootSystem.
+            // Let's spawn a 'GroundItem' interactable if we have one, or just a raw entity.
+            
+            // Actually, we should use the LootSystem to drop a specific item.
+            // Or just create a simple entity for now.
+            
+            // Let's assume we have an ItemID.KeyGold
+            // We need to spawn it. 
+            // Since we don't have a direct "Spawn Item" method here, let's use EventBus to request item spawn
+            // or use a specific InteractableID if we have one for "KeyPickup".
+            
+            // For now, let's assume we spawn a 'chest' containing the key, or just the key on the floor.
+            // Let's use a specialized InteractableID.Chest if we want it in a chest, 
+            // or we need to add a "Key" interactable.
+            
+            // Checking InteractableIDs... we don't have 'Key'.
+            // Let's use a small chest or just a "Treasure" interactable that gives a key.
+            // Or better, let's add a simple "Key" interactable to InteractableIDs later.
+            // For now, I will spawn a "PresentChest" (Gift) that contains the key.
+            
+            this.createKeyEntity(level, keyPos, 'gold_key');
+            
+            Logger.info(`[AdvancedLevelGenerator] Placed Key for locked room at ${keyPos} in ${keyRoom.roomType}`);
+        }
+    }
+
+    private createKeyEntity(level: Level, position: ex.Vector, keyId: string): void {
+        // Spawn key as an Item using ItemCreate event
+        EventBus.instance.emit(GameEventNames.ItemCreate, new FactoryCreateEvent(
+            keyId, // e.g., 'gold_key' which matches ItemID.GoldKey
+            { position, config: { count: 1 }, level }
+        ));
+        Logger.debug(`[AdvancedLevelGenerator] Spawned key "${keyId}" at (${position.x}, ${position.y})`);
+    }
+
+    /**
      * Place entrance staircase (Stairs Up) in the entrance room
      */
     private placeEntranceStaircase(level: Level, context: GenerationContext): void {
@@ -795,60 +1070,6 @@ export class AdvancedLevelGenerator implements LevelGenerator {
         this.createStaircaseEntity(level, entrancePos, InteractableID.StairsUp);
         
         Logger.info(`[AdvancedLevelGenerator] Placed entrance stairs (Up) at ${entrancePos} in room type ${entranceRoom.roomType}`);
-    }
-
-    /**
-     * Spawn keys for locked rooms
-     */
-    private spawnKeys(level: Level, context: GenerationContext): void {
-        if (this.lockedRooms.length === 0) return;
-
-        Logger.info(`[AdvancedLevelGenerator] Spawning keys for ${this.lockedRooms.length} locked rooms`);
-
-        // Get all reachable rooms (rooms that are NOT locked and NOT secret)
-        // We assume locked rooms are leaf nodes, so all other rooms are reachable from start
-        const reachableRooms = this.rooms.filter(r => 
-            !this.lockedRooms.includes(r) && 
-            r.roomType !== RoomTypeID.Library // Secret rooms
-        );
-
-        if (reachableRooms.length === 0) {
-            Logger.warn('[AdvancedLevelGenerator] No reachable rooms to place keys!');
-            return;
-        }
-
-        for (const lockedRoom of this.lockedRooms) {
-            // Pick a random reachable room
-            const keyRoom = reachableRooms[context.random.integer(0, reachableRooms.length - 1)];
-            
-            // Find a valid spot in the room
-            const floorTiles = [];
-            for (let x = keyRoom.x + 1; x < keyRoom.x + keyRoom.width - 1; x++) {
-                for (let y = keyRoom.y + 1; y < keyRoom.y + keyRoom.height - 1; y++) {
-                    if (level.terrainData[x][y] === TerrainType.Floor && !level.getActorAt(x, y)) {
-                        floorTiles.push(ex.vec(x, y));
-                    }
-                }
-            }
-
-            if (floorTiles.length > 0) {
-                const pos = floorTiles[context.random.integer(0, floorTiles.length - 1)];
-                
-                // Spawn Gold Key
-                // We use ItemID.GoldKey. We need to import ItemID.
-                // Assuming ItemID is available or we use string 'gold_key'
-                EventBus.instance.emit(GameEventNames.ItemSpawnRequest, {
-                    itemId: 'gold_key', // Hardcoded for now, should use ItemID.GoldKey
-                    position: pos,
-                    level: level,
-                    count: 1
-                });
-                
-                Logger.info(`[AdvancedLevelGenerator] Spawned key at ${pos} in ${keyRoom.roomType} for locked ${lockedRoom.roomType}`);
-            } else {
-                Logger.warn(`[AdvancedLevelGenerator] Could not find spot for key in ${keyRoom.roomType}`);
-            }
-        }
     }
 
     private createStaircaseEntity(level: Level, position: ex.Vector, stairId: string): void {

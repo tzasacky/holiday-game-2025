@@ -93,7 +93,7 @@ export class Pathfinding {
             if (hero && interactableEntity.canInteract(hero)) {
                 // Return specific interaction type based on definition
                 const def = interactableEntity.definition;
-                if (def.type === InteractableType.DOOR) {
+                if (def.type === InteractableType.Door) {
                     return interactableEntity.state === 'locked' ? InteractionType.DoorLocked : InteractionType.DoorOpen;
                 }
                 if (def.id === InteractableID.StairsDown) return InteractionType.StairsDown;
@@ -226,11 +226,19 @@ export class Pathfinding {
         const interactable = level.getInteractableAt(x, y);
         if (interactable && interactable.blocksMovement) {
             // Doors are passable for pathing (will be opened when reached)
-            if (interactable.definition.type === InteractableType.DOOR) {
+            if (interactable.definition.type === InteractableType.Door) {
                 return true;
             }
             // Other blocking interactables (decorations, etc) are obstacles
             return false;
+        }
+
+        // Check for blocking decor
+        const decorList = level.getDecorAt(x, y);
+        for (const decor of decorList) {
+            if (decor.blocksMovement) {
+                return false;
+            }
         }
 
         // Check for actors (unless allowed)
@@ -268,16 +276,18 @@ export class Pathfinding {
         const interactable = level.getInteractableAt(x, y);
         if (interactable && interactable.blocksMovement) {
             // Doors are valid targets (can interact)
-            if (interactable.definition.type === InteractableType.DOOR) {
+            if (interactable.definition.type === InteractableType.Door) {
                 return true;
             }
-            // Other blocking interactables might be valid targets if they have interactions?
-            // For now, assume if it blocks, we can't walk ONTO it, but we might want to path adjacent to it.
-            // But isValidTarget is usually for "can I click here to move here".
-            // If it's a chest, we can't walk ON it, but we click it to interact.
-            // So maybe return true if it's interactable?
-            // For now, let's say if it blocks and is NOT a door, it's not a valid MOVE target.
             return false;
+        }
+
+        // Check for blocking decor
+        const decorList = level.getDecorAt(x, y);
+        for (const decor of decorList) {
+            if (decor.blocksMovement) {
+                return false;
+            }
         }
 
         // Can target everything else (doors, actors, etc. - will be handled as interactions)

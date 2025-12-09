@@ -13,7 +13,6 @@ import { EffectDefinitions, EffectCategories, EffectInteractions } from '../data
 import { DamageTypes, EnvironmentalHazards, CombatMechanics, ProgressionRules, StatusMechanics, MechanicsHelpers } from '../data/mechanics';
 import { AllSpawnTables } from '../data/spawnTables';
 import { RoomTemplateDefinitions } from '../data/roomTemplates';
-import { PrefabDefinitions } from '../data/prefabDefinitions';
 import { BiomeDefinitions } from '../data/biomes';
 import { RegistryKey } from '../constants/RegistryKeys';
 import { Logger } from './Logger';
@@ -152,9 +151,6 @@ export class DataManager {
         
         // Room templates
         this.registerRegistry(RegistryKey.ROOM_TEMPLATE, RoomTemplateDefinitions);
-        
-        // Prefabs
-        this.registerRegistry(RegistryKey.PREFAB, PrefabDefinitions);
         
         // Biomes
         this.registerRegistry(RegistryKey.BIOME, BiomeDefinitions);

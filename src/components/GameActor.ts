@@ -235,6 +235,7 @@ export class GameActor extends GameEntity {
     /**
  * Animate movement to target grid position
  * This is purely visual - gridPos should already be updated
+ * IMPORTANT: Only animates cardinal (4-way) movement, one tile at a time
  */
 public animateMovement(targetGridPos: ex.Vector, fromPos?: ex.Vector): void {
     // Clear any damage label when moving (new action)
@@ -249,49 +250,61 @@ public animateMovement(targetGridPos: ex.Vector, fromPos?: ex.Vector): void {
         targetGridPos.y * 32 + 16
     );
 
-    // Calculate direction from provided fromPos or current gridPos
+    // Calculate direction from provided fromPos or actor's current pixel pos
     const startPos = fromPos || this.gridPos;
-    const direction = targetGridPos.sub(startPos);
+    const rawDirection = targetGridPos.sub(startPos);
     
-    // Move directly to position (no tween - movement should be instant for turn-based)
-    this.pos = targetPixelPos;
+    // ENFORCE CARDINAL ONLY: Normalize to single axis (prefer the larger delta, or horizontal if equal)
+    let direction: ex.Vector;
+    if (Math.abs(rawDirection.x) >= Math.abs(rawDirection.y) && rawDirection.x !== 0) {
+        direction = ex.vec(rawDirection.x > 0 ? 1 : -1, 0);
+    } else if (rawDirection.y !== 0) {
+        direction = ex.vec(0, rawDirection.y > 0 ? 1 : -1);
+    } else {
+        direction = ex.vec(0, 0); // No movement
+    }
     
-    // Play walk animation based on direction
+    // Animation timing - keep it snappy
+    const moveDuration = 250; // ms for the main movement
+    const bounceDuration = 25; // ms for bounce
+    const bounceHeight = 2; // pixels
+    
+    this.actions.clearActions();
+    
+    // Animate: Move to target, then small bounce
+    this.actions
+        .moveTo(targetPixelPos, moveDuration)
+        .moveBy(ex.vec(0, -bounceHeight), bounceDuration)
+        .moveBy(ex.vec(0, bounceHeight), bounceDuration);
+    
+    // Play walk animation based on CARDINAL direction only
     const animName = this.getWalkAnimationName(direction);
     if (animName && this.graphics.getGraphic(animName)) {
         this.graphics.use(animName);
-        Logger.debug(`[GameActor] Playing walk animation: ${animName} for direction ${direction}`);
+        Logger.debug(`[GameActor] Playing walk animation: ${animName} for cardinal direction ${direction}`);
         
-        // Return to idle after walk animation completes (400ms)
+        // Return to idle after animation completes
         setTimeout(() => {
             const idleAnim = this.getIdleAnimationName(direction);
             if (this.graphics.getGraphic(idleAnim)) {
                 this.graphics.use(idleAnim);
             }
-        }, 400);
-    } else {
+        }, moveDuration + bounceDuration * 2 + 50);
+    } else {  
         Logger.warn(`[GameActor] Could not find walk animation: ${animName}`);
     }
 }
 
 /**
- * Get the walk animation name for a direction vector
+ * Get the walk animation name for a CARDINAL direction vector
+ * Direction should be one of: (1,0), (-1,0), (0,1), (0,-1)
  */
 private getWalkAnimationName(direction: ex.Vector): string | null {
-    // Normalize to get primary direction
-    const absX = Math.abs(direction.x);
-    const absY = Math.abs(direction.y);
-    
-    if (absX === 0 && absY === 0) {
-        return null; // No movement
-    }
-    
-    // Determine primary direction (prefer horizontal over vertical if equal)
-    if (absX > absY) {
-        return direction.x > 0 ? 'right-walk' : 'left-walk';
-    } else {
-        return direction.y > 0 ? 'down-walk' : 'up-walk';
-    }
+    if (direction.x > 0) return 'right-walk';
+    if (direction.x < 0) return 'left-walk';
+    if (direction.y > 0) return 'down-walk';
+    if (direction.y < 0) return 'up-walk';
+    return null; // No movement
 }
 
 /**
@@ -351,5 +364,39 @@ public getHurtAnimationName(attackerPos: ex.Vector): string {
     public kill(): void {
         Logger.debug(`[GameActor] ${this.name} killed`);
         super.kill();
+    }
+
+    // Interaction support for bump-to-attack and other interactions
+    public interact(entity: any): boolean {
+        // Prevent interaction with dead actors
+        if (this.isDead) {
+            return false;
+        }
+
+        // Default behavior: initiate combat if both entities have combat components
+        const otherCombat = entity.getGameComponent ? entity.getGameComponent('combat') : null;
+        const thisCombat = this.getGameComponent('combat');
+        
+        if (otherCombat && thisCombat) {
+            Logger.info(`[GameActor] ${entity.name} attacking ${this.name}`);
+            otherCombat.attack(this.entityId);
+            return true;
+        }
+        
+        Logger.debug(`[GameActor] No valid interaction between ${entity.name} and ${this.name}`);
+        return false;
+    }
+
+    public canInteract(entity: any): boolean {
+        // Can't interact with dead actors
+        if (this.isDead) {
+            return false;
+        }
+        
+        // Can interact if either entity has combat capability
+        const otherCombat = entity.getGameComponent ? entity.getGameComponent('combat') : null;
+        const thisCombat = this.getGameComponent('combat');
+        
+        return !!(otherCombat && thisCombat);
     }
 }

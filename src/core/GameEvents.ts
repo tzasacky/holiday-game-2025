@@ -133,7 +133,10 @@ export enum GameEventNames {
     
     // Item Pickup Specifics
     ItemPickupAttempt = 'item:pickup_attempt',
-    ItemPickupResult = 'item:pickup_result'
+    ItemPickupResult = 'item:pickup_result',
+    
+    // UI/Message
+    Message = 'message'
 }
 
 // Event Classes
@@ -665,6 +668,7 @@ export type GameEventMap = {
     [GameEventNames.PlayerInput]: PlayerInputEvent;
     [GameEventNames.PlayerAction]: PlayerActionEvent;
     [GameEventNames.InteractionRequest]: InteractionRequestEvent;
+    [GameEventNames.Message]: MessageEvent;
 };
 
 // --- New Event Classes ---
@@ -797,6 +801,10 @@ export class InteractableCreatedEvent extends ex.GameEvent<any> {
 
 export class InteractableInteractEvent extends ex.GameEvent<GameActor> {
     constructor(public actor: GameActor, public interactable: any) { super(); this.target = actor; }
+}
+
+export class MessageEvent extends ex.GameEvent<any> {
+    constructor(public message: string, public type: 'info' | 'warning' | 'danger' | 'success' = 'info') { super(); }
 }
 
 export class SystemReadyEvent extends ex.GameEvent<any> {

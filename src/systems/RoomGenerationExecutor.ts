@@ -200,7 +200,7 @@ export class RoomGenerationExecutor {
     const spawnCount = minCount + Math.floor(Math.random() * (maxCount - minCount + 1));
     
     // Get available positions for this placement type
-    const availablePositions = this.getInteractablePositions(room, placement.placement, level);
+    const availablePositions = this.getInteractablePositions(room, placement.placement, level, placement.size);
     
     if (availablePositions.length === 0) {
       results.push({
@@ -233,17 +233,22 @@ export class RoomGenerationExecutor {
   /**
    * Get positions suitable for interactable placement
    */
-  private getInteractablePositions(room: Room, placement: string, level: Level): ex.Vector[] {
+  /**
+   * Get positions suitable for interactable placement
+   */
+  private getInteractablePositions(room: Room, placement: string, level: Level, size: { width: number, height: number } = { width: 1, height: 1 }): ex.Vector[] {
     const positions: ex.Vector[] = [];
+    const w = size.width;
+    const h = size.height;
     
     switch (placement) {
       case 'wall':
         // Positions adjacent to walls but on floor
-        for (let x = room.x + 1; x < room.x + room.width - 1; x++) {
-          for (let y = room.y + 1; y < room.y + room.height - 1; y++) {
+        for (let x = room.x + 1; x <= room.x + room.width - 1 - w; x++) {
+          for (let y = room.y + 1; y <= room.y + room.height - 1 - h; y++) {
             // Check if adjacent to a wall
-            const adjacentToWall = this.isAdjacentToWall(x, y, level);
-            if (adjacentToWall && this.isFloorPosition(x, y, level)) {
+            const adjacentToWall = this.isAdjacentToWall(x, y, level, w, h);
+            if (adjacentToWall && this.isAreaClear(x, y, w, h, level)) {
               positions.push(ex.vec(x, y));
             }
           }
@@ -252,9 +257,9 @@ export class RoomGenerationExecutor {
         
       case 'floor':
         // Any floor position
-        for (let x = room.x + 1; x < room.x + room.width - 1; x++) {
-          for (let y = room.y + 1; y < room.y + room.height - 1; y++) {
-            if (this.isFloorPosition(x, y, level)) {
+        for (let x = room.x + 1; x <= room.x + room.width - 1 - w; x++) {
+          for (let y = room.y + 1; y <= room.y + room.height - 1 - h; y++) {
+            if (this.isAreaClear(x, y, w, h, level)) {
               positions.push(ex.vec(x, y));
             }
           }
@@ -262,16 +267,16 @@ export class RoomGenerationExecutor {
         break;
         
       case 'corner':
-        // Corner positions
+        // Corner positions (adjusted for size)
         const corners = [
-          ex.vec(room.x + 1, room.y + 1),
-          ex.vec(room.x + room.width - 2, room.y + 1),
-          ex.vec(room.x + 1, room.y + room.height - 2),
-          ex.vec(room.x + room.width - 2, room.y + room.height - 2),
+          ex.vec(room.x + 1, room.y + 1), // Top-Left
+          ex.vec(room.x + room.width - 1 - w, room.y + 1), // Top-Right
+          ex.vec(room.x + 1, room.y + room.height - 1 - h), // Bottom-Left
+          ex.vec(room.x + room.width - 1 - w, room.y + room.height - 1 - h), // Bottom-Right
         ];
         
         corners.forEach(corner => {
-          if (this.isFloorPosition(corner.x, corner.y, level)) {
+          if (this.isAreaClear(corner.x, corner.y, w, h, level)) {
             positions.push(corner);
           }
         });
@@ -279,31 +284,30 @@ export class RoomGenerationExecutor {
         
       case 'center':
         // Center of room
-        const centerX = Math.floor(room.x + room.width / 2);
-        const centerY = Math.floor(room.y + room.height / 2);
-        if (this.isFloorPosition(centerX, centerY, level)) {
+        const centerX = Math.floor(room.x + (room.width - w) / 2);
+        const centerY = Math.floor(room.y + (room.height - h) / 2);
+        if (this.isAreaClear(centerX, centerY, w, h, level)) {
           positions.push(ex.vec(centerX, centerY));
         }
         break;
         
       case 'edge':
         // Positions near room edges but not corners
-        for (let x = room.x + 2; x < room.x + room.width - 2; x++) {
-          if (this.isFloorPosition(x, room.y + 1, level)) {
-            positions.push(ex.vec(x, room.y + 1)); // Top edge
-          }
-          if (this.isFloorPosition(x, room.y + room.height - 2, level)) {
-            positions.push(ex.vec(x, room.y + room.height - 2)); // Bottom edge
-          }
+        // Top Edge
+        for (let x = room.x + 2; x <= room.x + room.width - 2 - w; x++) {
+            if (this.isAreaClear(x, room.y + 1, w, h, level)) positions.push(ex.vec(x, room.y + 1));
         }
-        
-        for (let y = room.y + 2; y < room.y + room.height - 2; y++) {
-          if (this.isFloorPosition(room.x + 1, y, level)) {
-            positions.push(ex.vec(room.x + 1, y)); // Left edge
-          }
-          if (this.isFloorPosition(room.x + room.width - 2, y, level)) {
-            positions.push(ex.vec(room.x + room.width - 2, y)); // Right edge
-          }
+        // Bottom Edge
+        for (let x = room.x + 2; x <= room.x + room.width - 2 - w; x++) {
+            if (this.isAreaClear(x, room.y + room.height - 1 - h, w, h, level)) positions.push(ex.vec(x, room.y + room.height - 1 - h));
+        }
+        // Left Edge
+        for (let y = room.y + 2; y <= room.y + room.height - 2 - h; y++) {
+            if (this.isAreaClear(room.x + 1, y, w, h, level)) positions.push(ex.vec(room.x + 1, y));
+        }
+        // Right Edge
+        for (let y = room.y + 2; y <= room.y + room.height - 2 - h; y++) {
+            if (this.isAreaClear(room.x + room.width - 1 - w, y, w, h, level)) positions.push(ex.vec(room.x + room.width - 1 - w, y));
         }
         break;
     }
@@ -323,22 +327,39 @@ export class RoomGenerationExecutor {
     return terrain && terrain !== TerrainType.Wall;
   }
 
-  private isAdjacentToWall(x: number, y: number, level: Level): boolean {
-    const directions = [
-      [-1, 0], [1, 0], [0, -1], [0, 1]  // Adjacent positions
-    ];
-    
-    return directions.some(([dx, dy]) => {
-      const checkX = x + dx;
-      const checkY = y + dy;
-      
-      if (checkX < 0 || checkX >= level.width || checkY < 0 || checkY >= level.height) {
-        return true; // Edge of level counts as wall
+  private isAdjacentToWall(x: number, y: number, level: Level, w: number = 1, h: number = 1): boolean {
+    // Check all tiles around the perimeter of the object
+    for (let ix = x - 1; ix <= x + w; ix++) {
+        for (let iy = y - 1; iy <= y + h; iy++) {
+            // Skip the object itself
+            if (ix >= x && ix < x + w && iy >= y && iy < y + h) continue;
+            
+            // Check if this perimeter tile is a wall
+             if (ix < 0 || ix >= level.width || iy < 0 || iy >= level.height) {
+                return true; // Edge of level counts as wall
+            }
+            
+            const terrain = level.terrainData[iy]?.[ix];
+            if (terrain && terrain === TerrainType.Wall) return true;
+        }
+    }
+    return false;
+  }
+
+  private isAreaClear(x: number, y: number, w: number, h: number, level: Level): boolean {
+    for (let ix = x; ix < x + w; ix++) {
+      for (let iy = y; iy < y + h; iy++) {
+        if (!this.isFloorPosition(ix, iy, level)) return false;
+        
+        // Check for existing entities, but ignore background decor (z < 0)
+        const entities = level.getEntitiesAt(ix, iy);
+        const blockingEntity = entities.find(e => e.z >= 0);
+        
+        if (blockingEntity) return false;
+        if (level.getInteractableAt(ix, iy)) return false;
       }
-      
-      const terrain = level.terrainData[checkY]?.[checkX];
-      return terrain && terrain === TerrainType.Wall;
-    });
+    }
+    return true;
   }
 
   private getFloorPositions(room: Room, level: Level): ex.Vector[] {

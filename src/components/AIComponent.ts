@@ -6,6 +6,7 @@ import { GameScene } from '../scenes/GameScene';
 import { CombatComponent } from './CombatComponent';
 import { Pathfinding } from '../core/Pathfinding';
 import { VisibilitySystem } from '../core/Visibility';
+import { InteractionType } from '../constants/InteractionType';
 import { AIContext, AIBehavior, AICompositions, AIBehaviorComposition } from '../ai/AIBehaviors';
 import * as ex from 'excalibur';
 
@@ -167,6 +168,11 @@ export class AIComponent extends ActorComponent {
         
         const toPos = this.actor.gridPos.add(randomDir);
         
+        // Check for door interactions BEFORE moving (like player does)
+        if (this.tryInteractWithDoor(level, toPos)) {
+            return true; // Door interaction consumed this turn
+        }
+        
         // Try to move
         if (level.isWalkable(toPos.x, toPos.y, this.actor.entityId)) {
             const oldPos = this.actor.gridPos.clone();
@@ -186,6 +192,24 @@ export class AIComponent extends ActorComponent {
         return true;
     }
     
+    /**
+     * Helper method to check for and handle door interactions
+     * Returns true if door interaction was performed (and turn consumed)
+     */
+    private tryInteractWithDoor(level: any, targetPos: ex.Vector): boolean {
+        const interaction = Pathfinding.getInteractionAt(level, targetPos.x, targetPos.y);
+        if (interaction === InteractionType.DoorOpen || interaction === InteractionType.DoorLocked) {
+            const interactableEntity = level.getInteractableAt(targetPos.x, targetPos.y);
+            if (interactableEntity) {
+                Logger.debug(`[AIComponent] ${this.actor.name} interacting with door at ${targetPos.x},${targetPos.y}`);
+                interactableEntity.interact(this.actor);
+                this.actor.spend(10);
+                return true;
+            }
+        }
+        return false;
+    }
+    
     private executeChase(player: any, level: any): boolean {
         const targetPos = player ? player.gridPos : this.lastKnownPlayerPos;
         
@@ -194,9 +218,11 @@ export class AIComponent extends ActorComponent {
             return this.executeWander(level);
         }
         
-        // Check if adjacent for attack BEFORE moving
-        const dist = this.actor.gridPos.distance(targetPos);
-        if (dist <= 1 && player && this.context.canSeePlayer) {
+        // Check if adjacent for attack BEFORE moving (8-way / Chebyshev distance)
+        const dx = Math.abs(this.actor.gridPos.x - targetPos.x);
+        const dy = Math.abs(this.actor.gridPos.y - targetPos.y);
+        const chebyshevDist = Math.max(dx, dy);
+        if (chebyshevDist <= 1 && player && this.context.canSeePlayer) {
             // Adjacent - attack next turn (behavior will handle it)
             return false;
         }
@@ -211,6 +237,11 @@ export class AIComponent extends ActorComponent {
         
         // Move one step toward target
         const nextStep = path[0];
+        
+        // Check for door interactions BEFORE moving
+        if (this.tryInteractWithDoor(level, nextStep)) {
+            return true; // Door interaction consumed this turn
+        }
         
         if (level.isWalkable(nextStep.x, nextStep.y, this.actor.entityId)) {
             const oldPos = this.actor.gridPos.clone();
@@ -259,6 +290,12 @@ export class AIComponent extends ActorComponent {
         
         // Move one step
         const nextStep = path[0];
+        
+        // Check for door interactions BEFORE moving
+        if (this.tryInteractWithDoor(level, nextStep)) {
+            return true; // Door interaction consumed this turn
+        }
+        
         if (level.isWalkable(nextStep.x, nextStep.y, this.actor.entityId)) {
             const oldPos = this.actor.gridPos.clone();
             this.actor.gridPos = nextStep.clone();

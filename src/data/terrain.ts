@@ -6,6 +6,9 @@ export enum TerrainType {
     // Holiday Specific
     Ice = 'ice', // Slippery
     DeepSnow = 'deep_snow', // Slow movement
+    // Heat Sources
+    HotCoals = 'hot_coals', // Floor heat source
+    WarmStone = 'warm_stone', // Gentle floor warmth
 }
 
 export interface TerrainEffect {
@@ -24,6 +27,8 @@ export interface TerrainData {
     cost: number; // Movement cost (1 = normal, 2 = slow)
     isSlippery?: boolean;
     isWarmthSource?: boolean;
+    warmthGeneration?: number; // Warmth generated per turn when standing on it
+    lightRadius?: number; // Light radius if it's a light source
     effects?: TerrainEffect[];
 }
 
@@ -34,5 +39,27 @@ export const TerrainDefinitions: Record<TerrainType, TerrainData> = {
     [TerrainType.Chasm]: { type: TerrainType.Chasm, isSolid: true, isTransparent: true, cost: 0 },
     
     [TerrainType.Ice]: { type: TerrainType.Ice, isSolid: false, isTransparent: true, cost: 1, isSlippery: true },
-    [TerrainType.DeepSnow]: { type: TerrainType.DeepSnow, isSolid: false, isTransparent: true, cost: 2 }
+    [TerrainType.DeepSnow]: { type: TerrainType.DeepSnow, isSolid: false, isTransparent: true, cost: 2 },
+    
+    [TerrainType.HotCoals]: { 
+        type: TerrainType.HotCoals, 
+        isSolid: false, 
+        isTransparent: true, 
+        cost: 1, 
+        isWarmthSource: true,
+        warmthGeneration: 15,
+        lightRadius: 2,
+        effects: [
+            { type: 'damage', value: 2, damageType: 'fire' }
+        ]
+    },
+    [TerrainType.WarmStone]: { 
+        type: TerrainType.WarmStone, 
+        isSolid: false, 
+        isTransparent: true, 
+        cost: 1, 
+        isWarmthSource: true,
+        warmthGeneration: 5,
+        lightRadius: 1
+    }
 };

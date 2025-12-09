@@ -102,9 +102,8 @@ export class HotbarUI {
                 icon.style.backgroundImage = `url(${graphics.resource.path})`;
                 
                 // Calculate position
-                const spriteIndex = graphics.spriteIndex;
-                const col = spriteIndex % 8;
-                const row = Math.floor(spriteIndex / 8);
+                const col = graphics.col ?? 0;
+                const row = graphics.row ?? 0;
                 
                 icon.style.backgroundPosition = `-${col * 32}px -${row * 32}px`;
                 icon.style.width = '32px';

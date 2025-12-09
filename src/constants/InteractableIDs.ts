@@ -38,4 +38,11 @@ export enum InteractableID {
     BONE_PILE = 'bone_pile',
     Table = 'table',
     Bed = 'bed',
+    KeyGold = 'key_gold',
+    SlipperyIce = 'slippery_ice',
+    BreakableIce = 'breakable_ice',
+    SummoningCircle = 'summoning_circle',
+    CandleStand = 'candle_stand',
+    Campfire = 'campfire',
+    WallTorch = 'wall_torch',
 }

@@ -14,6 +14,8 @@ import { DataManager } from '../core/DataManager';
 import { InteractableDefinition } from '../data/interactables';
 import { BiomeDefinitions } from '../data/biomes';
 import { BiomeID } from '../constants/BiomeID';
+import { DecorEntity } from '../entities/DecorEntity';
+import { WarmthSystem } from '../systems/WarmthSystem';
 
 export class Level {
     public width: number;
@@ -58,6 +60,9 @@ export class Level {
         this.floorNumber = match ? parseInt(match[1]) : 1;
         this.entrancePoint = ex.vec(0, 0); // Will be set by generator
 
+        // Initialize heat map for warmth system
+        WarmthSystem.instance.initializeHeatMap(width, height);
+
         // Floor Layer (Background)
         this.floorMap = new ex.TileMap({
             rows: height,
@@ -84,12 +89,23 @@ export class Level {
         this.materialData = new Array(width).fill(null).map(() => new Array(height).fill(defaultMaterial));
     }
 
+    public decor: DecorEntity[] = [];
+    public interactables: InteractableEntity[] = [];
+    
+    // Protected tiles - corridors, entrances, paths that should never be blocked by decor
+    public protectedTiles: Set<string> = new Set();
+
     public addToScene(scene: ex.Scene) {
         this.scene = scene;
         scene.add(this.floorMap);
         scene.add(this.objectMap);
         
-        // Entities are added by GameScene.setupLevel, but we can ensure they are tracked here if needed
+        // Add all entities to scene
+        this.decor.forEach(actor => scene.add(actor));
+        this.interactables.forEach(actor => scene.add(actor));
+        this.items.forEach(actor => scene.add(actor));
+        // Mobs and actors are added by GameScene.onActivate usually, but we can add them here if needed
+        // this.actors.forEach(actor => scene.add(actor));
     }
 
     private tilesetSpriteSheet?: ex.SpriteSheet;
@@ -143,7 +159,24 @@ export class Level {
         Logger.info('[Level] Tile graphics update complete');
     }
 
-    public interactables: InteractableEntity[] = [];
+    // ...
+
+    public addDecor(actor: DecorEntity) {
+        this.decor.push(actor);
+        if (this.scene) {
+            this.scene.add(actor);
+        }
+    }
+
+    public removeDecor(actor: DecorEntity) {
+        const index = this.decor.indexOf(actor);
+        if (index > -1) {
+            this.decor.splice(index, 1);
+            if (this.scene) {
+                this.scene.remove(actor);
+            }
+        }
+    }
 
     public addMob(mob: GameActor) {
         this.mobs.push(mob);
@@ -169,7 +202,6 @@ export class Level {
         }
     }
 
-
     public addActor(actor: GameActor) {
         this.actors.push(actor);
         // Don't add to scene here - will be added when scene becomes active in GameScene.onActivate
@@ -182,16 +214,76 @@ export class Level {
         if (this.scene) {
             this.scene.add(entity);
         }
+        
+        // Update heat map if this is a heat source
+        const def = entity.definition;
+        if (def?.warmthGeneration && def.warmthGeneration > 0 && def.lightRadius) {
+            WarmthSystem.instance.addHeatSource(
+                entity.gridPos.x, 
+                entity.gridPos.y, 
+                def.warmthGeneration, 
+                def.lightRadius
+            );
+        }
+        
         Logger.info(`[Level] Added interactable ${entity.name} to level`);
+    }
+
+    public removeInteractable(entity: InteractableEntity) {
+        const index = this.interactables.indexOf(entity);
+        if (index > -1) {
+            this.interactables.splice(index, 1);
+            if (this.scene) {
+                this.scene.remove(entity);
+            }
+            // Remove heat source if applicable
+            const def = entity.definition;
+            if (def?.warmthGeneration && def.warmthGeneration > 0 && def.lightRadius) {
+                WarmthSystem.instance.removeHeatSource(
+                    entity.gridPos.x, 
+                    entity.gridPos.y, 
+                    def.warmthGeneration, 
+                    def.lightRadius
+                );
+            }
+            Logger.info(`[Level] Removed interactable ${entity.name} from level`);
+        }
+    }
+
+    public updateTerrainHeatSources(): void {
+        // Scan terrain for heat sources and update heat map
+        const { TerrainDefinitions } = require('../data/terrain');
+        
+        for (let y = 0; y < this.height; y++) {
+            for (let x = 0; x < this.width; x++) {
+                const terrainType = this.terrainData[y]?.[x];
+                if (terrainType) {
+                    const terrainDef = TerrainDefinitions[terrainType];
+                    if (terrainDef?.isWarmthSource && terrainDef.warmthGeneration && terrainDef.lightRadius) {
+                        WarmthSystem.instance.addHeatSource(
+                            x, y, 
+                            terrainDef.warmthGeneration, 
+                            terrainDef.lightRadius
+                        );
+                    }
+                }
+            }
+        }
     }
 
     public addEntity(entity: ex.Actor) {
         if (entity instanceof InteractableEntity) {
             this.addInteractable(entity);
+        } else if (entity instanceof WorldItemEntity) {
+            this.addItem(entity);
+        } else if (entity instanceof GameActor) {
+            this.addActor(entity);
+        } else if (entity instanceof DecorEntity) {
+            this.addDecor(entity);
         } else {
-            if (this.scene) {
-                this.scene.add(entity);
-            }
+            // Assume generic decor
+            // this.addDecor(entity); // Cannot add generic actor to DecorEntity[]
+            Logger.warn('[Level] Tried to add generic actor as decor, skipping');
         }
     }
 
@@ -237,7 +329,12 @@ export class Level {
         // Use internal list instead of scene entities
         const interactable = this.interactables.find(entity => {
             const gridPos = entity.gridPos;
-            return gridPos.x === x && gridPos.y === y;
+            const def = entity.definition;
+            const width = def.size?.width || 1;
+            const height = def.size?.height || 1;
+
+            return x >= gridPos.x && x < gridPos.x + width &&
+                   y >= gridPos.y && y < gridPos.y + height;
         });
 
         return interactable || null;
@@ -261,6 +358,31 @@ export class Level {
             }
             return false;
         });
+    }
+
+    public getDecorAt(x: number, y: number): DecorEntity[] {
+        return this.decor.filter(d => {
+            const dx = Math.floor(d.pos.x / 32);
+            const dy = Math.floor(d.pos.y / 32);
+            // Check bounds for multi-tile decor
+            const widthInTiles = Math.ceil(d.width / 32);
+            const heightInTiles = Math.ceil(d.height / 32);
+            
+            return x >= dx && x < dx + widthInTiles &&
+                   y >= dy && y < dy + heightInTiles;
+        });
+    }
+
+    public isOccupied(x: number, y: number): boolean {
+        if (!this.inBounds(x, y)) return true;
+        
+        // Check for any entity
+        if (this.getActorAt(x, y)) return true;
+        if (this.getInteractableAt(x, y)) return true;
+        if (this.getItemAt(x, y)) return true;
+        if (this.getDecorAt(x, y).length > 0) return true;
+        
+        return false;
     }
 
     // Artifact Support Methods
@@ -313,8 +435,8 @@ export class Level {
      */
     public getActorAt(x: number, y: number): GameActor | null {
         for (const actor of this.actors) {
-            // Skip killed actors
-            if (actor.isKilled && actor.isKilled()) {
+            // Skip killed or dead actors
+            if ((actor.isKilled && actor.isKilled()) || actor.isDead) {
                 continue;
             }
             if (actor.gridPos.x === x && actor.gridPos.y === y) {
@@ -356,12 +478,73 @@ export class Level {
         if (interactableAtPos) {
             // If it's an interactable, check if it should block movement
             const shouldBlock = interactableAtPos.shouldBlockMovement();
-            const isWalkable = !shouldBlock;
-            Logger.debug(`[Level.isWalkable] ${interactableAtPos.name} at (${x},${y}) blocking: ${shouldBlock}, walkable: ${isWalkable}, state: ${interactableAtPos.currentState}`);
-            return isWalkable;
+            if (shouldBlock) {
+                 Logger.debug(`[Level.isWalkable] ${interactableAtPos.name} at (${x},${y}) blocking movement`);
+                 return false;
+            }
+        }
+
+        // Check for blocking decor
+        const decorAtPos = this.getDecorAt(x, y);
+        for (const d of decorAtPos) {
+            if (d.blocksMovement) {
+                return false;
+            }
         }
 
         return true;
+    }
+    
+    /**
+     * Check if a tile is protected (corridor, entrance, path that must stay clear)
+     */
+    public isProtectedTile(x: number, y: number): boolean {
+        return this.protectedTiles.has(`${x},${y}`);
+    }
+    
+    /**
+     * Check if a position is valid for placing decor/interactables
+     * @param x Grid X coordinate
+     * @param y Grid Y coordinate  
+     * @param blocksMovement Whether the item being placed blocks movement
+     * @param allowWalls Whether placement on walls is allowed
+     * @returns true if placement is valid
+     */
+    public isPlaceableForDecor(x: number, y: number, blocksMovement: boolean = false, allowWalls: boolean = false): boolean {
+        if (!this.inBounds(x, y)) return false;
+        
+        const terrain = this.getTile(x, y);
+        
+        // Check terrain
+        if (!allowWalls && terrain === TerrainType.Wall) return false;
+        
+        // If this item blocks movement and the tile is protected, reject
+        if (blocksMovement && this.isProtectedTile(x, y)) {
+            Logger.debug(`[Level.isPlaceableForDecor] Tile (${x},${y}) is protected - cannot place blocking item`);
+            return false;
+        }
+        
+        // Check for existing entities
+        if (this.getActorAt(x, y)) return false;
+        if (this.getInteractableAt(x, y)) return false;
+        if (this.getDecorAt(x, y).length > 0) return false;
+        
+        return true;
+    }
+    
+    /**
+     * Add a tile to the protected set (should be called during level generation)
+     */
+    public protectTile(x: number, y: number): void {
+        this.protectedTiles.add(`${x},${y}`);
+    }
+    
+    /**
+     * Add multiple tiles to the protected set (for corridors)
+     */
+    public protectCorridorTile(x: number, y: number): void {
+        // Protect the tile and its cardinal neighbors to ensure 1-wide paths work
+        this.protectedTiles.add(`${x},${y}`);
     }
 
     /**

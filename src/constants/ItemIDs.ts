@@ -135,7 +135,6 @@ export enum ItemID {
     ChristmasCandle = 'christmas_candle',
     MagicStocking = 'magic_stocking',
     ElvenCompass = 'elven_compass',
-    SantasSpyglass = 'santas_spyglass',
     FrozenHeart = 'frozen_heart',
     ChristmasWish = 'christmas_wish',
     MistletoeCharm = 'mistletoe_charm',
@@ -155,5 +154,10 @@ export enum ItemID {
     GoldCoin = 'gold_coin',
     Coal = 'coal',
     KrampusHorn = 'krampus_horn',
-    ScrollOfFrost = 'scroll_of_frost'
+    ScrollOfFrost = 'scroll_of_frost',
+    
+    // New Items
+    TitaniumToyHammer = 'titanium_toy_hammer',
+    HeavyPlateArmor = 'heavy_plate_armor',
+    Gem = 'gem'
 }

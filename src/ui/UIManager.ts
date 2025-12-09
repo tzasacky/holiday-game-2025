@@ -5,6 +5,7 @@ import { GameJournal, LogCategory } from './GameJournal';
 import { InventoryUI } from './InventoryUI';
 import { HotbarUI } from './HotbarUI';
 import { MinimapUI } from './MinimapUI';
+import { InteractableInventoryUI } from './InteractableInventoryUI';
 import { Level } from '../dungeon/Level';
 import { LevelManager } from '../core/LevelManager';
 
@@ -17,6 +18,7 @@ export class UIManager {
     private inventoryUI: InventoryUI | null = null;
     private hotbarUI: HotbarUI | null = null;
     private minimapUI: MinimapUI | null = null;
+    private interactableInventoryUI: InteractableInventoryUI | null = null;
     private engine: ex.Engine | null = null;
     
     private constructor() {}
@@ -35,6 +37,7 @@ export class UIManager {
         this.inventoryUI = new InventoryUI();
         this.hotbarUI = new HotbarUI();
         this.minimapUI = new MinimapUI();
+        this.interactableInventoryUI = new InteractableInventoryUI();
         
         // Listen for custom toggle event from HotbarUI
         document.addEventListener('toggle-inventory', () => {

@@ -2,21 +2,23 @@ import * as ex from 'excalibur';
 import { InteractableDefinition, InteractableType } from '../data/interactables';
 import { Logger } from '../core/Logger';
 import { EventBus } from '../core/EventBus';
-import { GameEventNames, LevelTransitionRequestEvent } from '../core/GameEvents';
+import { GameEventNames, LevelTransitionRequestEvent, LootRequestEvent } from '../core/GameEvents';
 import { InteractableStatePersistence } from '../core/InteractableStatePersistence';
 import { Resources } from '../config/resources';
 import { GameActor } from './GameActor';
 import { GameEntity } from '../core/GameEntity';
 import { InventoryComponent } from './InventoryComponent';
 import { MovementEvent } from '../core/GameEvents';
+import { GraphicType } from '../constants/GraphicType';
+import { GraphicsManager } from '../data/graphics';
+import { InteractableState } from '../constants/InteractableState';
+import { Inventory } from '../items/Inventory';
 
 // Simple entity interface for interaction
 interface InteractingEntity {
     name: string;
     pos?: ex.Vector;
 }
-
-export type InteractableState = 'closed' | 'open' | 'locked' | 'broken' | 'used' | 'hidden';
 
 export interface InteractionResult {
     success: boolean;
@@ -30,12 +32,13 @@ export class InteractableComponent {
     private owner: GameEntity; // The entity that owns this component
     
     private definition: InteractableDefinition;
-    private state: InteractableState = 'closed';
+    private state: InteractableState = InteractableState.Closed;
     private config: any;
     private useCount: number = 0;
     private lastUseTurn: number = -1;
     private currentHealth?: number;
     private levelId: string = 'unknown';
+    private inventory?: Inventory;
 
     constructor(owner: GameEntity, definition: InteractableDefinition, config: any = {}) {
         this.owner = owner;
@@ -50,6 +53,12 @@ export class InteractableComponent {
         if (definition.destructible && definition.health) {
             this.currentHealth = definition.health;
         }
+
+        // Initialize inventory for containers
+        if (definition.type === InteractableType.Container) {
+            this.inventory = new Inventory(definition.loot?.length || 10);
+            this.generateInitialLoot();
+        }
     }
 
     public onAttach(): void {
@@ -63,7 +72,7 @@ export class InteractableComponent {
         }
         
         // Listen for movement events to auto-close doors
-        if (this.definition.type === InteractableType.DOOR) {
+        if (this.definition.type === InteractableType.Door) {
             EventBus.instance.on(GameEventNames.Movement, (event: any) => {
                 this.handlePlayerMovement(event);
             });
@@ -76,7 +85,7 @@ export class InteractableComponent {
     }
 
     private handlePlayerMovement(event: MovementEvent): void {
-        if (!this.owner || this.state !== 'open' || this.definition.type !== InteractableType.DOOR) {
+        if (!this.owner || this.state !== InteractableState.Open || this.definition.type !== InteractableType.Door) {
             return;
         }
 
@@ -89,27 +98,27 @@ export class InteractableComponent {
         const isLeavingDoor = (doorPos.x !== playerNewPos.x || doorPos.y !== playerNewPos.y);
 
         if (wasOnDoor && isLeavingDoor) {
-            this.setState('closed');
+            this.setState(InteractableState.Closed);
             Logger.debug(`[InteractableComponent] Auto-closed door at ${doorPos.x},${doorPos.y} - player moved from door to ${playerNewPos.x},${playerNewPos.y}`);
         }
     }
 
     private initializeState(): void {
         switch (this.definition.type) {
-            case InteractableType.DOOR:
-                this.state = this.definition.requiresKey ? 'locked' : 'closed';
+            case InteractableType.Door:
+                this.state = this.definition.requiresKey ? InteractableState.Locked : InteractableState.Closed;
                 break;
-            case InteractableType.CONTAINER:
-                this.state = 'closed';
+            case InteractableType.Container:
+                this.state = InteractableState.Closed;
                 break;
             default:
-                this.state = 'closed';
+                this.state = InteractableState.Closed;
         }
     }
 
     public canInteract(entity: InteractingEntity): boolean {
         // Check if broken
-        if (this.state === 'broken') {
+        if (this.state === InteractableState.Broken) {
             return false;
         }
 
@@ -131,8 +140,8 @@ export class InteractableComponent {
             return false;
         }
 
-        // Check if already consumed
-        if (this.definition.consumeOnUse && this.state === 'used') {
+        // Check if already consumed (but allow containers with inventories to remain interactable)
+        if (this.definition.consumeOnUse && this.state === InteractableState.Used && !this.inventory) {
             return false;
         }
 
@@ -173,8 +182,9 @@ export class InteractableComponent {
                 this.setState(result.newState);
             }
             
-            if (this.definition.consumeOnUse) {
-                this.setState('used');
+            // Only mark as used if consumeOnUse is true AND it doesn't have an inventory
+            if (this.definition.consumeOnUse && !this.inventory) {
+                this.setState(InteractableState.Used);
             }
             
             // Save persistent state after successful interaction
@@ -192,7 +202,7 @@ export class InteractableComponent {
         this.currentHealth = Math.max(0, this.currentHealth - amount);
         
         if (this.currentHealth <= 0) {
-            this.setState('broken');
+            this.setState(InteractableState.Broken);
             this.onDestroyed(entity);
             return true;
         }
@@ -274,9 +284,9 @@ export class InteractableComponent {
         if (!this.definition.blocking) return false;
         
         switch (this.state) {
-            case 'open':
-            case 'broken':
-            case 'used':
+            case InteractableState.Open:
+            case InteractableState.Broken:
+            case InteractableState.Used:
                 return false;
             default:
                 return true;
@@ -284,7 +294,52 @@ export class InteractableComponent {
     }
 
     private getGraphicsForState(): ex.Graphic {
-        // 1. Try to use direct sprite coordinates from definition (Preferred)
+        // 0. Check for GraphicType (Legacy/Global)
+        if (this.definition.graphics.graphicType === GraphicType.NineSlice) {
+             const width = this.definition.size ? this.definition.size.width * 32 : 32; 
+             const height = this.definition.size ? this.definition.size.height * 32 : 32;
+             return GraphicsManager.instance.getNineSliceSprite(this.definition.id, width, height);
+        }
+
+        // 1. Check for State-specific graphics (New System)
+        if (this.definition.graphics.states && this.definition.graphics.states[this.state]) {
+            const stateGraphics = this.definition.graphics.states[this.state]!;
+            const resource = this.definition.graphics.resource;
+
+            if (resource.isLoaded()) {
+                const spriteSheet = ex.SpriteSheet.fromImageSource({
+                    image: resource,
+                    grid: {
+                        rows: 8,
+                        columns: 8,
+                        spriteWidth: 32,
+                        spriteHeight: 32
+                    }
+                });
+
+                // Handle Animation
+                if (stateGraphics.animation) {
+                    const frames = stateGraphics.animation.frames.map(f => ({
+                        graphic: spriteSheet.getSprite(f.x, f.y) as ex.Graphic,
+                        duration: f.duration
+                    }));
+                    
+                    if (frames.length > 0) {
+                        return new ex.Animation({
+                            frames: frames,
+                            strategy: stateGraphics.animation.loop !== false ? ex.AnimationStrategy.Loop : ex.AnimationStrategy.Freeze
+                        });
+                    }
+                }
+
+                // Handle Static Sprite
+                if (stateGraphics.spriteCoords) {
+                    return spriteSheet.getSprite(stateGraphics.spriteCoords.x, stateGraphics.spriteCoords.y) || new ex.Rectangle({ width: 32, height: 32, color: ex.Color.Magenta });
+                }
+            }
+        }
+
+        // 2. Fallback to Legacy/Default logic
         if (this.definition.graphics.resource && this.definition.graphics.spriteCoords) {
             const { resource, spriteCoords } = this.definition.graphics;
             
@@ -292,7 +347,7 @@ export class InteractableComponent {
                 const spriteSheet = ex.SpriteSheet.fromImageSource({
                     image: resource,
                     grid: {
-                        rows: 8, // Assuming standard 8x8 grid for now, or should be configurable?
+                        rows: 8,
                         columns: 8,
                         spriteWidth: 32,
                         spriteHeight: 32
@@ -300,7 +355,6 @@ export class InteractableComponent {
                 });
                 
                 // Special handling for common tiles which might have different grid
-                // This is a bit hacky but needed until we standardize sprite sheets
                 if (resource === Resources.CommonTilesPng) {
                      const commonSheet = ex.SpriteSheet.fromImageSource({
                         image: resource,
@@ -312,14 +366,46 @@ export class InteractableComponent {
                         }
                     });
                     
-                    // Handle state-based sprite changes for doors
+                    // Handle state-based sprite changes for doors in CommonTiles (Legacy)
                     let coords = { ...spriteCoords };
-                    if (this.definition.type === InteractableType.DOOR && this.state === 'open') {
-                        // Open door is typically next to closed door in tileset
+                    if (this.definition.type === InteractableType.Door && this.state === InteractableState.Open) {
                         coords.x += 1;
                     }
                     
                     return commonSheet.getSprite(coords.x, coords.y) || new ex.Rectangle({ width: 32, height: 32, color: ex.Color.Magenta });
+                }
+
+                // Handle InteractablesPng
+                if (resource === Resources.InteractablesPng) {
+                    // Handle state-based sprite changes for doors (Legacy)
+                    let coords = { ...spriteCoords };
+                    if (this.definition.type === InteractableType.Door && this.state === InteractableState.Open) {
+                        coords.x += 1;
+                    }
+
+                    // Handle Legacy Animations (Fireplace)
+                    // This should eventually be moved to the 'states' definition
+                    if (this.definition.graphics.animation && this.state !== InteractableState.Closed && this.state !== InteractableState.Locked) {
+                         // Fallback for legacy animation string if needed, but we prefer explicit state definitions now.
+                         // Keeping this for backward compatibility until all data is migrated.
+                         if (this.definition.graphics.animation === 'fireplace-lit') {
+                             const frames = [
+                                 { x: coords.x, y: coords.y, duration: 200 },
+                                 { x: coords.x + 1, y: coords.y, duration: 200 },
+                                 { x: coords.x + 2, y: coords.y, duration: 200 },
+                                 { x: coords.x + 3, y: coords.y, duration: 200 }
+                             ];
+                             const validFrames = frames.filter(f => f.x < 8).map(f => ({
+                                 graphic: spriteSheet.getSprite(f.x, f.y) as ex.Graphic,
+                                 duration: f.duration
+                             }));
+                             if (validFrames.length > 0) {
+                                 return new ex.Animation({ frames: validFrames });
+                             }
+                         }
+                    }
+
+                    return spriteSheet.getSprite(coords.x, coords.y) || new ex.Rectangle({ width: 32, height: 32, color: ex.Color.Magenta });
                 }
 
                 return spriteSheet.getSprite(spriteCoords.x, spriteCoords.y) || new ex.Rectangle({ width: 32, height: 32, color: ex.Color.Magenta });
@@ -345,12 +431,13 @@ export class InteractableComponent {
         const baseColor = this.definition.graphics.fallbackColor || ex.Color.Purple;
         
         return {
-            closed: baseColor,
-            open: baseColor.lighten(0.3),
-            locked: ex.Color.fromHex('#FFD700'), // Gold color
-            broken: ex.Color.Gray,
-            used: baseColor.darken(0.3),
-            hidden: ex.Color.Transparent
+            [InteractableState.Closed]: baseColor,
+            [InteractableState.Open]: baseColor.lighten(0.3),
+            [InteractableState.Locked]: ex.Color.fromHex('#FFD700'), // Gold color
+            [InteractableState.Broken]: ex.Color.Gray,
+            [InteractableState.Used]: baseColor.darken(0.3),
+            [InteractableState.Hidden]: ex.Color.Transparent,
+            [InteractableState.Active]: baseColor.lighten(0.5)
         };
     }
 
@@ -370,9 +457,9 @@ export class InteractableComponent {
     }
 
     private getCannotInteractMessage(): string {
-        if (this.state === 'broken') return "This is broken and cannot be used.";
-        if (this.state === 'used' && this.definition.consumeOnUse) return "This has already been used.";
-        if (this.definition.requiresKey && this.state === 'locked') return "This is locked. You need a key.";
+        if (this.state === InteractableState.Broken) return "This is broken and cannot be used.";
+        if (this.state === InteractableState.Used && this.definition.consumeOnUse) return "This has already been used.";
+        if (this.definition.requiresKey && this.state === InteractableState.Locked) return "This is locked. You need a key.";
         if (this.definition.useLimit && this.useCount >= this.definition.useLimit) return "This can no longer be used.";
         
         return "You cannot interact with this right now.";
@@ -461,6 +548,51 @@ export class InteractableComponent {
     public getGraphicsForCurrentState(): ex.Graphic {
         return this.getGraphicsForState();
     }
+
+    public getInventory(): Inventory | undefined {
+        return this.inventory;
+    }
+
+    private generateInitialLoot(): void {
+        if (!this.inventory) return;
+
+        // Use LootSystem if lootTableId is available
+        if (this.definition.lootTableId) {
+            import('../systems/LootSystem').then(({ LootSystem }) => {
+                import('../factories/ItemFactory').then(({ ItemFactory }) => {
+                    const generatedLoot = LootSystem.instance.generateLoot(this.definition.lootTableId!, 1, 3);
+                    for (const lootData of generatedLoot) {
+                        const item = ItemFactory.instance.create(lootData.itemId, lootData.quantity);
+                        if (item) {
+                            item.identified = lootData.identified;
+                            item.enchantments = lootData.enchantments;
+                            item.curses = lootData.curses;
+                            item.bonusStats = lootData.bonusStats || {};
+                            this.inventory!.addItem(item);
+                        }
+                    }
+                });
+            });
+        } 
+        // Fallback to inline loot definition
+        else if (this.definition.loot) {
+            import('../factories/ItemFactory').then(({ ItemFactory }) => {
+                for (const lootItem of this.definition.loot!) {
+                    const chance = Math.random();
+                    if (chance <= lootItem.chance) {
+                        const quantity = Math.floor(Math.random() * 
+                            ((lootItem.maxQuantity || 1) - (lootItem.minQuantity || 1) + 1)) + 
+                            (lootItem.minQuantity || 1);
+                        
+                        const item = ItemFactory.instance.create(lootItem.itemId, quantity);
+                        if (item) {
+                            this.inventory!.addItem(item);
+                        }
+                    }
+                }
+            });
+        }
+    }
 }
 
 // Interaction Handlers
@@ -469,35 +601,36 @@ interface InteractionHandler {
 }
 
 const InteractionHandlers: Record<InteractableType, InteractionHandler> = {
-    [InteractableType.CONTAINER]: {
+    [InteractableType.Container]: {
         handle(entity: InteractingEntity, component: InteractableComponent): InteractionResult {
             const def = component.interactableDefinition;
+            const inventory = component.getInventory();
             
-            // Generate loot
-            if (def.loot || def.lootTableId) {
-                EventBus.instance.emit(GameEventNames.LootGenerated, {
-                    items: [], // LootSystem will handle generation
-                    position: component.ownerEntity?.pos || ex.vec(0, 0),
-                    sourceId: def.id,
-                    actor: entity
-                });
-            }
+            // Open inventory UI for containers
+            EventBus.instance.emit('interactable:open_inventory', {
+                interactable: component,
+                inventory: inventory,
+                entity: entity
+            });
+            
+            // For containers with inventories, don't change to "Used" state to keep them reopenable
+            const newState = inventory ? InteractableState.Open : undefined;
             
             return {
                 success: true,
                 message: `You opened the ${def.name}.`,
-                newState: 'open',
+                newState: newState,
                 consumeAction: true
             };
         }
     },
     
-    [InteractableType.DOOR]: {
+    [InteractableType.Door]: {
         handle(entity: InteractingEntity, component: InteractableComponent): InteractionResult {
             const def = component.interactableDefinition;
             const currentState = component.currentState;
             
-            if (currentState === 'locked') {
+            if (currentState === InteractableState.Locked) {
                 // Unlock, open, and move player through
                 const doorPos = component.getPosition();
                 const actor = entity as GameActor;
@@ -518,10 +651,10 @@ const InteractionHandlers: Record<InteractableType, InteractionHandler> = {
                 return {
                     success: true,
                     message: `You unlocked and opened the ${def.name}.`,
-                    newState: 'open',
+                    newState: InteractableState.Open,
                     consumeAction: true
                 };
-            } else if (currentState === 'closed') {
+            } else if (currentState === InteractableState.Closed) {
                 // Open and move player through
                 const doorPos = component.getPosition();
                 const actor = entity as GameActor;
@@ -542,7 +675,7 @@ const InteractionHandlers: Record<InteractableType, InteractionHandler> = {
                 return {
                     success: true,
                     message: `You opened the ${def.name}.`,
-                    newState: 'open',
+                    newState: InteractableState.Open,
                     consumeAction: true
                 };
             } else {
@@ -550,14 +683,14 @@ const InteractionHandlers: Record<InteractableType, InteractionHandler> = {
                 return {
                     success: true,
                     message: `You closed the ${def.name}.`,
-                    newState: 'closed',
+                    newState: InteractableState.Closed,
                     consumeAction: true
                 };
             }
         }
     },
     
-    [InteractableType.FUNCTIONAL]: {
+    [InteractableType.Functional]: {
         handle(entity: InteractingEntity, component: InteractableComponent): InteractionResult {
             const def = component.interactableDefinition;
             
@@ -577,7 +710,7 @@ const InteractionHandlers: Record<InteractableType, InteractionHandler> = {
         }
     },
     
-    [InteractableType.CRAFTING]: {
+    [InteractableType.Crafting]: {
         handle(entity: InteractingEntity, component: InteractableComponent): InteractionResult {
             const def = component.interactableDefinition;
             
@@ -592,7 +725,7 @@ const InteractionHandlers: Record<InteractableType, InteractionHandler> = {
         }
     },
     
-    [InteractableType.DECORATIVE]: {
+    [InteractableType.Decorative]: {
         handle(entity: InteractingEntity, component: InteractableComponent): InteractionResult {
             const def = component.interactableDefinition;
             
@@ -611,14 +744,21 @@ const InteractionHandlers: Record<InteractableType, InteractionHandler> = {
         }
     },
     
-    [InteractableType.PORTAL]: {
+    [InteractableType.Portal]: {
         handle(entity: InteractingEntity, component: InteractableComponent): InteractionResult {
             const def = component.interactableDefinition;
-            
-            // First move player to stairs position
             const stairPos = component.getPosition();
             const actor = entity as GameActor;
-            if (actor.gridPos && actor.animateMovement) {
+            
+            // Check if player is already on the stairs
+            let needsMovement = true;
+            if (actor.gridPos) {
+                const currentPos = { x: Math.floor(actor.gridPos.x), y: Math.floor(actor.gridPos.y) };
+                needsMovement = !(currentPos.x === stairPos.x && currentPos.y === stairPos.y);
+            }
+            
+            // Move player to stairs position if not already there
+            if (needsMovement && actor.gridPos && actor.animateMovement) {
                 const oldPos = actor.gridPos.clone();
                 actor.gridPos = ex.vec(stairPos.x, stairPos.y);
                 actor.animateMovement(ex.vec(stairPos.x, stairPos.y));
@@ -632,17 +772,27 @@ const InteractionHandlers: Record<InteractableType, InteractionHandler> = {
                 });
             }
             
-            // Then trigger level transition
-            Logger.info(`[InteractableComponent] *** STAIRS ACTIVATED *** Portal ${def.id} by ${entity.name}`);
-            const direction = def.id === 'stairs_down' ? 'down' : 'up';
-            Logger.info(`[InteractableComponent] Emitting LevelTransitionRequest - Direction: ${direction}`);
+            // Trigger level transition (with small delay if movement was needed)
+            const triggerTransition = () => {
+                Logger.info(`[InteractableComponent] *** STAIRS ACTIVATED *** Portal ${def.id} by ${entity.name}`);
+                const direction = def.id.includes('down') ? 'down' : 'up';
+                Logger.info(`[InteractableComponent] Emitting LevelTransitionRequest - Direction: ${direction}`);
+                
+                EventBus.instance.emit(GameEventNames.LevelTransitionRequest, new LevelTransitionRequestEvent(
+                    (entity as GameActor).entityId || entity.name,
+                    direction,
+                    'stairs',
+                    { portal: component }
+                ));
+            };
             
-            EventBus.instance.emit(GameEventNames.LevelTransitionRequest, new LevelTransitionRequestEvent(
-                (entity as GameActor).entityId || entity.name,
-                direction,
-                'stairs',
-                { portal: component }
-            ));
+            if (needsMovement) {
+                // Give a brief moment for movement to complete
+                setTimeout(triggerTransition, 100);
+            } else {
+                // Trigger immediately if already on stairs
+                triggerTransition();
+            }
             
             return {
                 success: true,
@@ -652,7 +802,7 @@ const InteractionHandlers: Record<InteractableType, InteractionHandler> = {
         }
     },
     
-    [InteractableType.TRAP]: {
+    [InteractableType.Trap]: {
         handle(entity: InteractingEntity, component: InteractableComponent): InteractionResult {
             const def = component.interactableDefinition;
             
@@ -678,6 +828,50 @@ const InteractionHandlers: Record<InteractableType, InteractionHandler> = {
             return {
                 success: false,
                 message: `You cannot interact with the ${def.name}.`,
+                consumeAction: false
+            };
+        }
+    },
+
+    [InteractableType.Chasm]: {
+        handle(entity: InteractingEntity, component: InteractableComponent): InteractionResult {
+            // Chasm interaction (falling)
+            // This should ideally be triggered by movement, but if interacted with directly:
+            return {
+                success: true,
+                message: "A deep, dark chasm. Watch your step!",
+                consumeAction: false
+            };
+        }
+    },
+
+    [InteractableType.Ice]: {
+        handle(entity: InteractingEntity, component: InteractableComponent): InteractionResult {
+            // Breakable ice
+             const def = component.interactableDefinition;
+             if (def.destructible) {
+                 const damaged = component.takeDamage(10, entity);
+                 if (damaged) {
+                     return {
+                         success: true,
+                         message: "You smashed the ice!",
+                         consumeAction: true
+                     };
+                 }
+             }
+            return {
+                success: true,
+                message: "Thin ice. It looks fragile.",
+                consumeAction: false
+            };
+        }
+    },
+
+    [InteractableType.SlipperyIce]: {
+        handle(entity: InteractingEntity, component: InteractableComponent): InteractionResult {
+            return {
+                success: true,
+                message: "Slippery ice. You might slide if you step on it.",
                 consumeAction: false
             };
         }

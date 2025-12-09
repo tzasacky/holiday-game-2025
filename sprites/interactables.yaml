@@ -1,0 +1,35 @@
+- file: items/interactables.png
+  output: public/assets/items/interactables.png
+  generate: false
+  spec:
+    cols: 8
+    rows: 8
+  expectedTotal: 64
+  prompt: |
+    **I. Core Image Parameters & Constraints (CRITICAL)**
+
+    * **Output:** Single **INTERACTABLES SPRITESHEET** only.
+    * **Content:** Only **INTERACTIVE OBJECTS** (Doors, Chests, Stairs, Lights, Machines).
+    * **Background:** Solid, contrasting color (e.g., pure white or black). **NO GRIDLINES, NO TEXT.**
+    * **Style:** **PERFECT PIXEL ART.** **Dungeon Crawler** aesthetic. **Top-Down Perspective.**
+    * **Theme:** **Winter Wonderland / Christmas.**
+    * **Size:** 32x32 per sprite.
+
+    ### **II. Layout Definition (ABSOLUTE CRITICALITY)**
+
+    The spritesheet must be a perfectly arranged **8x8 grid of sprites**.
+
+    | Row | Col 0 | Col 1 | Col 2 | Col 3 | Col 4 | Col 5 | Col 6 | Col 7 |
+    | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+    | **ROW 1: Doors** | Wooden Door (Closed) | Wooden Door (Open) | Iron Door (Closed) | Iron Door (Open) | Boss Door (Closed) | Boss Door (Open) | Secret Door (Wall Lookalike) | Secret Door (Open/Dark) |
+    | **ROW 2: Containers** | Chest (Wood, Closed) | Chest (Wood, Open) | Chest (Gold, Closed) | Chest (Gold, Open) | Present (Red, Closed) | Present (Red, Open) | Stocking (Full) | Stocking (Empty) |
+    | **ROW 3: Portals** | Stairs Up (Stone) | Stairs Down (Stone, Into Floor) | Stairs Up (Wood) | Stairs Down (Wood, Into Floor) | Ladder Up | Ladder Down, Into Floor | Magic Portal (Active) | Magic Portal (Inactive) |
+    | **ROW 4: Fireplace** | Fireplace (Lit Frame 1) | Fireplace (Lit Frame 2) | Fireplace (Lit Frame 3) | Fireplace (Lit Frame 4) | Fireplace (Unlit) | Fireplace (Burnt Out) | Chimney Stack | Mantlepiece |
+    | **ROW 5: Campfire** | Campfire (Lit Frame 1) | Campfire (Lit Frame 2) | Campfire (Lit Frame 3) | Campfire (Lit Frame 4) | Campfire (Unlit) | Campfire (Ash) | Log Pile | Stone Circle |
+    | **ROW 6: Lights** | Wall Torch (Frame 1) | Wall Torch (Frame 2) | Wall Torch (Frame 3) | Wall Torch (Frame 4) | Stand Torch (Frame 1) | Stand Torch (Frame 2) | Stand Torch (Frame 3) | Stand Torch (Frame 4) |
+    | **ROW 7: Mechanisms** | Lever (Left) | Lever (Right) | Pressure Plate (Up) | Pressure Plate (Down) | Button (Up) | Button (Down) | Floor Switch (On) | Floor Switch (Off) |
+    | **ROW 8: Traps & Misc** | Spikes (Retracted) | Spikes (Extended) | Bear Trap (Open) | Bear Trap (Closed) | Sleigh Station (Vehicle) | Anvil | Alchemy Pot | Signpost |
+
+    ### **III. Negative Prompts**
+
+    * **Avoid:** Grids, text, labels, anti-aliasing, non-square tiles, complex perspectives, isometric views, single large image, blurry textures, gradients.

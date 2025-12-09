@@ -135,26 +135,30 @@ export class DungeonNavigator {
         Logger.info(`[DungeonNavigator] Target level exists: ${!!targetLevel}, entrancePoint: ${targetLevel?.entrancePoint}, exitPoint: ${targetLevel?.exitPoint}`);
         
         if (targetLevel && player) {
+            // Clear any pending path and stop animations to prevent glitches
+            player.clearPath();
+            player.actions.clearActions();
+            
             if (direction === 'up') {
                 // Going UP: from higher floor number to lower floor number
                 // Player should spawn at Stairs Down (exitPoint) of target floor
                 if (targetLevel.exitPoint) {
-                    player.pos = new ex.Vector(targetLevel.exitPoint.x * 32 + 16, targetLevel.exitPoint.y * 32 + 16);
                     player.gridPos = targetLevel.exitPoint.clone();
+                    player.pos = new ex.Vector(targetLevel.exitPoint.x * 32 + 16, targetLevel.exitPoint.y * 32 + 16);
                     Logger.info(`[DungeonNavigator] Placed player at Stairs Down (exit) of floor ${targetFloor}: ${player.gridPos}`);
                 } else {
                     Logger.warn(`[DungeonNavigator] Target floor ${targetFloor} has no exitPoint! Using entrancePoint as fallback.`);
                     if (targetLevel.entrancePoint) {
-                        player.pos = new ex.Vector(targetLevel.entrancePoint.x * 32 + 16, targetLevel.entrancePoint.y * 32 + 16);
                         player.gridPos = targetLevel.entrancePoint.clone();
+                        player.pos = new ex.Vector(targetLevel.entrancePoint.x * 32 + 16, targetLevel.entrancePoint.y * 32 + 16);
                     }
                 }
             } else {
                 // Going DOWN: from lower floor number to higher floor number
                 // Player should spawn at Stairs Up (entrancePoint) of target floor
                 if (targetLevel.entrancePoint) {
-                    player.pos = new ex.Vector(targetLevel.entrancePoint.x * 32 + 16, targetLevel.entrancePoint.y * 32 + 16);
                     player.gridPos = targetLevel.entrancePoint.clone();
+                    player.pos = new ex.Vector(targetLevel.entrancePoint.x * 32 + 16, targetLevel.entrancePoint.y * 32 + 16);
                     Logger.info(`[DungeonNavigator] Placed player at Stairs Up (entrance) of floor ${targetFloor}: ${player.gridPos}`);
                 } else {
                     Logger.warn(`[DungeonNavigator] Target floor ${targetFloor} has no entrancePoint!`);
@@ -273,8 +277,8 @@ export class DungeonNavigator {
             // Get saved player position for this floor if available
             const floorState = this.floorRegistry.get(level.floorNumber);
             if (floorState && floorState.playerPosition) {
-                player.pos = new ex.Vector(floorState.playerPosition.x * 32, floorState.playerPosition.y * 32);
                 player.gridPos = floorState.playerPosition.clone();
+                player.pos = new ex.Vector(floorState.playerPosition.x * 32 + 16, floorState.playerPosition.y * 32 + 16);
             }
             
             Logger.info(`[DungeonNavigator] Restored player position for level ${level.floorNumber} at ${player.gridPos}`);
@@ -305,9 +309,9 @@ export class DungeonNavigator {
         if (player) {
             const spawnPos = level.entrancePoint || new ex.Vector(20, 20);
             
-            // Update player position
-            player.pos = new ex.Vector(spawnPos.x * 32, spawnPos.y * 32);
+            // Update player position (centered on tile)
             player.gridPos = spawnPos.clone();
+            player.pos = new ex.Vector(spawnPos.x * 32 + 16, spawnPos.y * 32 + 16);
             
             Logger.info(`[DungeonNavigator] Positioned player for new level at entrance: ${spawnPos.x}, ${spawnPos.y}`);
         } else {

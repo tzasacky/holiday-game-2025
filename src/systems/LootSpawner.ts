@@ -128,7 +128,7 @@ export class LootSpawner {
     }
 
     /**
-     * Get available floor positions in a room (not occupied by actors or doors)
+     * Get available floor positions in a room (not occupied by actors, doors, or blocking decor)
      */
     private static getAvailableFloorPositions(level: Level, room: Room): ex.Vector[] {
         const positions: ex.Vector[] = [];
@@ -144,6 +144,13 @@ export class LootSpawner {
                 // Check not a door
                 const isDoor = room.entrances.some(e => e.x === x && e.y === y);
                 if (isDoor) continue;
+
+                // Check no interactables at position
+                if (level.getInteractableAt(x, y)) continue;
+
+                // Check no blocking decor at position
+                const decorAtPos = level.getDecorAt(x, y);
+                if (decorAtPos.some(d => d.blocksMovement)) continue;
 
                 positions.push(ex.vec(x, y));
             }

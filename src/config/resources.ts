@@ -9,9 +9,9 @@ const snowSpritePath = 'assets/enemies/snow_sprite.png';
 
 // Tileset Paths
 const snowyVillageTilesPath = 'assets/tilesets/snowy_village_tiles.png';
-const snowyVillageDecorPath = 'assets/tilesets/snowy_village_decor.png';
+const snowyVillageDecorPath = 'assets/items/snowy_village_decor.png';
 const commonTilesPath = 'assets/tilesets/common_tiles.png';
-const commonDecorPath = 'assets/tilesets/common_decor.png';
+const commonDecorPath = 'assets/items/common_decor.png';
 
 // Item Paths
 const itemsWeaponsPath = 'assets/items/items_weapons.png';
@@ -36,7 +36,13 @@ export const Resources = {
     ItemsWeaponsPng: new ImageSource(itemsWeaponsPath, false, ImageFiltering.Pixel),
     ItemsEquipmentPng: new ImageSource(itemsEquipmentPath, false, ImageFiltering.Pixel),
     ItemsConsumablesPng: new ImageSource(itemsConsumablesPath, false, ImageFiltering.Pixel),
-    ItemsMiscPng: new ImageSource(itemsMiscPath, false, ImageFiltering.Pixel)
+    ItemsMiscPng: new ImageSource(itemsMiscPath, false, ImageFiltering.Pixel),
+
+    // Interactables
+    InteractablesPng: new ImageSource('assets/items/interactables.png', false, ImageFiltering.Pixel),
+    
+    // Large Objects (9-Slice)
+    LargeObjectsPng: new ImageSource('./assets/tilesets/large_items.png', false, ImageFiltering.Pixel)
 }
 
 export const loader = new Loader();

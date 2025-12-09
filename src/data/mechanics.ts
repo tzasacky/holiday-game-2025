@@ -269,7 +269,7 @@ export const ProgressionRules: Record<string, ProgressionRule> = {
         id: EffectID.WarmthDecayScaling,
         name: 'Warmth Decay Rate by Floor',
         type: 'stat_scaling',
-        scaling: { type: 'linear', baseValue: 2.5, coefficient: 0.2 } // base 2.5 + 0.2 per floor
+        scaling: { type: 'linear', baseValue: 0.5, coefficient: 0.05 } // base 0.5 + 0.05 per floor
     }
 };
 

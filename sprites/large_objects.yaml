@@ -1,0 +1,37 @@
+- file: tilesets/large_items.png
+  output: public/assets/tilesets/large_items.png
+  generate: false
+  spec:
+    cols: 5
+    rows: 3
+    targetSize: 96
+  expectedTotal: 15
+  prompt: |
+    **I. Core Image Parameters & Constraints (CRITICAL)**
+
+    * **Output:** Single **LARGE OBJECT SPRITESHEET** only.
+    * **Content:** **9-SLICE SCALABLE OBJECTS** (Rugs, Large Platforms).
+    * **Background:** Solid, contrasting color (e.g., pure white or black). **NO GRIDLINES, NO TEXT.**
+    * **Style:** **PERFECT PIXEL ART.** **Dungeon Crawler** aesthetic. **Top-Down Perspective.**
+    * **Theme:** **Winter Wonderland / Christmas.**
+    * **Size:** 96x96 per sprite (3x3 grid of 32x32 tiles).
+
+    ### **II. Layout Definition (ABSOLUTE CRITICALITY)**
+
+    The spritesheet must be a perfectly arranged **5x3 grid of LARGE sprites**.
+    Each "sprite" here is actually a **96x96 pixel block** containing a full 3x3 pattern that can be sliced.
+
+    * **Structure:** Each 96x96 block must look like a complete, seamless object (e.g., a rug) with:
+        * **Corners:** Distinct corner patterns.
+        * **Edges:** Repeating edge patterns.
+        * **Center:** Repeating center pattern.
+
+    | Row | Col 0 | Col 1 | Col 2 | Col 3 | Col 4 |
+    | :---: | :---: | :---: | :---: | :---: | :---: |
+    | **ROW 1: Rugs** | Red Royal Rug (96x96) | Green Festive Rug (96x96) | Ice Crystal Rug (96x96) | Ornate Gold Pattern (96x96) | Blue Snowflake Tile (96x96) |
+    | **ROW 2: Patterns** | Gold/Blue Border (96x96) | Checkerboard (Red/Green) (96x96) | Blue Snowflake Tile 2 (96x96) | Ice Sheet (96x96) | Snow Patch (96x96) |
+    | **ROW 3: Special** | Spiky Stone Rune (Red) (96x96) | Cracked Ice (96x96) | Spiky Stone Rune (Red 2) (96x96) | Magic Circle (Blue) (96x96) | Void/Abyss Hole (96x96) |
+
+    ### **III. Negative Prompts**
+
+    * **Avoid:** Grids, text, labels, anti-aliasing, non-square tiles, complex perspectives, isometric views, single large image, blurry textures, gradients.

@@ -129,6 +129,12 @@ export class GameScene extends ex.Scene {
         // Listen for actor turns to update fog-of-war
         EventBus.instance.on(GameEventNames.ActorTurn, this.handleActorTurn);
         
+        // Listen for player movement to update visibility during pathfinding
+        EventBus.instance.on(GameEventNames.Movement, this.handlePlayerMovement);
+
+        // Listen for loot generated events
+        EventBus.instance.on(GameEventNames.LootGenerated, this.handleLootGenerated);
+        
     }
 
     public onDeactivate(context: ex.SceneActivationContext<unknown>): void {
@@ -156,6 +162,9 @@ export class GameScene extends ex.Scene {
         EventBus.instance.off(GameEventNames.Death, this.handleDeath);
         EventBus.instance.off(GameEventNames.LevelTransition, this.handleLevelTransitionComplete);
         EventBus.instance.off(GameEventNames.ActorTurn, this.handleActorTurn);
+        EventBus.instance.off(GameEventNames.ActorTurn, this.handleActorTurn);
+        EventBus.instance.off(GameEventNames.Movement, this.handlePlayerMovement);
+        EventBus.instance.off(GameEventNames.LootGenerated, this.handleLootGenerated);
     }
 
     private handleDeath = (event: DieEvent) => {
@@ -270,6 +279,28 @@ export class GameScene extends ex.Scene {
             this.updatePlayerVisibility();
         }
     }
+    
+    private handlePlayerMovement = (event: any) => {
+        // Update visibility after each player movement (including pathfinding steps)
+        if (event.actor?.isPlayer) {
+            this.updatePlayerVisibility();
+        }
+    }
+
+    private handleLootGenerated = (event: any) => {
+        Logger.info(`[GameScene] Handling LootGenerated event with ${event.items.length} items`);
+        
+        if (!this.level) return;
+
+        event.items.forEach((item: any) => {
+            EventBus.instance.emit(GameEventNames.ItemSpawnRequest, {
+                itemId: item.itemId,
+                position: event.position, // Use event position
+                level: this.level,
+                count: item.quantity
+            });
+        });
+    }
 
     private async setupLevel(level: Level): Promise<void> {
         Logger.info(`[GameScene] Setting up level ${level.depth} with ${level.actors.length} actors`);
@@ -297,6 +328,14 @@ export class GameScene extends ex.Scene {
         // Add interactables
         level.interactables.forEach(interactable => {
             if (!this.actors.includes(interactable)) this.add(interactable);
+        });
+
+        // Add decor
+        level.decor.forEach(decor => {
+            if (!this.actors.includes(decor)) {
+                decor.z = -0.5; // Ensure decor is below entities but above floor
+                this.add(decor);
+            }
         });
         
         // Ensure graphics are updated

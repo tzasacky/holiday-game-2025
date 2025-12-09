@@ -123,7 +123,7 @@ export class MovementProcessor {
         // Check all doors for auto-close behavior
         // Use level.interactables directly instead of scene entities for safety
         for (const entity of level.interactables) {
-            if (entity.definition?.type === InteractableType.DOOR) {
+            if (entity.definition?.type === InteractableType.Door) {
                 this.handleDoorAutoClose(entity, actor, from, to);
             }
         }

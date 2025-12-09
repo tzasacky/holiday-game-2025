@@ -198,16 +198,59 @@ function smartMergeToTarget(islands, targetCount, maxMergeDistance = 200) {
     return { islands: anchors, mergedCount, forcedMerges };
 }
 
-function validateComprehensiveQuality(result, originalImage, cleanedImage, imageWidth, imageHeight) {
+function validateTileConsistency(sprites, options) {
+    if (sprites.length === 0) return { valid: false, message: 'No sprites' };
+
+    const widths = sprites.map(s => s.maxX - s.minX + 1);
+    const heights = sprites.map(s => s.maxY - s.minY + 1);
+    
+    // 1. Check Aspect Ratio (Squareness)
+    // Tiles and 9-slice blocks are usually square (1.0 aspect ratio)
+    const aspectRatios = sprites.map((s, i) => widths[i] / heights[i]);
+    const avgAspectRatio = aspectRatios.reduce((a, b) => a + b, 0) / aspectRatios.length;
+    const maxAspectRatioDiff = Math.max(...aspectRatios.map(r => Math.abs(r - 1.0)));
+    
+    // 2. Check Size Consistency
+    const avgWidth = widths.reduce((a, b) => a + b, 0) / widths.length;
+    const avgHeight = heights.reduce((a, b) => a + b, 0) / heights.length;
+    
+    const widthVariance = Math.max(...widths.map(w => Math.abs(w - avgWidth) / avgWidth));
+    const heightVariance = Math.max(...heights.map(h => Math.abs(h - avgHeight) / avgHeight));
+    
+    // Thresholds
+    const isDecor = options.type === 'decor'; // Decor might vary
+    const strictness = isDecor ? 1.0 : 0.2; // 20% variance allowed for tiles/large_items
+    
+    const sizeConsistent = widthVariance < strictness && heightVariance < strictness;
+    const squareConsistent = isDecor || maxAspectRatioDiff < 0.2; // Allow some wiggle room for "square"
+    
+    return {
+        valid: sizeConsistent && squareConsistent,
+        sizeConsistent,
+        squareConsistent,
+        widthVariance,
+        heightVariance,
+        maxAspectRatioDiff,
+        message: !sizeConsistent ? `Size inconsistent (W var: ${(widthVariance*100).toFixed(1)}%, H var: ${(heightVariance*100).toFixed(1)}%)` :
+                 !squareConsistent ? `Not square enough (Max AR diff: ${maxAspectRatioDiff.toFixed(2)})` :
+                 'Consistent tile size & shape'
+    };
+}
+
+function validateComprehensiveQuality(result, originalImage, cleanedImage, imageWidth, imageHeight, options = {}) {
     console.log('   🔍 Running comprehensive quality validation...');
     
     const sprites = result.islands;
+    const isTileset = options.type === 'tileset';
+    const isLargeItem = options.type === 'large_item';
+    
     const validations = {
         spriteDensity: [],
         spriteVariance: validateSpriteVariance(sprites),
         spatialDistribution: validateSpatialDistribution(sprites, imageWidth, imageHeight),
         backgroundRemoval: validateBackgroundRemovalCompleteness(originalImage, cleanedImage),
-        islandDistribution: validateIslandDistribution(sprites)
+        islandDistribution: validateIslandDistribution(sprites),
+        tileConsistency: isTileset || isLargeItem ? validateTileConsistency(sprites, options) : { valid: true, message: 'Skipped (not tileset)' }
     };
     
     // Validate each sprite's density
@@ -220,20 +263,43 @@ function validateComprehensiveQuality(result, originalImage, cleanedImage, image
     
     const densityRatio = goodDensityCount / sprites.length;
     
-    // Overall success requires most validations to pass
-    const overallSuccess = 
-        densityRatio >= 0.8 && // 80% of sprites have good density
-        validations.spriteVariance.valid &&
+    // ADJUSTABLE THRESHOLDS BASED ON TYPE
+    
+    // 1. Background Removal
+    let bgRemovalValid = validations.backgroundRemoval.valid;
+    if (isTileset || isLargeItem) {
+        // Tilesets often fill the tile, so removal rate might be lower.
+        // We care more about the SHAPE of the island than the transparency ratio.
+        if (validations.backgroundRemoval.removalRate >= 0.05) { // Just ensure SOMETHING was removed
+            bgRemovalValid = true;
+            validations.backgroundRemoval.message += ' (Relaxed for tileset)';
+        }
+    }
+
+    // 2. Overall Success Logic
+    let overallSuccess = 
         validations.spatialDistribution.valid &&
-        validations.backgroundRemoval.valid &&
+        bgRemovalValid &&
         validations.islandDistribution.valid &&
-        result.forcedMerges < sprites.length * 0.2; // <20% forced merges
+        result.forcedMerges < sprites.length * 0.2;
+
+    if (isTileset || isLargeItem) {
+        // For tilesets, TILE CONSISTENCY is the most important metric
+        overallSuccess = overallSuccess && validations.tileConsistency.valid;
+        // Density is less important for solid blocks
+    } else {
+        // For characters/items, density and variance are key
+        overallSuccess = overallSuccess && 
+            densityRatio >= 0.8 && 
+            validations.spriteVariance.valid;
+    }
     
     console.log(`     Density: ${goodDensityCount}/${sprites.length} sprites (${(densityRatio*100).toFixed(1)}%)`);
     console.log(`     Variance: ${validations.spriteVariance.message}`);
     console.log(`     Distribution: ${validations.spatialDistribution.message}`);
     console.log(`     Background: ${validations.backgroundRemoval.message}`);
     console.log(`     Islands: ${validations.islandDistribution.message}`);
+    console.log(`     Tile Consistency: ${validations.tileConsistency.message}`);
     console.log(`     Forced merges: ${result.forcedMerges}/${sprites.length} (${(result.forcedMerges/sprites.length*100).toFixed(1)}%)`);
     
     return {
@@ -314,7 +380,7 @@ async function strategyEdgeDetectionFloodFill(image, options) {
             
             // Comprehensive quality validation
             const qualityValidation = validateComprehensiveQuality(
-                mergeResult, image, cleaned, image.bitmap.width, image.bitmap.height
+                mergeResult, image, cleaned, image.bitmap.width, image.bitmap.height, options
             );
             
             console.log(`     Result: ${qualityValidation.overallMessage}`);
@@ -364,7 +430,7 @@ async function strategyColorBasedRemoval(image, options) {
             
             // Comprehensive quality validation
             const qualityValidation = validateComprehensiveQuality(
-                mergeResult, image, cleaned, image.bitmap.width, image.bitmap.height
+                mergeResult, image, cleaned, image.bitmap.width, image.bitmap.height, options
             );
             
             console.log(`     Result: ${qualityValidation.overallMessage}`);
@@ -427,10 +493,10 @@ async function strategyHybridApproach(image, options) {
                 // Smart merge to target
                 const mergeResult = smartMergeToTarget(rawIslands, options.expectedTotal);
                 
-                // Comprehensive quality validation
-                const qualityValidation = validateComprehensiveQuality(
-                    mergeResult, image, cleaned, image.bitmap.width, image.bitmap.height
-                );
+            // Comprehensive quality validation
+            const qualityValidation = validateComprehensiveQuality(
+                mergeResult, image, cleaned, image.bitmap.width, image.bitmap.height, options
+            );
                 
                 console.log(`     Result: ${qualityValidation.overallMessage}`);
                 
@@ -788,7 +854,7 @@ async function processWithComprehensiveStrategy(image, filename, cols, rows, opt
                 console.log(`   Final sprites: ${result.islands.length}, Forced merges: ${result.forcedMerges || 0}`);
                 
                 // Create perfect grid
-                const gridResult = createPerfectGrid(result.processedImage, result.islands, cols, rows, 32);
+                const gridResult = createPerfectGrid(result.processedImage, result.islands, cols, rows, options.targetSpriteSize || 32);
                 console.log(`   Grid created: ${gridResult.spritesPlaced} sprites placed`);
                 
                 return {
@@ -829,7 +895,10 @@ async function processSingleFileComprehensive(inputPath, outputPath, cols, rows,
         const image = await Jimp.read(inputPath);
         console.log(`📊 Original: ${image.bitmap.width}x${image.bitmap.height}`);
         
-        const result = await processWithComprehensiveStrategy(image, filename, cols, rows, options);
+        // Add targetSpriteSize to options for processWithComprehensiveStrategy
+        const processOptions = { ...options, targetSpriteSize };
+        
+        const result = await processWithComprehensiveStrategy(image, filename, cols, rows, processOptions);
         
         // Save final result
         const outputDir = path.dirname(outputPath);

@@ -5,6 +5,7 @@ import { InventoryComponent } from './InventoryComponent';
 import { GameActor } from './GameActor';
 import { GameEventNames, ItemEquipEvent, ItemUnequipEvent, StatsRecalculateEvent, EquipmentUnequipRequestEvent } from '../core/GameEvents';
 import { Logger } from '../core/Logger';
+import { EventBus } from '../core/EventBus';
 
 export class EquipmentComponent extends ActorComponent {
     private slots: Map<string, ItemEntity | null> = new Map([
@@ -47,6 +48,22 @@ export class EquipmentComponent extends ActorComponent {
             // Unequip current item
             // unequip() now handles adding back to inventory
             this.unequip(slot);
+        }
+
+        // Check Strength Requirement
+        if (item.definition.stats?.strengthRequirement) {
+            const statsComp = this.actor.getGameComponent('stats') as any; // Cast to any or import StatsComponent
+            if (statsComp) {
+                const strength = statsComp.getStat('strength');
+                if (strength < item.definition.stats.strengthRequirement) {
+                    EventBus.instance.emit(GameEventNames.Message, { 
+                        message: `Not enough Strength! (Needs ${item.definition.stats.strengthRequirement})`,
+                        type: 'warning'
+                    });
+                    Logger.info(`[EquipmentComponent] Failed to equip ${item.definition.name}: Strength ${strength} < ${item.definition.stats.strengthRequirement}`);
+                    return false;
+                }
+            }
         }
 
         this.slots.set(slot, item);

@@ -277,7 +277,7 @@ export const EffectDefinitions: Record<string, EffectDefinition> = {
         duration: 10,
         actions: [
             {
-                type: 'restore_warmth',
+                type: 'warmth_restore',
                 value: 2,
                 target: 'nearby_allies',
                 range: 3
@@ -433,7 +433,7 @@ export const EffectDefinitions: Record<string, EffectDefinition> = {
         ],
         actions: [
             {
-                type: 'restore_warmth',
+                type: 'warmth_restore',
                 value: 5,
                 target: 'self'
             }

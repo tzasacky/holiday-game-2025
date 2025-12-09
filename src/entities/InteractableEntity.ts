@@ -19,9 +19,12 @@ export class InteractableEntity extends GameEntity {
     public definition: InteractableDefinition;
 
     constructor(gridPos: ex.Vector, definition: InteractableDefinition, config: any = {}) {
+        const width = definition.size ? definition.size.width * 32 : 32;
+        const height = definition.size ? definition.size.height * 32 : 32;
+        
         super(gridPos, { 
-            width: 32, 
-            height: 32, 
+            width: width, 
+            height: height, 
             collisionType: ex.CollisionType.Fixed,
             z: 5 // Ensure it renders above floor/walls 
         });
@@ -90,6 +93,14 @@ export class InteractableEntity extends GameEntity {
         
         // Update graphics with any loaded state
         this.setupGraphics();
+    }
+
+    public get interactableDefinition(): InteractableDefinition {
+        return this.definition;
+    }
+
+    public takeDamage(amount: number, source?: any): boolean {
+        return this.interactableComponent.takeDamage(amount, source);
     }
 
     onKill(): void {

@@ -4,6 +4,8 @@ import { PriorityQueue } from './PriorityQueue';
 import { Logger } from './Logger';
 import { EventBus } from './EventBus';
 import { GameEventNames, DieEvent } from './GameEvents';
+import { WarmthSystem } from '../systems/WarmthSystem';
+import { LevelManager } from './LevelManager';
 
 /**
  * TurnManager - Manages turn-based game loop using priority queue
@@ -108,9 +110,10 @@ export class TurnManager {
                         Logger.debug("[TurnManager] Player waiting for input, stopping processing");
                         processing = false;
                     } else {
-                        // Non-player actors that can't act should skip their turn with a small time penalty
-                        Logger.debug("[TurnManager] Mob", currentActor.name, "can't act, skipping turn with time penalty");
-                        currentActor.time += 0.1; // Small time penalty to prevent infinite loops
+                        // Non-player actors that can't act should skip their turn with full time cost
+                        // This ensures consistent time progression
+                        Logger.debug("[TurnManager] Mob", currentActor.name, "can't act, spending full turn time");
+                        currentActor.spend(10);
                         this.actors.pop();
                         this.actors.push(currentActor);
                         loops++;
@@ -121,6 +124,12 @@ export class TurnManager {
                     // Pop and Push is the cleanest way since their key (time) changed
                     this.actors.pop(); 
                     this.actors.push(currentActor);
+                    
+                    // Process warmth decay for this actor after they act
+                    const currentLevel = LevelManager.instance.getCurrentLevel();
+                    if (currentLevel) {
+                        WarmthSystem.instance.processTurn(currentActor, currentLevel.depth);
+                    }
                     
                     loops++;
                 }

@@ -90,8 +90,11 @@ export class AIBehaviorLibrary {
         
         canActivate: (actor, context) => {
             if (!context.player) return false;
-            const dist = actor.gridPos.distance(context.player.gridPos);
-            return dist <= 1 && context.canSeePlayer;
+            // Use Chebyshev distance for 8-way attack range
+            const dx = Math.abs(actor.gridPos.x - context.player.gridPos.x);
+            const dy = Math.abs(actor.gridPos.y - context.player.gridPos.y);
+            const chebyshevDist = Math.max(dx, dy);
+            return chebyshevDist <= 1 && context.canSeePlayer;
         },
         
         execute: (actor, level, context) => {
@@ -115,13 +118,18 @@ export class AIBehaviorLibrary {
         priority: 70,
         
         canActivate: (actor, context) => {
-            return (context.currentState === 'alert' || context.currentState === 'chase') &&
-                   (context.canSeePlayer || context.lastKnownPlayerPos !== null);
+            // Can chase from alert, chase, or attack states
+            // This is key - after attacking, if player moves away, we should chase!
+            const canChaseFromState = context.currentState === 'alert' || 
+                                      context.currentState === 'chase' ||
+                                      context.currentState === 'attack';
+            return canChaseFromState && (context.canSeePlayer || context.lastKnownPlayerPos !== null);
         },
         
         execute: (actor, level, context) => {
-            // Implementation moved to AIComponent for now
-            // Will be fully extracted later
+            // Update state to chase
+            context.currentState = 'chase';
+            // Actual movement handled by AIComponent.executeMovement()
             return false;
         }
     };
@@ -225,11 +233,50 @@ export const AICompositions = {
             AIBehaviorLibrary.Search,
             AIBehaviorLibrary.Wander
         ]
-    }
+    },
     
     // More compositions can be added here:
     // - Cowardly: Runs away when low HP
     // - Territorial: Only chases within certain area
-    // - Pack: Coordinates with nearby allies
-    // etc.
+    
+    /**
+     * Territorial: Miniboss that guards a specific area/room
+     */
+    Territorial: {
+        name: 'Territorial',
+        behaviors: [
+            AIBehaviorLibrary.Spotting,
+            AIBehaviorLibrary.Alert,
+            AIBehaviorLibrary.Attack,
+            // Custom territorial chase behavior (stays in room)
+            {
+                priority: 65, // Between Chase and Search
+                canActivate: (actor: GameActor, context: AIContext): boolean => {
+                    const isInState = context.currentState === 'alert' || 
+                                     context.currentState === 'chase' ||
+                                     context.currentState === 'attack';
+                    return isInState && (context.canSeePlayer || context.lastKnownPlayerPos !== null);
+                },
+                execute: (actor: GameActor, level: Level, context: AIContext): boolean => {
+                    // Only chase if player is in same room or adjacent
+                    // Note: getRoomAtPosition needs to be added to Level class
+                    const actorRoom = (level as any).getRoomAtPosition?.(actor.gridPos);
+                    const playerRoom = context.player ? (level as any).getRoomAtPosition?.(context.player.gridPos) : null;
+                    
+                    // If player left the room, return to patrol/wander
+                    if (actorRoom && playerRoom && actorRoom.id !== playerRoom.id) {
+                        context.currentState = 'wander';
+                        context.lastKnownPlayerPos = null;
+                        return false;
+                    }
+                    
+                    // Otherwise, normal chase behavior
+                    context.currentState = 'chase';
+                    return false;
+                }
+            },
+            AIBehaviorLibrary.Search,
+            AIBehaviorLibrary.Wander
+        ]
+    }
 };

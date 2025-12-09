@@ -51,6 +51,9 @@ export class SpawnTableExecutor {
     
     if (validEntries.length === 0) {
       Logger.warn(`SpawnTableExecutor: No valid entries found for floor ${request.floorNumber} in table '${request.tableId}'`);
+      Logger.warn(`Request details: type=${request.spawnType}, tags=${request.tags}`);
+      Logger.warn(`Table entries: ${table.entries.length}`);
+      table.entries.forEach(e => Logger.warn(`Entry: ${e.actorId}, min=${e.minFloor}, max=${e.maxFloor}, tags=${e.tags}`));
       return null;
     }
 

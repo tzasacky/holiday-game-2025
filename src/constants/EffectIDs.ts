@@ -102,4 +102,5 @@ export enum EffectID {
     AoeDamage = 'aoe_damage',
     Fuel = 'fuel',
     ColdImmunity = 'cold_immunity',
+    Confusion = 'confusion',
 }

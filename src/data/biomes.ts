@@ -4,11 +4,14 @@ import { DamageType } from './mechanics';
 import { Resources } from '../config/resources';
 import { BiomeID } from '../constants/BiomeID';
 import { InteractableID } from '../constants/InteractableIDs';
+import { DecorID } from '../constants/DecorIDs';
 import { RoomTypeID } from '../constants/RoomTypeID';
 import { PrefabID } from '../constants/PrefabID';
 import { SpawnTableID } from '../constants/SpawnTableID';
 import { LootTableID } from '../constants/LootTableIDs';
 import { FeatureConfig, FeatureMorphology } from '../dungeon/features/FeatureTypes';
+import { DecorPlacementRule } from './roomTemplates';
+import { DecorPlacementType } from '../constants/DecorPlacementType';
 
 export enum MaterialType {
   Stone = 'stone',
@@ -16,6 +19,7 @@ export enum MaterialType {
   Ice = 'ice',
   Snow = 'snow',
   Brick = 'brick',
+  Dirt = 'dirt',
 }
 
 export interface TileVariant {
@@ -81,9 +85,26 @@ export interface BiomeDefinition {
   // Special terrain features (data-driven replacements for old decorators/features)
   // These define WHERE features are placed, not how they look
   featureGenerators?: FeatureConfig[];
+  
+  // Decor placement rules
+  decor?: DecorConfig[];
+  corridorRules?: DecorPlacementRule[];
+  
+  // Generation settings
+  corridorWidth?: number;
+}
+
+export interface DecorConfig {
+    type: 'large_item' | 'small_item';
+    itemId: string; // Key in LargeItemDefinitions or ItemID
+    placement: 'center' | 'corner' | 'wall' | 'random';
+    probability: number;
+    unique?: boolean;
+    minRoomSize?: { width: number, height: number };
 }
 
 export const BiomeDefinitions: Record<BiomeID, BiomeDefinition> = {
+
   [BiomeID.SnowyVillage]: {
     id: BiomeID.SnowyVillage,
     name: 'Snowy Village',
@@ -168,6 +189,10 @@ export const BiomeDefinitions: Record<BiomeID, BiomeDefinition> = {
         
         // ROW 2: Walls (snowy_village_tiles.png)
         [TerrainType.Wall]: { spriteCoords: [0, 2], color: ex.Color.fromHex('#8B4513'), fallbackText: '█' }, // Log Cabin Wall
+        
+        // Heat Sources
+        [TerrainType.HotCoals]: { color: ex.Color.fromHex('#FF4500'), fallbackText: '♨' }, // Hot coals - orange-red
+        [TerrainType.WarmStone]: { color: ex.Color.fromHex('#8B6914'), fallbackText: '░' }, // Warm stone - brownish
       },
       lighting: 'normal',
       defaultMaterial: MaterialType.Snow
@@ -190,16 +215,50 @@ export const BiomeDefinitions: Record<BiomeID, BiomeDefinition> = {
       {
         morphology: FeatureMorphology.Patch,
         terrainType: TerrainType.Ice,
-        probability: 0.4, // Increased from 0.2
+        probability: 0.4, 
         properties: { density: 0.15, slippery: true }
       },
       {
         morphology: FeatureMorphology.Linear,
         terrainType: TerrainType.Water,
-        probability: 0.3, // Added River
+        probability: 0.3,
         properties: { width: 2, meander: 0.3, frozen: false },
-        placement: 'corridor' // Avoid rooms
+        placement: 'corridor'
+      },
+      {
+        morphology: FeatureMorphology.Patch,
+        terrainType: TerrainType.DeepSnow,
+        probability: 0.5,
+        properties: { density: 0.2 }
       }
+    ],
+    corridorWidth: 2, // Wider corridors for outdoor feel
+    corridorRules: [
+        { placementType: DecorPlacementType.OnWall, items: [DecorID.Torch, DecorID.Streetlamp], probability: 0.05 }, // Reduced torch density
+        { placementType: DecorPlacementType.FloorRandom, items: [DecorID.RockSnow, DecorID.BushFrozen, DecorID.SnowMound], probability: 0.15 },
+        { placementType: DecorPlacementType.FloorRandom, items: [DecorID.SnowPatch], probability: 0.05 },
+        { placementType: DecorPlacementType.FloorRandom, items: [DecorID.LogPileSnow, DecorID.WoodPile], probability: 0.05 }
+    ],
+    decor: [
+        // Large Items
+        { type: 'large_item', itemId: DecorID.RugRed, placement: 'center', probability: 0.2, minRoomSize: { width: 5, height: 5 } },
+        { type: 'large_item', itemId: DecorID.RugGreen, placement: 'center', probability: 0.2, minRoomSize: { width: 5, height: 5 } },
+        
+        // Small Items - Random Clutter
+        { type: 'small_item', itemId: DecorID.SnowmanProp, placement: 'random', probability: 0.15 },
+        { type: 'small_item', itemId: DecorID.LanternGround, placement: 'random', probability: 0.25 },
+        { type: 'small_item', itemId: DecorID.WoodPile, placement: 'wall', probability: 0.2 },
+        { type: 'small_item', itemId: DecorID.CrateSnow, placement: 'wall', probability: 0.25 },
+        { type: 'small_item', itemId: DecorID.BarrelSnow, placement: 'corner', probability: 0.25 },
+        { type: 'small_item', itemId: DecorID.ShovelSnow, placement: 'wall', probability: 0.1 },
+        
+        // Nature/Flora
+        { type: 'small_item', itemId: DecorID.TreePineSmall, placement: 'corner', probability: 0.2 },
+        { type: 'small_item', itemId: DecorID.BushFrozen, placement: 'random', probability: 0.15 },
+        { type: 'small_item', itemId: DecorID.RockSnow, placement: 'random', probability: 0.15 },
+        
+        // Holiday Specific
+        { type: 'small_item', itemId: DecorID.Wreath, placement: 'wall', probability: 0.2 }
     ]
   },
 
@@ -215,7 +274,11 @@ export const BiomeDefinitions: Record<BiomeID, BiomeDefinition> = {
         [TerrainType.Water]: { color: ex.Color.fromHex('#00008B'), fallbackText: '≋' },
         [TerrainType.Chasm]: { color: ex.Color.fromHex('#000000'), fallbackText: '▓' },
         [TerrainType.Ice]: { color: ex.Color.fromHex('#87CEFA'), fallbackText: '≡' },
-        [TerrainType.DeepSnow]: { color: ex.Color.fromHex('#E0FFFF'), fallbackText: '❄' }
+        [TerrainType.DeepSnow]: { color: ex.Color.fromHex('#E0FFFF'), fallbackText: '❄' },
+        
+        // Heat Sources
+        [TerrainType.HotCoals]: { color: ex.Color.fromHex('#FF4500'), fallbackText: '♨' },
+        [TerrainType.WarmStone]: { color: ex.Color.fromHex('#8B6914'), fallbackText: '░' }
       },
       lighting: 'dim',
       defaultMaterial: MaterialType.Ice
@@ -238,16 +301,42 @@ export const BiomeDefinitions: Record<BiomeID, BiomeDefinition> = {
       {
         morphology: FeatureMorphology.Patch,
         terrainType: TerrainType.Chasm,
-        probability: 0.3, // Increased from 0.15
+        probability: 0.3, 
         properties: { density: 0.08, fallDamage: 10, levelTransition: true }
       },
       {
         morphology: FeatureMorphology.Linear,
-        terrainType: TerrainType.Ice, // Frozen river
-        probability: 0.5, // Increased from 0.3
+        terrainType: TerrainType.Ice, 
+        probability: 0.5, 
         properties: { width: 3, meander: 0.6, crossable: true },
         placement: 'corridor'
+      },
+      {
+        morphology: FeatureMorphology.Patch,
+        terrainType: TerrainType.Ice,
+        probability: 0.4,
+        properties: { density: 0.2, slippery: true }
       }
+    ],
+    corridorRules: [
+        { placementType: DecorPlacementType.OnWall, items: [DecorID.Cobweb], probability: 0.2 },
+        { placementType: DecorPlacementType.FloorRandom, items: [DecorID.Rubble, DecorID.BonePile], probability: 0.15 },
+        { placementType: DecorPlacementType.FloorRandom, items: [DecorID.IceCrystalSnow], probability: 0.2, requiresTerrain: [TerrainType.Ice] } // Only on ice
+    ],
+    decor: [
+        // Large Ice Features
+        { type: 'large_item', itemId: DecorID.IceSheet, placement: 'random', probability: 0.3, minRoomSize: { width: 6, height: 6 } },
+        { type: 'large_item', itemId: DecorID.IceCracked, placement: 'center', probability: 0.25, minRoomSize: { width: 4, height: 4 } },
+        
+        // Small Ice/Cave Decor
+        { type: 'small_item', itemId: DecorID.IceCrystalSnow, placement: 'random', probability: 0.3 },
+        { type: 'small_item', itemId: DecorID.RockSnow, placement: 'random', probability: 0.25 },
+        { type: 'small_item', itemId: DecorID.CrystalCommon, placement: 'corner', probability: 0.3 },
+        { type: 'small_item', itemId: DecorID.BushFrozen, placement: 'random', probability: 0.2 },
+        
+        // Remnants
+        { type: 'small_item', itemId: DecorID.CrateCommon, placement: 'wall', probability: 0.15 },
+        { type: 'small_item', itemId: DecorID.BarrelCommon, placement: 'corner', probability: 0.15 }
     ]
   },
 
@@ -263,7 +352,11 @@ export const BiomeDefinitions: Record<BiomeID, BiomeDefinition> = {
         [TerrainType.Water]: { color: ex.Color.fromHex('#8B0000'), fallbackText: '≋' },
         [TerrainType.Chasm]: { color: ex.Color.fromHex('#8B0000'), fallbackText: '▓' },
         [TerrainType.Ice]: { color: ex.Color.fromHex('#4B0082'), fallbackText: '≡' },
-        [TerrainType.DeepSnow]: { color: ex.Color.fromHex('#696969'), fallbackText: '❄' }
+        [TerrainType.DeepSnow]: { color: ex.Color.fromHex('#696969'), fallbackText: '❄' },
+        
+        // Heat Sources
+        [TerrainType.HotCoals]: { color: ex.Color.fromHex('#B22222'), fallbackText: '♨' }, // Darker red for Krampus lair
+        [TerrainType.WarmStone]: { color: ex.Color.fromHex('#4A3728'), fallbackText: '░' }
       },
       lighting: 'dim',
       defaultMaterial: MaterialType.Stone
@@ -292,6 +385,22 @@ export const BiomeDefinitions: Record<BiomeID, BiomeDefinition> = {
         probability: 0.25,
         properties: { density: 0.08, fallDamage: 20, levelTransition: true, cursed: true }
       }
+    ],
+    decor: [
+        // Dark Magic
+        { type: 'large_item', itemId: DecorID.RuneRed, placement: 'center', probability: 0.4, minRoomSize: { width: 6, height: 6 } },
+        { type: 'large_item', itemId: DecorID.RuneRed2, placement: 'random', probability: 0.3, minRoomSize: { width: 6, height: 6 } },
+        { type: 'large_item', itemId: DecorID.MagicCircle, placement: 'center', probability: 0.4, minRoomSize: { width: 8, height: 8 } },
+        { type: 'large_item', itemId: DecorID.VoidHole, placement: 'random', probability: 0.2, minRoomSize: { width: 5, height: 5 } },
+        
+        // Corrupted Decor
+        { type: 'small_item', itemId: DecorID.TreeDeadSmall, placement: 'corner', probability: 0.3 },
+        { type: 'small_item', itemId: DecorID.TreeDeadCommon, placement: 'random', probability: 0.2 },
+        { type: 'small_item', itemId: DecorID.RockCommon, placement: 'random', probability: 0.2 },
+        
+        // Spooky Clutter
+        { type: 'small_item', itemId: DecorID.CandleStand, placement: 'wall', probability: 0.3 },
+        { type: 'small_item', itemId: DecorID.SackCommon, placement: 'corner', probability: 0.2 }
     ]
   }
 };

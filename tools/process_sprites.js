@@ -12,7 +12,8 @@ const yaml = require('js-yaml');
 
 const PROJECT_ROOT = path.join(__dirname, '..');
 const GENERATED_DIR = path.join(PROJECT_ROOT, 'generated');
-const CONFIG_PATH = path.join(PROJECT_ROOT, 'sprites/items_weapons.yaml');
+console.log('DEBUG: process.argv:', process.argv);
+const CONFIG_PATH = process.argv[2] ? path.resolve(process.argv[2]) : path.join(PROJECT_ROOT, 'sprites/items_weapons.yaml');
 
 async function main() {
     console.log('🎮 Holiday Game Sprite Processor');
@@ -43,9 +44,9 @@ async function main() {
         const spec = entry.spec;
 
         // FILTER: Skip tilesets (processed by process_tilesets.js)
-        if (relativeInputPath.includes('tileset')) {
-            continue;
-        }
+        // if (relativeInputPath.includes('tileset')) {
+        //     continue;
+        // }
 
         const inputFile = path.join(GENERATED_DIR, relativeInputPath);
         const outputFile = path.join(PROJECT_ROOT, relativeOutputPath);
@@ -73,22 +74,32 @@ async function main() {
             // Check for verbose flag
             const verbose = process.argv.includes('--verbose');
             
+            // Determine type
+            let type = 'default';
+            if (relativeInputPath.includes('tileset')) type = 'tileset';
+            if (relativeInputPath.includes('large_items')) type = 'large_item';
+            if (isCharacterOrEnemy) type = 'character';
+
+            console.log(`   Mode: ${type} (with regularization)`);
+            
             const options = {
                 tolerance: 100,
                 minIslandSize: isCharacterOrEnemy ? 30 : 100, // Lower for chars/enemies to keep particles
                 skipRegularization: false,
                 verbose: verbose,
-                expectedTotal: entry.expectedTotal
+                expectedTotal: entry.expectedTotal,
+                type: type
             };
-            
-            console.log(`   Mode: Character/Enemy (with regularization)`);
+
+            const targetSize = spec.targetSize || 32;
+            console.log(`   Target Size: ${targetSize}x${targetSize}`);
 
             await processSingleFileComprehensive(
                 inputFile,
                 outputFile,
                 spec.cols,
                 spec.rows,
-                32, // 32x32 target sprite size
+                targetSize, // Use configured target size
                 options
             );
 

@@ -155,7 +155,7 @@ export class VisibilitySystem {
             // Check terrain - walls block line of sight
             const terrain = level.getTile(x, y);
             const terrainDef = TerrainDefinitions[terrain];
-            if (terrainDef && terrainDef.isSolid) {
+            if (terrainDef && !terrainDef.isTransparent) {
                 // If this is the target tile, it IS visible (we see the wall)
                 if (Math.floor(to.x) === x && Math.floor(to.y) === y) {
                      const result: LOSResult = {
@@ -178,7 +178,7 @@ export class VisibilitySystem {
             
             // Check for doors at this position
             const door = level.getInteractableAt(x, y);
-            if (door && door.definition.type === InteractableType.DOOR) {
+            if (door && door.definition.type === InteractableType.Door) {
                 // Check if door is closed/locked
                 if (door.state === 'closed' || door.state === 'locked') {
                     // If this is the target tile, it IS visible (we see the door)
@@ -196,6 +196,31 @@ export class VisibilitySystem {
                         visible: false,
                         distance,
                         blockedBy: `door-${door.state}`
+                    };
+                    this.cacheResult(from, to, result);
+                    return result;
+                }
+            }
+
+            // Check for blocking decor
+            const decorList = level.getDecorAt(x, y);
+            for (const decor of decorList) {
+                if (decor.blocksSight) {
+                    // If this is the target tile, it IS visible (we see the decor)
+                    if (Math.floor(to.x) === x && Math.floor(to.y) === y) {
+                        const result: LOSResult = {
+                            visible: true,
+                            distance,
+                            blockedBy: `decor-${decor.decorId}`
+                        };
+                        this.cacheResult(from, to, result);
+                        return result;
+                    }
+
+                    const result: LOSResult = {
+                        visible: false,
+                        distance,
+                        blockedBy: `decor-${decor.decorId}`
                     };
                     this.cacheResult(from, to, result);
                     return result;

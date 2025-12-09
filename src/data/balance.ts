@@ -17,7 +17,7 @@ export interface DifficultySettings {
 export const Difficulty: DifficultySettings = {
     playerStartingHP: 25,        // Low starting health
     playerStartingWarmth: 60,    // Moderate starting warmth
-    warmthDecayRate: 2.5,        // Lose warmth quickly
+    warmthDecayRate: 0.8,        // Lose warmth at slower rate to allow for strategic play
     enemyDamageMultiplier: 1.4,  // Enemies hit hard
     enemyHealthMultiplier: 1.2,  // Enemies are tanky
     enemySpawnRate: 1.3,         // More enemies spawn

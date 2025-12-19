@@ -17,6 +17,7 @@ import { LinearFeatureGenerator } from '../features/LinearFeatureGenerator';
 import { PatchFeatureGenerator } from '../features/PatchFeatureGenerator';
 import { RoomTypeID } from '../../constants/RoomTypeID';
 import { InteractableID } from '../../constants/InteractableIDs';
+import { ActorID } from '../../constants/ActorIDs';
 import { DecorSystem } from '../DecorSystem';
 
 export class AdvancedLevelGenerator implements LevelGenerator {
@@ -98,7 +99,16 @@ export class AdvancedLevelGenerator implements LevelGenerator {
         this.paintDecor(level, biome);
 
         // 12. Room population - spawns interactables, enemies from templates
+        // 12. Room population - spawns interactables, enemies from templates
         this.populateRoomsFromTemplates(level, context);
+
+        // 12a. Explicit Boss Spawning for boss floors (removes dependency on Summoning Circle)
+        if (floorNumber === 5 || floorNumber === 10) {
+            this.spawnBossInBossRoom(level, floorNumber, context);
+        }
+
+        // 12b. Spawn Guaranteed Progression Item
+        this.spawnGuaranteedProgressionItem(level, context);
         
         // 11. Place exit staircase
         this.placeExitStaircase(level, context);
@@ -412,6 +422,9 @@ export class AdvancedLevelGenerator implements LevelGenerator {
         if (room.roomType === RoomTypeID.Boss) {
             // Boss rooms always locked
             doorId = InteractableID.LockedDoor;
+        } else if (room.roomType === RoomTypeID.Exit && (level.floorNumber === 5 || level.floorNumber === 10)) {
+            // Boss Floor Exit Rooms are locked by BossDoor
+            doorId = InteractableID.BossDoor;
         } else if (room.roomType === RoomTypeID.Treasure) {
             // Treasure rooms mostly locked, increasing with depth
             const lockChance = 0.7 + depthBonus;
@@ -1076,6 +1089,96 @@ export class AdvancedLevelGenerator implements LevelGenerator {
         EventBus.instance.emit(GameEventNames.InteractableCreate, new FactoryCreateEvent(
             stairId,
             { position, level }
+        ));
+    }
+
+    /**
+     * Spawn a guaranteed progression item (Star Cookie or Liquid Courage)
+     * Ensures player has access to sustain/stat items on every floor
+     */
+    private spawnGuaranteedProgressionItem(level: Level, context: GenerationContext): void {
+        const { random: rng } = context;
+        
+        // Pick a random room (excluding small rooms or boss rooms if we had tags, but random is fine for now)
+        const rooms = level.rooms;
+        if (rooms.length === 0) return;
+        
+        let spawned = false;
+        let attempts = 0;
+        const maxAttempts = 50;
+
+        while (!spawned && attempts < maxAttempts) {
+            attempts++;
+            const room = rooms[rng.integer(0, rooms.length - 1)];
+            
+            // Find a valid floor tile in the room
+            const x = rng.integer(room.x + 1, room.x + room.width - 2);
+            const y = rng.integer(room.y + 1, room.y + room.height - 2);
+            
+            // Strict validation: Must be floor and NOT occupied
+            if (level.terrainData[x][y] !== TerrainType.Floor) continue;
+            if (level.isOccupied(x, y)) continue;
+
+             // Decide item
+            const itemId = rng.next() > 0.5 ? 'star_cookie' : 'liquid_courage';
+            const position = ex.vec(x, y);
+            
+            // Use EventBus to spawn item
+            EventBus.instance.emit(GameEventNames.ItemSpawnRequest, {
+                itemId: itemId,
+                position: position,
+                level: level,
+                count: 1
+            });
+            
+            Logger.info(`[AdvancedLevelGenerator] Spawned guaranteed progression item ${itemId} at ${x},${y} (Attempt ${attempts})`);
+            spawned = true;
+        }
+
+        if (!spawned) {
+            Logger.warn(`[AdvancedLevelGenerator] FAILED to spawn guaranteed progression item after ${maxAttempts} attempts.`);
+        }
+    }
+
+    /**
+     * Explicitly spawn boss actor in boss room
+     * Called on boss floors (5 for Krampus, 10 for Corrupted Santa)
+     */
+    private spawnBossInBossRoom(level: Level, floorNumber: number, context: GenerationContext): void {
+        // Find the boss room
+        const bossRoom = level.rooms.find(r => r.roomType === RoomTypeID.Boss);
+        
+        if (!bossRoom) {
+            Logger.warn(`[AdvancedLevelGenerator] No Boss room found on floor ${floorNumber}, spawning boss in Exit room`);
+            // Fallback to exit room if no boss room exists
+            const exitRoom = level.rooms.find(r => r.roomType === RoomTypeID.Exit);
+            if (!exitRoom) {
+                Logger.error(`[AdvancedLevelGenerator] No Exit room found either, cannot spawn boss`);
+                return;
+            }
+            this.spawnBossActor(level, exitRoom.center, floorNumber);
+            return;
+        }
+        
+        // Spawn boss at center of boss room
+        this.spawnBossActor(level, bossRoom.center, floorNumber);
+    }
+
+    private spawnBossActor(level: Level, position: ex.Vector, floorNumber: number): void {
+        // Determine which boss to spawn based on floor
+        const bossId = floorNumber === 5 ? ActorID.KRAMPUS : ActorID.CORRUPTED_SANTA;
+        
+        Logger.info(`[AdvancedLevelGenerator] Spawning ${bossId} at ${position} on floor ${floorNumber}`);
+        
+        // Use ActorCreate event to spawn the boss
+        // FactoryCreateEvent expects (type, instance) where instance has defName and gridPos
+        EventBus.instance.emit(GameEventNames.ActorCreate, new FactoryCreateEvent(
+            bossId,
+            { 
+                defName: bossId,
+                gridPos: position,
+                options: { level: level }
+            }
         ));
     }
 }

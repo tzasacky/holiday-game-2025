@@ -1,6 +1,6 @@
 import { UIComponent } from './components/UIComponent';
 import { EventBus } from '../core/EventBus';
-import { GameEventNames, LogEvent, AttackEvent, DamageEvent, DieEvent, ItemPickupEvent, ItemUseEvent, LevelUpEvent, HealEvent, ItemEquipEvent, ItemUnequipEvent } from '../core/GameEvents';
+import { GameEventNames, LogEvent, AttackEvent, DamageEvent, DieEvent, ItemPickupEvent, ItemUseEvent, LevelUpEvent, HealEvent, ItemEquipEvent, ItemUnequipEvent, BuffApplyEvent, ConditionApplyEvent, PermanentEffectApplyEvent } from '../core/GameEvents';
 import { getFlavorText } from '../data/flavorText';
 
 export enum LogCategory {
@@ -122,6 +122,25 @@ export class GameJournal extends UIComponent {
                 this.addEntry(getFlavorText(GameEventNames.EquipmentUnequipped, params), LogCategory.Items);
             }
         });
+
+        // Listen for effect applications
+        bus.on(GameEventNames.BuffApply, (event: BuffApplyEvent) => {
+            if (event.target.isPlayer) {
+                this.addEntry(`Gained ${event.effectName} (+${event.value} for ${event.duration} turns)`, LogCategory.Effects, '#40c057');
+            }
+        });
+
+        bus.on(GameEventNames.ConditionApply, (event: ConditionApplyEvent) => {
+            if (event.target.isPlayer) {
+                this.addEntry(`Afflicted with ${event.conditionName}`, LogCategory.Effects, '#ff6b6b');
+            }
+        });
+
+        bus.on(GameEventNames.PermanentEffectApply, (event: PermanentEffectApplyEvent) => {
+            if (event.target.isPlayer) {
+                this.addEntry(`Permanent effect: ${event.effectName}`, LogCategory.Effects, '#4c6ef5');
+            }
+        });
     }
 
     private createFilterButtons(): void {
@@ -137,6 +156,7 @@ export class GameJournal extends UIComponent {
         const categories = [
             { cat: LogCategory.Combat, label: 'Combat', title: 'Combat Logs' },
             { cat: LogCategory.Items, label: 'Items', title: 'Item Logs' },
+            { cat: LogCategory.Effects, label: 'Effects', title: 'Effect Logs' },
             { cat: LogCategory.System, label: 'System', title: 'System Logs' }
         ];
 
@@ -221,6 +241,7 @@ export class GameJournal extends UIComponent {
             switch (category) {
                 case LogCategory.Combat: msgSpan.style.color = '#ff6b6b'; break;
                 case LogCategory.Items: msgSpan.style.color = '#ffd93d'; break;
+                case LogCategory.Effects: msgSpan.style.color = '#51cf66'; break;
                 case LogCategory.System: msgSpan.style.color = '#4dabf7'; break;
                 default: msgSpan.style.color = '#e9ecef';
             }

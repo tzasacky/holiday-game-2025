@@ -55,9 +55,10 @@ export class Level {
         this.height = height;
         this.biome = biome;
         this.levelId = levelId;
-        // Extract floor number from levelId (e.g. "level_1" -> 1)
-        const match = levelId.match(/level_(\d+)/);
+        // Extract floor number from levelId (e.g. "floor_5_snowy_village" -> 5)
+        const match = levelId.match(/floor_(\d+)/);
         this.floorNumber = match ? parseInt(match[1]) : 1;
+        this.depth = this.floorNumber; // Keep depth in sync
         this.entrancePoint = ex.vec(0, 0); // Will be set by generator
 
         // Initialize heat map for warmth system

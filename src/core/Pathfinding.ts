@@ -85,7 +85,13 @@ export class Pathfinding {
             return null;
         }
 
-        // Check for interactable entities first
+        // Check for actors (combat) first - prioritize enemies over doors
+        const actorAtPos = level.getActorAt(x, y);
+        if (actorAtPos && !actorAtPos.isPlayer && !actorAtPos.isDead) {
+            return InteractionType.ActorAttack;
+        }
+
+        // Check for interactable entities second
         const interactableEntity = level.getInteractableAt(x, y);
         if (interactableEntity) {
             // Check if player can interact with this
@@ -101,12 +107,6 @@ export class Pathfinding {
                 
                 return InteractionType.EntityInteract;
             }
-        }
-
-        // Check for actors (combat) - skip dead actors
-        const actorAtPos = level.getActorAt(x, y);
-        if (actorAtPos && !actorAtPos.isPlayer && !actorAtPos.isDead) {
-            return InteractionType.ActorAttack;
         }
 
         return null;

@@ -103,6 +103,12 @@ export class DungeonNavigator {
         return this.transitionToFloor(targetFloor, 'down');
     }
 
+    public async debugTeleport(floorNumber: number): Promise<boolean> {
+        Logger.warn(`[DungeonNavigator] DEBUG TELEPORT to floor ${floorNumber}`);
+        // Treat as 'down' to spawn at entrance
+        return this.transitionToFloor(floorNumber, 'down');
+    }
+
     private async transitionToFloor(targetFloor: number, direction: 'up' | 'down'): Promise<boolean> {
         Logger.info(`[DungeonNavigator] Transitioning from floor ${this.currentFloor} to ${targetFloor}`);
 

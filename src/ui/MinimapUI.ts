@@ -137,9 +137,27 @@ export class MinimapUI {
             this.scale
         );
         
-        // Draw Stairs (if discovered)
-        // We can iterate interactables or check specific tiles if we tracked them
-        // For now, let's just draw the hero and terrain
+        // Draw Floor Number
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.font = 'bold 12px Arial';
+        this.ctx.textAlign = 'left';
+        this.ctx.fillText(`Floor ${this.level.floorNumber}`, 4, 14);
+        
+        // Draw Entrance/Exit markers
+        if (this.level.entrancePoint) {
+            const ep = this.level.entrancePoint;
+            if (this.level.discoveredTiles.has(`${ep.x},${ep.y}`)) {
+                this.ctx.fillStyle = '#22c55e'; // Green for entrance (stairs up)
+                this.ctx.fillRect(ep.x * this.scale, ep.y * this.scale, this.scale, this.scale);
+            }
+        }
+        if (this.level.exitPoint) {
+            const xp = this.level.exitPoint;
+            if (this.level.discoveredTiles.has(`${xp.x},${xp.y}`)) {
+                this.ctx.fillStyle = '#eab308'; // Yellow for exit (stairs down)
+                this.ctx.fillRect(xp.x * this.scale, xp.y * this.scale, this.scale, this.scale);
+            }
+        }
     }
 
     private toggleMinimize() {

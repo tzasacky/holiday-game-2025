@@ -4,6 +4,8 @@ import { GameEventNames, HealthChangeEvent, WarmthChangeEvent } from '../core/Ga
 import { GameActor } from '../components/GameActor';
 import { Logger } from '../core/Logger';
 import { StatsComponent } from '../components/StatsComponent';
+import { CombatComponent } from '../components/CombatComponent';
+import { EquipmentComponent } from '../components/EquipmentComponent';
 
 export class HUD extends UIComponent {
     private hpBar: HTMLElement | null = null;
@@ -107,18 +109,26 @@ export class HUD extends UIComponent {
         }
 
         const str = stats.getStat('strength');
-        const def = stats.getStat('defense');
         const acc = stats.getStat('accuracy');
         const crit = stats.getStat('critRate');
+
+        // Get actual damage and defense calculations from combat component
+        const combat = this.hero.getGameComponent<CombatComponent>('combat');
+        const totalDamage = combat ? combat.getTotalDamage() : str;
+        const totalDefense = combat ? combat.getTotalDefense() : stats.getStat('defense');
 
         // Format percentages (assuming 0-1 range, e.g. 0.95 -> 95%)
         // If values are already 0-100, this will show 9500%, so we check range
         const accText = acc <= 1 ? Math.round(acc * 100) : Math.round(acc);
         const critText = crit <= 1 ? Math.round(crit * 100) : Math.round(crit);
 
+        // Show base strength and total damage if different
+        const strDisplay = totalDamage !== str ? `${str} (${totalDamage})` : str;
+        const defDisplay = totalDefense !== stats.getStat('defense') ? `${stats.getStat('defense')} (${totalDefense})` : totalDefense;
+
         statsContainer.innerHTML = `
-            <div style="color: var(--color-text-secondary)">STR: <span style="color: var(--color-text)">${str}</span></div>
-            <div style="color: var(--color-text-secondary)">DEF: <span style="color: var(--color-text)">${def}</span></div>
+            <div style="color: var(--color-text-secondary)">STR: <span style="color: var(--color-text)">${strDisplay}</span></div>
+            <div style="color: var(--color-text-secondary)">DEF: <span style="color: var(--color-text)">${defDisplay}</span></div>
             <div style="color: var(--color-text-secondary)">ACC: <span style="color: var(--color-text)">${accText}%</span></div>
             <div style="color: var(--color-text-secondary)">CRT: <span style="color: var(--color-text)">${critText}%</span></div>
         `;

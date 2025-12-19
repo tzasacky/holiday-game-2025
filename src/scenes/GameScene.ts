@@ -4,12 +4,14 @@ import { TurnManager } from '../core/TurnManager';
 import { UIManager } from '../ui/UIManager';
 import { GameActor } from '../components/GameActor';
 import { Logger } from '../core/Logger';
-import { GameEventNames, DieEvent, LevelTransitionEvent } from '../core/GameEvents';
+import { GameEventNames, DieEvent, LevelTransitionEvent, StartTargetingEvent, ItemUseEvent, ItemThrowEvent } from '../core/GameEvents';
+import { ItemEntity } from '../factories/ItemFactory';
 import { EventBus } from '../core/EventBus';
 import { DungeonNavigator } from '../core/DungeonNavigator';
 import { LevelManager } from '../core/LevelManager';
 import { GameState } from '../core/GameState';
 import { DataManager } from '../core/DataManager';
+import { InventoryComponent } from '../components/InventoryComponent';
 import { ActorDefinition } from '../data/actors';
 import { LootSystem } from '../systems/LootSystem';
 import { VisibilitySystem } from '../core/Visibility';
@@ -20,6 +22,8 @@ export class GameScene extends ex.Scene {
     public level: Level | null = null;
     private hero: GameActor | null = null;
     private fogRenderer: FogOfWarRenderer | null = null;
+    private targetingItem: ItemEntity | null = null;
+    private reticle: ex.Actor | null = null;
 
     // Constructor to initialize with a specific level
     constructor(level: Level) {
@@ -134,6 +138,15 @@ export class GameScene extends ex.Scene {
 
         // Listen for loot generated events
         EventBus.instance.on(GameEventNames.LootGenerated, this.handleLootGenerated);
+
+        // Listen for targeting start
+        EventBus.instance.on(GameEventNames.StartTargeting, this.handleStartTargeting);
+
+        // Listen for map reveal
+        EventBus.instance.on('level:reveal_all', this.handleRevealAll);
+                
+        // Input handling for targeting
+        context.engine.input.pointers.primary.on('down', this.handlePointerDown);
         
     }
 
@@ -164,7 +177,16 @@ export class GameScene extends ex.Scene {
         EventBus.instance.off(GameEventNames.ActorTurn, this.handleActorTurn);
         EventBus.instance.off(GameEventNames.ActorTurn, this.handleActorTurn);
         EventBus.instance.off(GameEventNames.Movement, this.handlePlayerMovement);
+        EventBus.instance.off(GameEventNames.Movement, this.handlePlayerMovement);
         EventBus.instance.off(GameEventNames.LootGenerated, this.handleLootGenerated);
+        EventBus.instance.off(GameEventNames.StartTargeting, this.handleStartTargeting);
+        EventBus.instance.off('level:reveal_all', this.handleRevealAll);
+        // We can't easily remove the engine input listener here without reference to the bound function or engine instance cleanly
+        // But since onActivate re-adds it, we might duplicate listeners if not careful.
+        // Handled by using arrow functions as properties.
+        // Wait, engine is passed in onActivate, not available here unless stored.
+        // Actually, we should store the handler specifically to remove it.
+        // For now, let's just make the handler safe to be called multiple times (it checks targetingItem).
     }
 
     private handleDeath = (event: DieEvent) => {
@@ -229,6 +251,25 @@ export class GameScene extends ex.Scene {
             });
             
             Logger.info(`[GameScene] Spawned ${lootItem.quantity}x ${lootItem.itemId} at ${gridPos}`);
+        }
+        
+        // Also drop any items in inventory (e.g. keys held by bosses)
+        const inventory = enemy.getGameComponent<InventoryComponent>('inventory');
+        if (inventory) {
+            inventory.items.forEach(item => {
+                 const gridPos = ex.vec(
+                    Math.floor(enemy.pos.x / 32),
+                    Math.floor(enemy.pos.y / 32)
+                );
+                
+                EventBus.instance.emit(GameEventNames.ItemSpawnRequest, {
+                    itemId: item.id,
+                    position: gridPos,
+                    level: this.level,
+                    count: 1 // Items are instances, count 1
+                });
+                Logger.info(`[GameScene] Dropped inventory item ${item.id} from ${enemy.name}`);
+            });
         }
     }
     
@@ -300,6 +341,70 @@ export class GameScene extends ex.Scene {
                 count: item.quantity
             });
         });
+
+    }
+
+    private handleStartTargeting = (event: StartTargetingEvent) => {
+        Logger.info(`[GameScene] Targeting mode enabled for ${event.item.getDisplayName()}`);
+        this.targetingItem = event.item;
+        
+        // Show reticle or change cursor (TODO: implementing a visual reticle would be nice)
+        // For now, we rely on the click handler.
+        if (typeof document !== 'undefined') {
+            document.body.style.cursor = 'crosshair';
+        }
+        
+        EventBus.instance.emit(GameEventNames.Log, {
+            message: 'Select a target...',
+            category: 'Combat',
+            color: '#ffff00'
+        } as any);
+    }
+    
+    private handlePointerDown = (event: ex.PointerEvent) => {
+        if (!this.targetingItem || !this.hero) return;
+        
+        // Convert screen to world
+        const worldPos = this.engine.screen.screenToWorldCoordinates(event.screenPos);
+        
+        Logger.info(`[GameScene] Targeting click at ${worldPos}`);
+        
+        // Emit throw event with target
+        EventBus.instance.emit(GameEventNames.ItemThrow, new ItemThrowEvent(
+            this.hero,
+            this.targetingItem,
+            worldPos
+        ));
+        
+        // Reset state
+        this.targetingItem = null;
+        if (typeof document !== 'undefined') {
+            document.body.style.cursor = 'default';
+        }
+    }
+
+
+    private handleRevealAll = () => {
+        if (!this.level) return;
+        
+        Logger.info('[GameScene] Revealing entire map!');
+        
+        // Mark all tiles as discovered
+        for (let x = 0; x < this.level.width; x++) {
+            for (let y = 0; y < this.level.height; y++) {
+                this.level.discoveredTiles.add(`${x},${y}`);
+            }
+        }
+        
+        // Update fog if active
+        if (this.fogRenderer) {
+            this.fogRenderer.update();
+        }
+        
+        // Force UI update (minimap)
+        if (this.hero) {
+            UIManager.instance.update(this.hero);
+        }
     }
 
     private async setupLevel(level: Level): Promise<void> {

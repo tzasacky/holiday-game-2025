@@ -40,11 +40,11 @@ function validateSpriteVariance(sprites) {
     const avgVariance = variances.reduce((a,b) => a+b, 0) / variances.length;
     
     return {
-        valid: maxVariance < 3.0 && avgVariance < 1.0,
+    valid: maxVariance < 1.5 && avgVariance < 0.8,
         maxVariance,
         avgVariance,
         median,
-        message: maxVariance >= 3.0 ? `Max variance too high (${maxVariance.toFixed(2)})` :
+        message: maxVariance >= 1.5 ? `Max variance too high (${maxVariance.toFixed(2)})` :
                 avgVariance >= 1.0 ? `Avg variance too high (${avgVariance.toFixed(2)})` : 'Good size consistency'
     };
 }
@@ -133,8 +133,19 @@ function validateIslandDistribution(islands) {
     };
 }
 
-function smartMergeToTarget(islands, targetCount, maxMergeDistance = 200) {
+function smartMergeToTarget(islands, targetCount, maxMergeDistance = 100) {
     console.log(`   Smart merging ${islands.length} islands to ${targetCount}...`);
+
+    // Pre-filter tiny debris if we have enough candidates
+    if (islands.length > targetCount * 1.5) {
+        const sizes = islands.map(i => i.pixels.length).sort((a,b) => a-b);
+        const medianSize = sizes[Math.floor(sizes.length/2)];
+        const threshold = medianSize * 0.1; // Filter anything < 10% of median
+        
+        const originalCount = islands.length;
+        islands = islands.filter(i => i.pixels.length > threshold);
+        console.log(`   Filtered ${originalCount - islands.length} tiny debris islands (< ${threshold}px)`);
+    }
     
     if (islands.length <= targetCount) {
         return { islands, mergedCount: 0, forcedMerges: 0 };
@@ -273,6 +284,13 @@ function validateComprehensiveQuality(result, originalImage, cleanedImage, image
         if (validations.backgroundRemoval.removalRate >= 0.05) { // Just ensure SOMETHING was removed
             bgRemovalValid = true;
             validations.backgroundRemoval.message += ' (Relaxed for tileset)';
+        }
+    } else {
+        // For characters, if we have perfect density and good variance, relax the background check
+        // This handles large/chunky sprites (like golems) that cover >40% of the image
+        if (densityRatio >= 0.95 && validations.spriteVariance.valid && validations.backgroundRemoval.removalRate >= 0.20) {
+            bgRemovalValid = true;
+            validations.backgroundRemoval.message += ' (Relaxed due to high confidence density)';
         }
     }
 
@@ -970,7 +988,8 @@ if (require.main === module) {
     
     const options = {
         expectedTotal: parseInt(args.find(arg => arg.startsWith('--expected-total='))?.split('=')[1]),
-        verbose: args.includes('--verbose')
+        verbose: args.includes('--verbose'),
+        type: args.find(arg => arg.startsWith('--type='))?.split('=')[1]
     };
     
     if (!options.expectedTotal) {

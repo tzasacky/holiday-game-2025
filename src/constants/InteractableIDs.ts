@@ -4,6 +4,7 @@
 export enum InteractableID {
     Door = 'door',
     LockedDoor = 'locked_door',
+    BossDoor = 'boss_door',
     PresentChest = 'present_chest',
     Stocking = 'stocking',
     ChristmasTree = 'christmas_tree',

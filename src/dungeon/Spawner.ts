@@ -3,7 +3,8 @@ import { GameActor } from '../components/GameActor';
 import { ActorSpawnSystem } from '../components/ActorSpawnSystem';
 import { StatsComponent } from '../components/StatsComponent';
 import { SpawnTableExecutor } from '../systems/SpawnTableExecutor';
-import { getSpawnTableForFloor } from '../data/spawnTables';
+import { getSpawnTableForFloor, SpecialSpawnTables } from '../data/spawnTables';
+import { SpawnTableID } from '../constants/SpawnTableID';
 import { ActorFactory } from '../factories/ActorFactory';
 import { Logger } from '../core/Logger';
 import * as ex from 'excalibur';
@@ -101,17 +102,22 @@ export class Spawner {
 
     /**
      * Get appropriate spawn table ID based on floor and room type
+     * Uses SpecialSpawnTables keys for special rooms, FloorSpawnTableMapping for normal rooms
      */
     private static getSpawnTableId(floorNumber: number, roomType: string): string {
+        // Special room types use SpecialSpawnTables keys
         switch (roomType) {
             case 'boss':
-                return 'boss_room';
+                return 'boss_room'; // Key in SpecialSpawnTables
             case 'treasure':
-                return 'treasure_room_guards';
+                return 'treasure_room_guards'; // Key in SpecialSpawnTables
             case 'ambush':
-                return 'ambush';
+                return 'ambush'; // Key in SpecialSpawnTables
             default:
-                return getSpawnTableForFloor(floorNumber);
+                // Use centralized floor-based table selection
+                const tableId = getSpawnTableForFloor(floorNumber);
+                Logger.info(`[Spawner] Floor ${floorNumber} -> Table: ${tableId}`);
+                return tableId;
         }
     }
 

@@ -12,7 +12,7 @@ export enum TerrainType {
 }
 
 export interface TerrainEffect {
-    type: 'damage' | 'effect' | 'sound';
+    type: 'damage' | 'effect' | 'sound' | 'level_transition_down';
     value?: number;
     damageType?: string;
     effectId?: string;
@@ -36,7 +36,16 @@ export const TerrainDefinitions: Record<TerrainType, TerrainData> = {
     [TerrainType.Wall]: { type: TerrainType.Wall, isSolid: true, isTransparent: false, cost: 0 },
     [TerrainType.Floor]: { type: TerrainType.Floor, isSolid: false, isTransparent: true, cost: 1 },
     [TerrainType.Water]: { type: TerrainType.Water, isSolid: true, isTransparent: true, cost: 0 }, // Impassable (requires bridge)
-    [TerrainType.Chasm]: { type: TerrainType.Chasm, isSolid: true, isTransparent: true, cost: 0 },
+    [TerrainType.Chasm]: { 
+        type: TerrainType.Chasm, 
+        isSolid: false, 
+        isTransparent: true, 
+        cost: 0,
+        effects: [
+            { type: 'damage', value: 10, damageType: 'fall' }, 
+            { type: 'level_transition_down', value: 1 }
+        ] 
+    },
     
     [TerrainType.Ice]: { type: TerrainType.Ice, isSolid: false, isTransparent: true, cost: 1, isSlippery: true },
     [TerrainType.DeepSnow]: { type: TerrainType.DeepSnow, isSolid: false, isTransparent: true, cost: 2 },

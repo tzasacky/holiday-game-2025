@@ -14,6 +14,7 @@ export enum GameEventNames {
     PlayerInput = 'player:input',
     PlayerAction = 'player:action',
     InteractionRequest = 'interaction:request',
+    StartTargeting = 'input:start_targeting',
     
     // Turn System
     TurnStart = 'turn:start',
@@ -48,6 +49,7 @@ export enum GameEventNames {
     BuffApply = 'buff:apply',
     ConditionApply = 'condition:apply',
     PermanentEffectApply = 'permanent_effect:apply',
+    PermanentEffectRemove = 'permanent_effect:remove',
     HealthChange = 'healthchange',
     WarmthChange = 'warmthchange',
     StatsRecalculate = 'stats:recalculate',
@@ -58,6 +60,7 @@ export enum GameEventNames {
     ItemPickup = 'item:pickup',
     ItemDrop = 'item:drop',
     ItemUse = 'item:use',
+    ItemThrow = 'item:throw',
     ItemEquip = 'item:equip',
     ItemUnequip = 'item:unequip',
     ItemSpawnRequest = 'item:spawn_request',
@@ -93,6 +96,7 @@ export enum GameEventNames {
     InteractableStateChanged = 'interactable:state:changed',
     ActorCreate = 'actor:create',
     ItemCreate = 'item:create',
+    InteractableUse = 'interactable:use',
     
     // Audio
     SoundPlay = 'sound:play',
@@ -213,6 +217,17 @@ export class ItemUseEvent extends ex.GameEvent<GameActor> {
     constructor(
         public actor: GameActor,
         public item: ItemEntity
+    ) {
+        super();
+        this.target = actor;
+    }
+}
+
+export class ItemThrowEvent extends ex.GameEvent<GameActor> {
+    constructor(
+        public actor: GameActor,
+        public item: ItemEntity,
+        public targetPos: ex.Vector
     ) {
         super();
         this.target = actor;
@@ -572,6 +587,7 @@ export type GameEventMap = {
     [GameEventNames.ItemPickup]: ItemPickupEvent;
     [GameEventNames.ItemDrop]: ItemDropEvent;
     [GameEventNames.ItemUse]: ItemUseEvent;
+    [GameEventNames.ItemThrow]: ItemThrowEvent;
     [GameEventNames.ItemEquip]: ItemEquipEvent;
     [GameEventNames.ItemUnequip]: ItemUnequipEvent;
     [GameEventNames.EquipmentEquipped]: ItemEquipEvent;
@@ -653,6 +669,7 @@ export type GameEventMap = {
     [GameEventNames.BuffApply]: BuffApplyEvent;
     [GameEventNames.ConditionApply]: ConditionApplyEvent;
     [GameEventNames.PermanentEffectApply]: PermanentEffectApplyEvent;
+    [GameEventNames.PermanentEffectRemove]: PermanentEffectRemoveEvent;
     [GameEventNames.PrefabPlaced]: PrefabPlacedEvent;
     [GameEventNames.PrefabPlaceRequest]: PrefabPlaceRequestEvent;
     [GameEventNames.LevelGenerated]: LevelGeneratedEvent;
@@ -669,6 +686,8 @@ export type GameEventMap = {
     [GameEventNames.PlayerAction]: PlayerActionEvent;
     [GameEventNames.InteractionRequest]: InteractionRequestEvent;
     [GameEventNames.Message]: MessageEvent;
+    [GameEventNames.StartTargeting]: StartTargetingEvent;
+    [GameEventNames.InteractableUse]: InteractableUseEvent;
 };
 
 // --- New Event Classes ---
@@ -777,6 +796,10 @@ export class PermanentEffectApplyEvent extends ex.GameEvent<GameActor> {
     constructor(public target: GameActor, public effectId: string, public value?: number) { super(); this.target = target; }
 }
 
+export class PermanentEffectRemoveEvent extends ex.GameEvent<GameActor> {
+    constructor(public target: GameActor, public effectId: string, public value?: number) { super(); this.target = target; }
+}
+
 export class PrefabPlacedEvent extends ex.GameEvent<any> {
     constructor(public request: any, public result: any) { super(); }
 }
@@ -786,9 +809,17 @@ export class PrefabPlaceRequestEvent extends ex.GameEvent<any> {
         public prefabId: string, 
         public position: ex.Vector,
         public level: any,
-        public floorNumber: number,
-        public room?: any
+        public rotation?: number
     ) { super(); }
+}
+
+export class InteractableUseEvent extends ex.GameEvent<any> {
+    constructor(
+        public interactable: any, // InteractableComponent
+        public user: GameActor
+    ) {
+        super();
+    }
 }
 
 export class LevelGeneratedEvent extends ex.GameEvent<any> {
@@ -829,6 +860,10 @@ export class PlayerInputEvent extends ex.GameEvent<any> {
 
 export class PlayerActionEvent extends ex.GameEvent<any> {
     constructor(public actorId: string, public action: any) { super(); }
+}
+
+export class StartTargetingEvent extends ex.GameEvent<any> {
+    constructor(public item: ItemEntity, public actor: GameActor) { super(); }
 }
 
 export class InteractionRequestEvent extends ex.GameEvent<any> {

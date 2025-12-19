@@ -61,6 +61,12 @@ export interface InteractableLoot {
     maxQuantity?: number;
 }
 
+export interface ContainerLootConfig {
+    guaranteedTables: { tableId: string; count: number }[];
+    randomTableId?: string;
+    randomCount?: { min: number; max: number };
+}
+
 export interface InteractableDefinition {
     id: string;
     name: string;
@@ -81,6 +87,7 @@ export interface InteractableDefinition {
     loot?: InteractableLoot[];
     guaranteedLoot?: string[];
     lootTableId?: string;
+    containerLootConfig?: ContainerLootConfig;
     
     // Physical properties
     blocking?: boolean;
@@ -150,7 +157,26 @@ export const InteractableDefinitions: Record<string, InteractableDefinition> = {
         ],
         tags: [InteractableID.Door, 'locked', 'requires_key']
     },
-
+    [InteractableID.BossDoor]: {
+        id: InteractableID.BossDoor,
+        name: 'Sanctum Gate',
+        type: InteractableType.Door,
+        description: 'A massive, ominous gate sealed by dark magic.',
+        blocking: true,
+        destructible: false,
+        requiresKey: ItemID.GoldKey,
+        graphics: {
+            resource: Resources.InteractablesPng,
+            states: {
+                [InteractableState.Closed]: { spriteCoords: { x: 4, y: 0 } }, 
+                [InteractableState.Open]: { spriteCoords: { x: 4, y: 1 } }
+            }
+        },
+        spawnRules: {
+            indoor: true
+        },
+        tags: [InteractableID.BossDoor, 'locked', 'requires_key', 'boss']
+    },
     [InteractableID.PresentChest]: {
         id: InteractableID.PresentChest,
         name: 'Present Chest',
@@ -167,7 +193,15 @@ export const InteractableDefinitions: Record<string, InteractableDefinition> = {
         },
         description: 'A festive chest wrapped like a present. Who knows what treasures await inside?',
         consumeOnUse: true,
-        lootTableId: InteractableID.PresentChest,
+        // New multi-table loot config
+        containerLootConfig: {
+            guaranteedTables: [
+                { tableId: LootTableID.ChestEquipment, count: 1 },
+                { tableId: LootTableID.ChestSustain, count: 1 }
+            ],
+            randomTableId: LootTableID.ChestRandom,
+            randomCount: { min: 1, max: 3 }
+        },
         effects: [
             { type: AbilityID.ChristmasSpirit, value: 10, target: 'actor' }
         ],
@@ -651,7 +685,14 @@ export const InteractableDefinitions: Record<string, InteractableDefinition> = {
         },
         description: 'A wooden chest that might contain treasure',
         consumeOnUse: true,
-        lootTableId: LootTableID.CHEST,
+        containerLootConfig: {
+            guaranteedTables: [
+                { tableId: LootTableID.ChestEquipment, count: 1 },
+                { tableId: LootTableID.ChestSustain, count: 1 }
+            ],
+            randomTableId: LootTableID.ChestRandom,
+            randomCount: { min: 2, max: 4 }
+        },
         tags: [Tags.Container, 'loot', Tags.TreasureRoom]
     },
 
@@ -671,7 +712,14 @@ export const InteractableDefinitions: Record<string, InteractableDefinition> = {
         },
         description: 'A gilded chest containing valuable treasures',
         consumeOnUse: true,
-        lootTableId: LootTableID.TREASURE_CHEST,
+        containerLootConfig: {
+            guaranteedTables: [
+                { tableId: LootTableID.EquipmentRare, count: 1 },
+                { tableId: LootTableID.ChestSustain, count: 2 }
+            ],
+            randomTableId: LootTableID.ChestRandom,
+            randomCount: { min: 3, max: 5 }
+        },
         tags: [Tags.Container, 'loot', Tags.TreasureRoom, 'rare']
     },
 

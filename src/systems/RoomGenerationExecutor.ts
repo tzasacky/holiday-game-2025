@@ -12,6 +12,8 @@ import { InteractableSpawner } from './InteractableSpawner';
 import { LootSpawner } from './LootSpawner';
 import { TerrainType } from '../data/terrain';
 import { RegistryKey } from '../constants/RegistryKeys';
+import { getSpawnTableForFloor, SpecialSpawnTables } from '../data/spawnTables';
+import { SpawnTableID } from '../constants/SpawnTableID';
 import * as ex from 'excalibur';
 
 export interface RoomPopulationRequest {
@@ -389,19 +391,17 @@ export class RoomGenerationExecutor {
   }
 
   private getDefaultSpawnTable(floorNumber: number, roomType: string): string {
-    // This should use the same logic as Spawner.getSpawnTableId
+    // Use special spawn tables for specific room types
     switch (roomType) {
       case 'boss':
-        return 'boss_room';
+        return 'boss_room'; // SpecialSpawnTables key
       case 'treasure':
-        return 'treasure_room_guards';
+        return 'treasure_room_guards'; // SpecialSpawnTables key
       case 'ambush':
-        return 'ambush';
+        return 'ambush'; // SpecialSpawnTables key
       default:
-        // Use floor-based spawn table
-        if (floorNumber <= 3) return 'early_floors';
-        if (floorNumber <= 7) return 'mid_floors';
-        return 'late_floors';
+        // Use centralized floor-based spawn table logic
+        return getSpawnTableForFloor(floorNumber);
     }
   }
 

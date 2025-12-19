@@ -1,4 +1,5 @@
 import { DataManager } from '../core/DataManager';
+import { LevelManager } from '../core/LevelManager';
 import { EventBus } from '../core/EventBus';
 import { Logger } from '../core/Logger';
 import { InteractableDefinition } from '../data/interactables';
@@ -48,7 +49,7 @@ export class InteractableFactory {
     }
 
     // Create InteractableEntity (NOT a GameActor - doesn't participate in turns)
-    const configWithLevelId = { ...config, levelId: level.levelId };
+    const configWithLevelId = { ...config, levelId: level.levelId, floor: level.floorNumber };
     const entity = new InteractableEntity(position, definition, configWithLevelId);
     
     // Add to scene as entity, not as actor
@@ -57,6 +58,31 @@ export class InteractableFactory {
     Logger.debug(`[InteractableFactory] Created ${definitionId} with component at ${position.x}, ${position.y}`);
 
     EventBus.instance.emit(GameEventNames.InteractableCreated, new InteractableCreatedEvent(entity));
+  }
+  public create(definitionId: string, x: number, y: number, level?: Level): InteractableEntity | null {
+      const definition = DataManager.instance.query<InteractableDefinition>('interactable', definitionId);
+      if (!definition) {
+          Logger.error(`[InteractableFactory] Missing definition for ${definitionId}`);
+          return null;
+      }
+      
+      // Use provided level or current level
+      const targetLevel = level || LevelManager.instance.getCurrentLevel();
+      if (!targetLevel) {
+          Logger.error(`[InteractableFactory] No level provided for ${definitionId}`);
+          return null;
+      }
+      
+    const configWithLevelId = { levelId: targetLevel.levelId, floor: targetLevel.floorNumber };
+    const position = new ex.Vector(x, y);
+      const entity = new InteractableEntity(position, definition, configWithLevelId);
+      
+      // Add to level
+      targetLevel.addEntity(entity);
+      
+      EventBus.instance.emit(GameEventNames.InteractableCreated, new InteractableCreatedEvent(entity));
+      
+      return entity;
   }
 }
 

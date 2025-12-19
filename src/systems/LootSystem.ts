@@ -90,10 +90,42 @@ export class LootSystem {
         return this.generateLoot(tableId, floor);
     }
 
-    public generateContainerLoot(containerType: string): GeneratedLoot[] {
+    public generateContainerLoot(containerType: string, floor: number = 1): GeneratedLoot[] {
         const interactableDef = this.dataManager.query<InteractableDefinition>('interactable', containerType);
-        const tableId = interactableDef?.lootTableId || LootTableID.FloorGeneral;
-        return this.generateLoot(tableId, 1);
+        
+        if (!interactableDef) {
+            return this.generateLoot(LootTableID.FloorGeneral, floor);
+        }
+
+        // Handle new Container Loot Config (Multi-table)
+        if (interactableDef.containerLootConfig) {
+            const config = interactableDef.containerLootConfig;
+            const results: GeneratedLoot[] = [];
+
+            // 1. Guaranteed Tables
+            for (const table of config.guaranteedTables) {
+                // Ensure we spawn the exact count requested
+                const loot = this.generateLoot(table.tableId, floor, table.count);
+                results.push(...loot);
+            }
+
+            // 2. Random Table
+            if (config.randomTableId) {
+                const min = config.randomCount?.min || 1;
+                const max = config.randomCount?.max || 3;
+                const count = Math.floor(Math.random() * (max - min + 1)) + min;
+                
+                const loot = this.generateLoot(config.randomTableId, floor, count);
+                results.push(...loot);
+            }
+
+            return results;
+        }
+
+        // Fallback to legacy single table
+        const tableId = interactableDef.lootTableId || LootTableID.FloorGeneral;
+        // Default to 3-5 items for legacy chests if not specified
+        return this.generateLoot(tableId, floor, 3);
     }
 
     private selectLootEntry(lootTable: LootTable, floor: number): LootTableEntry | null {

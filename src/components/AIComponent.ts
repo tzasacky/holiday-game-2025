@@ -35,6 +35,7 @@ export class AIComponent extends ActorComponent {
     private turnsSinceLastSeen: number = 0;
     private behaviorComposition: AIBehaviorComposition;
     private context: AIContext;
+    private justMoved: boolean = false;
     
     constructor(actor: any, config: AIConfig = { type: 'basic' }) {
         super(actor);
@@ -50,7 +51,8 @@ export class AIComponent extends ActorComponent {
             canSeePlayer: false,
             lastKnownPlayerPos: null,
             turnsSinceLastSeen: 0,
-            currentState: this.state
+            currentState: this.state,
+            justMoved: false
         };
     }
     
@@ -70,6 +72,9 @@ export class AIComponent extends ActorComponent {
             this.actor.spend(10);
             return;
         }
+
+        // Clear movement flag at start of each turn
+        this.justMoved = false;
 
         // Get level from scene
         const scene = this.actor.scene as GameScene;
@@ -94,6 +99,7 @@ export class AIComponent extends ActorComponent {
         this.context.currentState = this.state;
         this.context.lastKnownPlayerPos = this.lastKnownPlayerPos;
         this.context.turnsSinceLastSeen = this.turnsSinceLastSeen;
+        this.context.justMoved = this.justMoved;
         
         // Check line-of-sight using VisibilitySystem
         if (player && scene) {
@@ -179,6 +185,9 @@ export class AIComponent extends ActorComponent {
             this.actor.gridPos = toPos.clone();
             this.actor.animateMovement(toPos, oldPos);
             
+            // Set justMoved flag to prevent attacks this turn
+            this.justMoved = true;
+            
             // Emit movement event
             EventBus.instance.emit(GameEventNames.Movement, {
                 actorId: this.actor.entityId,
@@ -203,6 +212,10 @@ export class AIComponent extends ActorComponent {
             if (interactableEntity) {
                 Logger.debug(`[AIComponent] ${this.actor.name} interacting with door at ${targetPos.x},${targetPos.y}`);
                 interactableEntity.interact(this.actor);
+                
+                // Set justMoved flag since opening doors is considered movement preparation
+                this.justMoved = true;
+                
                 this.actor.spend(10);
                 return true;
             }
@@ -247,6 +260,9 @@ export class AIComponent extends ActorComponent {
             const oldPos = this.actor.gridPos.clone();
             this.actor.gridPos = nextStep.clone();
             this.actor.animateMovement(nextStep, oldPos);
+            
+            // Set justMoved flag to prevent attacks this turn
+            this.justMoved = true;
             
             // Emit movement event
             EventBus.instance.emit(GameEventNames.Movement, {
@@ -300,6 +316,9 @@ export class AIComponent extends ActorComponent {
             const oldPos = this.actor.gridPos.clone();
             this.actor.gridPos = nextStep.clone();
             this.actor.animateMovement(nextStep, oldPos);
+            
+            // Set justMoved flag to prevent attacks this turn
+            this.justMoved = true;
             
             EventBus.instance.emit(GameEventNames.Movement, {
                 actorId: this.actor.entityId,

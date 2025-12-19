@@ -163,7 +163,6 @@ export class DecorSystem {
         const protectedTiles = new Set<string>();
         
         // Identify entrances
-        // We can use room.entrances if populated, or scan perimeter for doors/openings
         const entrances: {x: number, y: number}[] = [];
         
         if (room.entrances && room.entrances.length > 0) {
@@ -188,7 +187,7 @@ export class DecorSystem {
             }
         }
 
-        // If no entrances found (weird), protect center
+        // If no entrances found, protect center
         if (entrances.length === 0) {
             const cx = room.x + Math.floor(room.width/2);
             const cy = room.y + Math.floor(room.height/2);
@@ -196,58 +195,92 @@ export class DecorSystem {
             return protectedTiles;
         }
 
-        // Connect all entrances to a central point (or each other)
-        // Simple star topology: Connect all entrances to room center
+        // Connect all entrances to a central point using BFS
         const cx = room.x + Math.floor(room.width/2);
         const cy = room.y + Math.floor(room.height/2);
         
+        // Add path from each entrance to center
         for (const ent of entrances) {
-            this.manhattanLine(ent.x, ent.y, cx, cy, (x, y) => {
-                protectedTiles.add(`${x},${y}`);
-            });
-            // Also protect the entrance tile itself and neighbors to be safe
+            const path = this.findPath(level, ent, {x: cx, y: cy});
+            for (const p of path) {
+                protectedTiles.add(`${p.x},${p.y}`);
+            }
+            // Also protect the entrance tile itself
             protectedTiles.add(`${ent.x},${ent.y}`);
         }
+        
+        // Also connect entrances to each other (optional, but good for flow)
+        // For simple rooms, center connection is usually enough.
 
         return protectedTiles;
     }
 
     /**
-     * Manhattan path protection for 4-way movement
-     * Protects BOTH possible L-paths between two points (horizontal-first AND vertical-first)
-     * This ensures there's always a clear cardinal path between entrance and center
+     * Find a walkable path between two points using BFS
+     * Avoids walls, water, chasms (but includes Floor, DeepSnow, Ice)
+     */
+    private findPath(level: Level, start: {x: number, y: number}, end: {x: number, y: number}): {x: number, y: number}[] {
+        // Optimization: direct check if start/end are same
+        if (start.x === end.x && start.y === end.y) return [{x: start.x, y: start.y}];
+
+        const queue: {x: number, y: number, path: {x: number, y: number}[]}[] = [];
+        queue.push({x: start.x, y: start.y, path: []});
+        
+        const visited = new Set<string>();
+        visited.add(`${start.x},${start.y}`);
+        
+        // Limit BFS search depth/size to prevent hanging on weird maps
+        let steps = 0;
+        const maxSteps = 500; 
+        
+        while (queue.length > 0 && steps < maxSteps) {
+            steps++;
+            const current = queue.shift()!;
+            const {x, y, path} = current;
+            
+            // Check if reached target (or adjacent to target if target is solid?) 
+            // Assuming target is walkable center
+            if (x === end.x && y === end.y) {
+                return [...path, {x, y}];
+            }
+            
+            // Neighbors (4-way)
+            const neighbors = [
+                {x: x+1, y: y}, {x: x-1, y: y},
+                {x: x, y: y+1}, {x: x, y: y-1}
+            ];
+            
+            for (const n of neighbors) {
+                const key = `${n.x},${n.y}`;
+                if (visited.has(key)) continue;
+                
+                if (n.x < 0 || n.x >= level.width || n.y < 0 || n.y >= level.height) continue;
+                
+                // Terrain check - specific to Decor placement needs
+                // We want to pathfind through WALKABLE tiles.
+                // Water/Chasm/Wall are NOT walkable.
+                const terrain = level.getTile(n.x, n.y);
+                if (terrain === TerrainType.Wall || 
+                    terrain === TerrainType.Water || 
+                    terrain === TerrainType.Chasm) {
+                    continue;
+                }
+                
+                visited.add(key);
+                queue.push({x: n.x, y: n.y, path: [...path, {x, y}]});
+            }
+        }
+        
+        // If we failed to find a path, fall back to Manhattan (maybe they are disconnected by design or bad gen)
+        // But for "Protected Tiles", if there's no path, there's nothing to protect.
+        return [];
+    }
+
+    /**
+     * @deprecated Replaced by findPath BFS
      */
     private manhattanLine(x0: number, y0: number, x1: number, y1: number, callback: (x: number, y: number) => void) {
-        // Path 1: Horizontal first, then vertical
-        const sx = x0 < x1 ? 1 : (x0 > x1 ? -1 : 0);
-        const sy = y0 < y1 ? 1 : (y0 > y1 ? -1 : 0);
-        
-        // Horizontal leg
-        if (sx !== 0) {
-            for (let x = x0; sx > 0 ? x <= x1 : x >= x1; x += sx) {
-                callback(x, y0);
-            }
-        }
-        // Vertical leg
-        if (sy !== 0) {
-            for (let y = y0; sy > 0 ? y <= y1 : y >= y1; y += sy) {
-                callback(x1, y);
-            }
-        }
-        
-        // Path 2: Vertical first, then horizontal (cross pattern)
-        // Vertical leg from start
-        if (sy !== 0) {
-            for (let y = y0; sy > 0 ? y <= y1 : y >= y1; y += sy) {
-                callback(x0, y);
-            }
-        }
-        // Horizontal leg to end
-        if (sx !== 0) {
-            for (let x = x0; sx > 0 ? x <= x1 : x >= x1; x += sx) {
-                callback(x, y1);
-            }
-        }
+        // ... kept for compatibility if needed, but unused now
     }
 
     private paintDecorConfig(level: Level, room: Room, configs: DecorConfig[]): void {

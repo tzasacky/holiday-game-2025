@@ -1,6 +1,6 @@
 import * as ex from 'excalibur';
 import { ActorComponent } from './ActorComponent';
-import { GameEventNames, AttackEvent, DamageEvent, DamageDealtEvent, StatModifyEvent, DieEvent, LogEvent } from '../core/GameEvents';
+import { GameEventNames, AttackEvent, DamageEvent, DamageDealtEvent, StatModifyEvent, DieEvent, LogEvent, ConditionApplyEvent } from '../core/GameEvents';
 import { DamageType } from '../data/mechanics';
 import { StatsComponent } from './StatsComponent';
 import { EquipmentComponent } from './EquipmentComponent';
@@ -9,6 +9,8 @@ import { EventBus } from '../core/EventBus';
 import { Logger } from '../core/Logger';
 import { TurnManager } from '../core/TurnManager';
 import { LevelManager } from '../core/LevelManager';
+import { StatusEffectComponent } from './StatusEffectComponent';
+import { EffectID } from '../constants/EffectIDs';
 
 export class CombatComponent extends ActorComponent {
     private isAttacking = false;
@@ -18,24 +20,11 @@ export class CombatComponent extends ActorComponent {
         this.listen(GameEventNames.Attack, (event: AttackEvent) => {
             // Check if we are the attacker (event.attacker is GameActor)
             if (event.attacker === this.actor) {
-                // If the event is already fully formed with a target, we don't need to do anything
-                // But if this is a command to attack, we might need to handle it.
-                // Actually, AttackEvent seems to be the RESULT of an attack initiation.
-                // Let's assume we listen for a command or input that triggers handleAttack.
-                // But the original code listened for 'combat:attack' with attackerId.
-                // If we use strict events, we should probably have an AttackRequestEvent or similar.
-                // For now, let's keep the logic but check event properties.
-                
                 // If event.target is set, we're good.
             }
         });
         
-        // We need a way to trigger attacks. Usually Input or AI triggers it.
-        // They should call handleAttack directly or emit an event.
-        
-        // Listen for damage requests (using a specific event name for requests if needed, or reusing DamageEvent if it's a request)
-        // Original code used 'combat:take_damage'. Let's use GameEventNames.Damage for the request/notification.
-        // But GameEventNames.Damage maps to DamageEvent which has a target.
+        // Listen for damage requests
         this.listen(GameEventNames.Damage, (event: DamageEvent) => {
             if (event.target === this.actor) {
                 this.takeDamage(event.damage, event.type, event.source);
@@ -52,7 +41,6 @@ export class CombatComponent extends ActorComponent {
     
     private getActorById(id: string): GameActor | undefined {
         // Use LevelManager to get current level's actors
-        // This is more reliable than scene.actors, especially during scene transitions
         const level = LevelManager.instance.getCurrentLevel();
         if (!level) return undefined;
         return level.actors.find((a: GameActor) => a.entityId === id || a.name === id);
@@ -71,9 +59,46 @@ export class CombatComponent extends ActorComponent {
                 baseDamage += weapon.definition.stats.damage;
             }
         }
+
+        // Add Status Effect Bonuses
+        const statusComp = this.actor.getGameComponent<StatusEffectComponent>('status_effect');
+        if (statusComp) {
+            // General damage boost (if any)
+            baseDamage += statusComp.getEffectValue(EffectID.DamageBoost);
+            
+            // Frost Damage Bonus
+            baseDamage += statusComp.getEffectValue(EffectID.FrostDamageBonus);
+            
+            // Fire Damage Bonus
+            baseDamage += statusComp.getEffectValue(EffectID.FireDamageBonus); // Assuming FireDamageBonus exists or used FireDamage?
+            // Actually I added FireDamageBonus in previous step.
+        }
         
-        // Check for critical hit
-        const critRate = statsComp?.getStat('critRate') || 0;
+        // Check for critical hit (including equipment bonuses)
+        let critRate = statsComp?.getStat('critRate') || 0;
+        
+        // Add crit rate from status effects (items)
+        if (statusComp) {
+            critRate += statusComp.getEffectValue(EffectID.CritRateBoost);
+        }
+        
+        // Apply weapon enchantments to crit rate 
+        // NOTE: Older enchantment logic might duplicate Status effects.
+        // Assuming EffectExecutor handles applying status effect bonuses for enchantments,
+        // we might not need this if Enchantments are converted to Status Effects.
+        // But logic below specifically looks at 'weapon.enchantments'.
+        // If we want to keep it:
+        if (equipmentComp) {
+             const weapon = equipmentComp.getEquipment('weapon');
+             if (weapon?.enchantments) {
+                 weapon.enchantments.forEach(enchantment => {
+                     if (enchantment.type === 'vampiric' || enchantment.type === 'frost') {
+                         critRate += enchantment.power * 2; // These enhance crit chance
+                     }
+                 });
+             }
+        }
+        
         const isCrit = Math.random() * 100 < critRate;
         
         if (isCrit) {
@@ -106,22 +131,56 @@ export class CombatComponent extends ActorComponent {
         const target = this.getActorById(targetId);
         if (!target) {
             console.warn(`[CombatComponent] Could not find target ${targetId}`);
+            this.isAttacking = false;
             return;
         }
         
-        // Check accuracy
+        // Check accuracy (including equipment bonuses)
         const statsComp = this.actor.getGameComponent<StatsComponent>('stats');
-        const accuracy = statsComp?.getStat('accuracy') || 100;
+        let accuracy = statsComp?.getStat('accuracy') || 100;
+
+        // Status component for additional effects
+        const statusComp = this.actor.getGameComponent<StatusEffectComponent>('status_effect');
+        if (statusComp) {
+            accuracy += statusComp.getEffectValue(EffectID.AccuracyBoost);
+        }
+        
+        // Apply equipment accuracy modifiers (legacy/specific)
+        const equipmentComp = this.actor.getGameComponent<EquipmentComponent>('equipment');
+        if (equipmentComp) {
+            const weapon = equipmentComp.getEquipment('weapon');
+            if (weapon?.curses) {
+                weapon.curses.forEach(curse => {
+                    if (curse.type === 'bad_luck') {
+                        accuracy = Math.max(5, accuracy - (curse.severity * 5));
+                    }
+                });
+            }
+        }
+        
         const hitRoll = Math.random() * 100;
         
         if (hitRoll > accuracy) {
             Logger.debug(`[CombatComponent] ${this.actor.name} MISSED ${target.name}! (${hitRoll.toFixed(1)} > ${accuracy})`);
             this.isAttacking = false;
+            
+            // Show "MISS" text
+            // this.showDamageText("MISS"); // Need to change signature or handle string
             return;
         }
         
         // Calculate damage
         const damage = this.calculateDamage();
+        
+        // Determine Damage Type
+        let damageType = DamageType.Physical;
+        if (equipmentComp) {
+            const weapon = equipmentComp.getEquipment('weapon');
+            if (weapon) {
+                if (weapon.definition.tags.includes(EffectID.Ice)) damageType = DamageType.Ice;
+                if (weapon.definition.tags.includes(EffectID.Fire)) damageType = DamageType.Fire;
+            }
+        }
         
         // Clear any existing damage label before showing attack animation
         if (this.actor.currentDamageLabel) {
@@ -149,10 +208,31 @@ export class CombatComponent extends ActorComponent {
             EventBus.instance.emit(GameEventNames.Damage, new DamageEvent(
                 target,
                 damage,
-                DamageType.Physical,
+                damageType,
                 this.actor,
                 false
             ));
+            
+            // Apply On-Hit Effects
+            if (statusComp) {
+                // Stun Chance
+                const stunChance = statusComp.getEffectValue(EffectID.StunChance);
+                if (stunChance > 0 && Math.random() * 100 < stunChance) {
+                    EventBus.instance.emit(GameEventNames.ConditionApply, new ConditionApplyEvent(target, EffectID.Stun, 1));
+                }
+                
+                // Frost Chance (Freeze)
+                const frostChance = statusComp.getEffectValue(EffectID.FrostChance);
+                if (frostChance > 0 && Math.random() * 100 < frostChance) {
+                     EventBus.instance.emit(GameEventNames.ConditionApply, new ConditionApplyEvent(target, EffectID.Freeze, 1));
+                }
+                
+                // Slow Chance
+                const slowChance = statusComp.getEffectValue(EffectID.SlowChance);
+                if (slowChance > 0 && Math.random() * 100 < slowChance) {
+                     EventBus.instance.emit(GameEventNames.ConditionApply, new ConditionApplyEvent(target, EffectID.Slow, 3));
+                }
+            }
             
             // After hurt animation completes, return to idle (another 400ms)
             setTimeout(() => {
@@ -168,14 +248,35 @@ export class CombatComponent extends ActorComponent {
     }
     
     public takeDamage(amount: number, type: DamageType, source?: GameActor): void {
-        // Calculate final damage with defense
+        // Calculate final damage with defense and resistances
         let finalDamage = amount;
-        if (type === DamageType.Physical) {
-            const defense = this.getTotalDefense();
-            finalDamage = Math.max(0, amount - defense);
-        }
         
-        Logger.debug(`[CombatComponent] ${this.actor.name} taking ${finalDamage} damage (${amount} - ${this.getTotalDefense()} defense)`);
+        // 1. Apply Defense (Armor) - Mostly for Physical, but helps generally
+        const defense = this.getTotalDefense();
+        finalDamage = Math.max(0, finalDamage - defense);
+        
+        // 2. Apply Resistances from StatusEffectComponent
+        const statusComp = this.actor.getGameComponent<StatusEffectComponent>('status_effect');
+        if (statusComp) {
+            let resistance = 0;
+            
+            if (type === DamageType.Ice) {
+                 resistance += statusComp.getEffectValue(EffectID.ColdResistance);
+            } else if (type === DamageType.Fire) {
+                 resistance += statusComp.getEffectValue(EffectID.FireResistance);
+            }
+            
+            // Additional check for immunity
+            if (type === DamageType.Ice && statusComp.getEffectValue(EffectID.ColdImmunity) > 0) {
+                 resistance = 100;
+            }
+
+            if (resistance > 0) {
+                finalDamage = Math.floor(finalDamage * (1 - Math.min(100, resistance) / 100));
+            }
+        }
+
+        Logger.debug(`[CombatComponent] ${this.actor.name} taking ${finalDamage} damage (${amount} - ${defense} defense, type: ${type})`);
         
         // Play hurt animation (4 frames @ 200ms = 800ms)
         if (source) {
@@ -316,7 +417,33 @@ export class CombatComponent extends ActorComponent {
             }
         }
         
-        // TODO: Add effect modifiers
+        // Add Status Bonuses
+        const statusComp = this.actor.getGameComponent<StatusEffectComponent>('status_effect');
+        if (statusComp) {
+            damage += statusComp.getEffectValue(EffectID.DamageBoost);
+            damage += statusComp.getEffectValue(EffectID.FrostDamageBonus);
+        }
+        
+        if (equipmentComp) {
+            const weapon = equipmentComp.getEquipment('weapon');
+            if (weapon?.enchantments) {
+                weapon.enchantments.forEach(enchantment => {
+                    if (enchantment.type === 'sharpness') {
+                        damage += enchantment.power * 2;
+                    }
+                });
+            }
+            
+            // Apply weapon curses
+            if (weapon?.curses) {
+                weapon.curses.forEach(curse => {
+                    if (curse.type === 'dull') {
+                        damage = Math.max(1, damage - (curse.severity * 2));
+                    }
+                });
+            }
+        }
+        
         return Math.max(0, damage);
     }
     
@@ -335,6 +462,28 @@ export class CombatComponent extends ActorComponent {
             }
         }
         
+        // Add armor enchantments and curses
+        // Note: Re-fetching equipmentComp isn't needed if we reuse, but here scopes are separate
+        if (equipmentComp) {
+            const armor = equipmentComp.getEquipment('armor');
+            if (armor?.enchantments) {
+                armor.enchantments.forEach(enchantment => {
+                    if (enchantment.type === 'protection') {
+                        defense += enchantment.power * 2;
+                    }
+                });
+            }
+            
+            // Apply armor curses
+            if (armor?.curses) {
+                armor.curses.forEach(curse => {
+                    if (curse.type === 'vulnerability') {
+                        defense = Math.max(0, defense - (curse.severity * 2));
+                    }
+                });
+            }
+        }
+
         return Math.max(0, defense);
     }
 }

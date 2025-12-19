@@ -15,10 +15,10 @@ export interface DifficultySettings {
 
 // Brutal difficulty settings - most runs should end in death
 export const Difficulty: DifficultySettings = {
-    playerStartingHP: 25,        // Low starting health
-    playerStartingWarmth: 60,    // Moderate starting warmth
+    playerStartingHP: 100,       // Starting health
+    playerStartingWarmth: 100,   // Starting warmth
     warmthDecayRate: 0.8,        // Lose warmth at slower rate to allow for strategic play
-    enemyDamageMultiplier: 1.4,  // Enemies hit hard
+    enemyDamageMultiplier: 1.0,  // Enemies hit hard
     enemyHealthMultiplier: 1.2,  // Enemies are tanky
     enemySpawnRate: 1.3,         // More enemies spawn
     lootScarcity: 2.0,           // Loot is twice as rare
@@ -29,19 +29,20 @@ export const Difficulty: DifficultySettings = {
     permadeathEnabled: true      // One life only
 };
 
-// Base stat requirements for survival at different floors
+// Base stat requirements for survival at different floors - BRUTAL scaling
 export const StatRequirementsByFloor: Record<number, {minDamage: number, minDefense: number, minWarmth: number, minHP: number}> = {
-    5:  { minDamage: 6,  minDefense: 4,  minWarmth: 80,  minHP: 35 },
-    10: { minDamage: 10, minDefense: 7,  minWarmth: 100, minHP: 50 },
-    15: { minDamage: 15, minDefense: 10, minWarmth: 120, minHP: 70 },
-    20: { minDamage: 22, minDefense: 15, minWarmth: 150, minHP: 90 }
+    3:  { minDamage: 5,  minDefense: 2,  minWarmth: 70,  minHP: 30 },   // Early pressure
+    5:  { minDamage: 8,  minDefense: 5,  minWarmth: 85,  minHP: 40 },   // Increased requirements
+    10: { minDamage: 15, minDefense: 10, minWarmth: 110, minHP: 65 },   // Much higher
+    15: { minDamage: 25, minDefense: 18, minWarmth: 140, minHP: 90 },   // Very high
+    20: { minDamage: 40, minDefense: 28, minWarmth: 180, minHP: 120 }   // Near-impossible without progression
 };
 
 // Enemy scaling by floor (brutal progression)
 export const EnemyScaling = {
-    damagePerFloor: 1.8,         // +80% damage per floor
-    healthPerFloor: 1.6,         // +60% health per floor
-    accuracyPerFloor: 2,         // +2 accuracy per floor
+    damagePerFloor: 2.2,         // +120% damage per floor - MUCH more aggressive
+    healthPerFloor: 1.8,         // +80% health per floor - tankier enemies
+    accuracyPerFloor: 3,         // +3 accuracy per floor - more hits
     speedBonusEvery5Floors: 1    // +1 speed every 5 floors
 };
 

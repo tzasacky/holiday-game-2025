@@ -8,7 +8,18 @@ export enum LootTableID {
     CHEST = 'chest_loot',
     TREASURE_CHEST = 'treasure_chest_loot',
     BARREL = 'barrel_loot',
+
     PUZZLE_CHEST = 'puzzle_chest_loot',
+    
+    // New Multi-Table Chest tables
+    ChestEquipment = 'chest_equipment_guaranteed',
+    ChestSustain = 'chest_sustain_guaranteed',
+    ChestRandom = 'chest_random_loot',
+    
+    // Equipment Sub-tables
+    EquipmentCommon = 'equipment_common',
+    EquipmentRare = 'equipment_rare',
+    EquipmentEpic = 'equipment_epic',
     
     // Enemy loot
     SnowmanLoot = 'snowman_loot',

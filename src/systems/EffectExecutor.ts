@@ -1,13 +1,18 @@
+import * as ex from 'excalibur';
 import { EventBus } from '../core/EventBus';
-import { GameEventNames, ItemUseEvent, AbilityCastEvent, StatChangeEvent, StatModifyEvent, DamageDealtEvent, BuffApplyEvent, ConditionApplyEvent, PermanentEffectApplyEvent, WarmthChangeEvent, LogEvent, ItemDestroyedEvent } from '../core/GameEvents';
+import { GameEventNames, ItemUseEvent, ItemThrowEvent, AbilityCastEvent, StatChangeEvent, StatModifyEvent, DamageDealtEvent, DamageEvent, BuffApplyEvent, ConditionApplyEvent, PermanentEffectApplyEvent, WarmthChangeEvent, LogEvent, ItemDestroyedEvent, InteractableUseEvent, ItemEquipEvent, ItemUnequipEvent, PermanentEffectRemoveEvent } from '../core/GameEvents';
 import { ItemEffect } from '../data/items';
 import { AbilityID } from '../constants';
 import { EffectID } from '../constants';
 import { Logger } from '../core/Logger';
 import { GameActor } from '../components/GameActor';
 import { DataManager } from '../core/DataManager';
+import { LevelManager } from '../core/LevelManager';
+
 import { AbilityDefinition, AbilityEffect } from '../data/abilities';
 import { DamageType } from '../data/mechanics';
+import { StatsComponent } from '../components/StatsComponent';
+import { StatusEffectComponent } from '../components/StatusEffectComponent';
 
 /**
  * EffectExecutor - Applies effects from data definitions
@@ -33,7 +38,24 @@ export class EffectExecutor {
         });
         
         EventBus.instance.on(GameEventNames.AbilityCast, (event: AbilityCastEvent) => {
+
             this.handleAbilityCast(event);
+        });
+
+        EventBus.instance.on(GameEventNames.ItemThrow, (event: ItemThrowEvent) => {
+            this.handleItemThrow(event);
+        });
+
+        EventBus.instance.on(GameEventNames.InteractableUse, (event: InteractableUseEvent) => {
+            this.handleInteractableUse(event);
+        });
+
+        EventBus.instance.on(GameEventNames.EquipmentEquipped, (event: ItemEquipEvent) => {
+            this.handleEquip(event);
+        });
+
+        EventBus.instance.on(GameEventNames.EquipmentUnequipped, (event: ItemUnequipEvent) => {
+            this.handleUnequip(event);
         });
     }
     
@@ -56,7 +78,7 @@ export class EffectExecutor {
         Logger.debug(`[EffectExecutor] Applying ${effects.length} effects from ${item.getDisplayName()} to ${actor.name}`);
         
         effects.forEach((effect: ItemEffect) => {
-            this.applyEffect(effect, actor);
+            this.applyEffect(effect, actor, undefined, item);
         });
     }
     
@@ -86,7 +108,7 @@ export class EffectExecutor {
     /**
      * Apply a single effect to a target
      */
-    private applyEffect(effect: ItemEffect, target: GameActor, source?: GameActor): void {
+    private applyEffect(effect: ItemEffect, target: GameActor, source?: GameActor, item?: any): void {
         Logger.debug(`[EffectExecutor] Applying effect ${effect.type} (value: ${effect.value}) to ${target.name}`);
         
         switch (effect.type) {
@@ -94,7 +116,7 @@ export class EffectExecutor {
                 this.applyHeal(target, effect.value, source);
                 break;
                 
-            case 'damage':
+            case EffectID.Damage:
                 this.applyDamage(target, effect.value, source);
                 break;
                 
@@ -126,16 +148,16 @@ export class EffectExecutor {
                 this.applyCondition(target, EffectID.Freeze, effect.value, effect.duration);
                 break;
                 
-            case 'light_radius':
-                this.applyPermanentEffect(target, 'light_radius', effect.value);
+            case EffectID.LightRadius:
+                this.applyPermanentEffect(target, EffectID.LightRadius, effect.value);
                 break;
                 
-            case 'luck':
-                this.applyPermanentEffect(target, 'luck', effect.value);
+            case EffectID.Luck:
+                this.applyPermanentEffect(target, EffectID.Luck, effect.value);
                 break;
                 
-            case 'warmth_generation':
-                this.applyPermanentEffect(target, 'warmth_generation', effect.value);
+            case EffectID.WarmthGeneration:
+                this.applyPermanentEffect(target, EffectID.WarmthGeneration, effect.value);
                 break;
                 
             case AbilityID.ChristmasSpirit:
@@ -146,9 +168,59 @@ export class EffectExecutor {
                 this.handleIdentify(target);
                 break;
                 
-            case 'unwrap_gift':
-                // This is handled in handleSpecialItem, but we need this case to prevent warnings
+            case EffectID.UnwrapGift:
+                // catch-all if not handled by handleSpecialItem, though handleSpecialItem logic handles it.
                 break;
+
+            case EffectID.HealFull:
+                const stats = target.getGameComponent<StatsComponent>('stats');
+                if (stats) this.applyHeal(target, stats.getStat('maxHp'), source);
+                break;
+
+            case EffectID.CureAll:
+                this.cureAll(target);
+                break;
+
+            case EffectID.CreateStairs:
+                // Use handle for complex logic
+                if (item) this.handleCreateStairs(item, target);
+                break;
+
+            case EffectID.StunAllEnemies:
+                this.applyGlobalCondition(target, EffectID.Stun, effect.value);
+                break;
+                
+            case EffectID.SlowAll:
+                this.applyGlobalCondition(target, EffectID.Slow, effect.value, effect.duration);
+                break;
+            
+            case EffectID.BuffAllStats:
+                this.applyPermanentEffect(target, this.convertEffectIdToStat(EffectID.StrengthBoost), effect.value);
+                this.applyPermanentEffect(target, this.convertEffectIdToStat(EffectID.DefenseBoost), effect.value);
+                this.applyPermanentEffect(target, this.convertEffectIdToStat(EffectID.SpeedBoost), effect.value);
+                this.applyPermanentEffect(target, this.convertEffectIdToStat(EffectID.DamageBoost), effect.value);
+                break;
+
+            case EffectID.BuffLuck:
+                this.applyPermanentEffect(target, EffectID.Luck, effect.value);
+                break;
+
+            case EffectID.DexterityBoost:
+                 // Map to Accuracy/CritRate or just ignore if Dexterity is deprecated?
+                 // User removed Dexterity stat. Maybe map to Accuracy?
+                 this.applyPermanentEffect(target, EffectID.AccuracyBoost, effect.value);
+                 break;
+
+            case EffectID.FriendlyNpcBoost:
+            case EffectID.CharmImmunity:
+            case EffectID.ColdImmunity:
+            case EffectID.FireResistance:
+            case EffectID.ColdResistance:
+                // Passive stats are handled by Equipment/Status system on equip
+                // But if it's a Potion/Scroll applying it permanently:
+                this.applyPermanentEffect(target, effect.type, effect.value);
+                break;
+
                 
             default:
                 Logger.warn(`[EffectExecutor] Unknown effect type: ${effect.type}`);
@@ -289,6 +361,8 @@ export class EffectExecutor {
                 return this.handleScrollOfElvenCraftsmanship(item, actor);
                 
             // Thrown items and grenades
+            // Thrown items and grenades - Handled via ItemThrow event now
+            /*
             case 'snowball':
             case 'packed_snowball':
             case 'iceball':
@@ -301,6 +375,7 @@ export class EffectExecutor {
             case 'gold_ornament_grenade':
             case 'platinum_ornament_grenade':
                 return this.handleOrnamentGrenade(item, actor);
+            */
                 
             // Special consumables
             case 'unlabeled_potion':
@@ -532,90 +607,258 @@ export class EffectExecutor {
     }
     
     /**
-     * Handle thrown items - requires targeting
+     * Handle thrown items - instant and always hit
      */
-    private handleThrownItem(item: any, actor: GameActor): boolean {
-        // For now, we'll implement basic thrown item logic
-        // TODO: Add proper targeting UI
+    private handleItemThrow(event: ItemThrowEvent): void {
+        const { item, actor, targetPos } = event;
         
-        let damage = 0;
-        let effect = '';
+        Logger.info(`[EffectExecutor] Throwing ${item.id} at ${targetPos}`);
         
-        switch (item.id) {
-            case 'snowball':
-                damage = 5;
-                effect = 'slows target';
-                break;
-            case 'packed_snowball':
-                damage = 8;
-                effect = 'stuns target briefly';
-                break;
-            case 'iceball':
-                damage = 12;
-                effect = 'freezes target';
-                break;
-            case 'yellow_snowball':
-                damage = 4;
-                effect = 'poisons target';
-                break;
-            case 'coal_snowball':
-                damage = 6;
-                effect = 'blinds target';
-                break;
+        // Find target at position
+        let target: GameActor | null = null;
+        
+        // Find target at the targeted position
+        if (actor.scene) {
+           const sceneActors = actor.scene.actors;
+           if (sceneActors) {
+               for (const entity of sceneActors) {
+                   if (entity instanceof GameActor && entity !== actor && !entity.isDead) {
+                       // Convert targetPos to grid coordinates and check if it matches entity position
+                       const targetGridX = Math.floor(targetPos.x / 32);
+                       const targetGridY = Math.floor(targetPos.y / 32);
+                       
+                       if (entity.gridPos.x === targetGridX && entity.gridPos.y === targetGridY) {
+                           target = entity;
+                           break;
+                       }
+                   }
+               }
+           }
         }
         
-        // Find nearest enemy to target
-        const level = actor.scene?.world?.queryManager?.getComponentsByType?.('GameActor');
-        if (level) {
-            const enemies = Array.from(level).filter((entity: any) => {
-                const gameActor = entity as GameActor;
-                return gameActor !== actor && 
-                       !gameActor.isDead && 
-                       gameActor.getGameComponent?.('combat');
-            });
-            
-            if (enemies.length > 0) {
-                const target = enemies[0] as GameActor;
-                
-                // Apply damage
-                EventBus.instance.emit(GameEventNames.DamageDealt, new DamageDealtEvent(
-                    target,
-                    damage,
-                    actor,
-                    DamageType.Physical
-                ));
-                
-                // Apply effect
-                if (item.id === 'snowball') {
-                    this.applyCondition(target, EffectID.Slow, 1, 3);
-                } else if (item.id === 'packed_snowball') {
-                    this.applyCondition(target, EffectID.Stun, 1, 2);
-                } else if (item.id === 'iceball') {
+        // Check if this is an AOE item (ornament grenades)
+        const isAOE = item.definition.tags?.includes('grenade') || item.definition.effects?.some((e: any) => 
+            e.type === EffectID.AoeDamage
+        );
+        
+        if (isAOE) {
+            // Handle AOE explosions - always hit all enemies instantly
+            this.handleAOEThrow(item, actor, targetPos);
+        } else if (target) {
+            // Handle single target thrown items - always hit instantly
+            this.handleSingleTargetThrow(item, actor, target);
+        } else {
+            // Thrown at empty space - still consume but no effect
+            EventBus.instance.emit(GameEventNames.Log, new LogEvent(
+                `Thrown ${item.definition.name} at empty space`,
+                'Combat',
+                '#888'
+            ));
+        }
+        
+        this.consumeItem(item);
+        
+        // NOTE: Thrown items are INSTANT and FREE actions - they don't end the player's turn
+        // No call to actor.spend() means the player can continue acting in the same turn
+        // This is intentional behavior for thrown items
+    }
+    
+    /**
+     * Handle single target thrown items (snowballs)
+     */
+    private handleSingleTargetThrow(item: any, actor: GameActor, target: GameActor): void {
+        // Extract damage and effects from item definition
+        let damage = 0;
+        const effects = item.definition.effects || [];
+        
+        // Apply each effect from item definition
+        effects.forEach((effect: any) => {
+            switch (effect.type) {
+                case EffectID.Damage:
+                    damage += effect.value;
+                    break;
+                case EffectID.SlowChance:
+                    if (Math.random() * 100 < effect.value) {
+                        this.applyCondition(target, EffectID.Slow, 1, 5);
+                    }
+                    break;
+                case EffectID.PoisonDOT:
+                    if (effect.chance && Math.random() * 100 < effect.chance) {
+                        this.applyCondition(target, EffectID.PoisonDOT, 2, 5);
+                    } else if (!effect.chance) {
+                        // Direct poison effect
+                        this.applyCondition(target, EffectID.PoisonDOT, effect.value || 1, 5);
+                    }
+                    break;
+                case EffectID.Blind:
+                    if (effect.chance && Math.random() * 100 < effect.chance) {
+                        this.applyCondition(target, EffectID.Blind, 1, 3);
+                    } else if (!effect.chance) {
+                        // Direct blind effect
+                        this.applyCondition(target, EffectID.Blind, effect.value || 1, 3);
+                    }
+                    break;
+                case EffectID.Freeze:
                     this.applyCondition(target, EffectID.Freeze, 1, 4);
-                } else if (item.id === 'yellow_snowball') {
-                    this.applyCondition(target, EffectID.Poison, 2, 5);
-                } else if (item.id === 'coal_snowball') {
-                    this.applyCondition(target, EffectID.Blind, 1, 3);
+                    break;
+                case EffectID.Stun:
+                    this.applyCondition(target, EffectID.Stun, 1, 2);
+                    break;
+                default:
+                    Logger.warn(`[EffectExecutor] Unknown effect type in thrown item: ${effect.type}`);
+            }
+        });
+        
+        // Apply damage instantly if any
+        if (damage > 0) {
+            // Direct damage application - instant, no miss chance
+            EventBus.instance.emit(GameEventNames.Damage, new DamageEvent(
+                target,
+                damage,
+                DamageType.Physical,
+                actor,
+                false
+            ));
+        }
+        
+        EventBus.instance.emit(GameEventNames.Log, new LogEvent(
+            `Hit ${target.name} with ${item.definition.name} for ${damage} damage!`,
+            'Combat',
+            '#ff6b6b'
+        ));
+    }
+    
+    /**
+     * Handle AOE thrown items (ornament grenades)
+     */
+    private handleAOEThrow(item: any, actor: GameActor, targetPos: any): void {
+        // Extract AOE effects from item definition
+        let aoeDamage = 0;
+        let stunDuration = 0;
+        const effects = item.definition.effects || [];
+        
+        effects.forEach((effect: any) => {
+            switch (effect.type) {
+                case EffectID.AoeDamage:
+                    aoeDamage = effect.value;
+                    break;
+                case EffectID.StunChance: // For stun effects in AOE
+                    stunDuration = effect.value;
+                    break;
+            }
+        });
+        
+        // Find all enemies in the scene for AOE
+        const enemies: GameActor[] = [];
+        if (actor.scene) {
+            const sceneActors = actor.scene.actors;
+            if (sceneActors) {
+                for (const entity of sceneActors) {
+                    if (entity instanceof GameActor && entity !== actor && !entity.isDead) {
+                        const hasAI = entity.getGameComponent('ai');
+                        if (hasAI) {
+                            enemies.push(entity);
+                        }
+                    }
                 }
-                
-                EventBus.instance.emit(GameEventNames.Log, new LogEvent(
-                    `Threw ${item.definition.name} at ${target.name} for ${damage} damage!`,
-                    'Combat',
-                    '#ff6b6b'
-                ));
-            } else {
-                EventBus.instance.emit(GameEventNames.Log, new LogEvent(
-                    'No valid target found.',
-                    'System',
-                    '#888'
-                ));
-                return false;
             }
         }
         
-        // Consume the thrown item
-        this.consumeItem(item);
-        return true;
+        // Apply AOE effects to all enemies instantly
+        enemies.forEach((enemy: GameActor) => {
+            if (aoeDamage > 0) {
+                // Direct damage application - instant, no miss chance
+                EventBus.instance.emit(GameEventNames.Damage, new DamageEvent(
+                    enemy,
+                    aoeDamage,
+                    DamageType.Physical,
+                    actor,
+                    false
+                ));
+            }
+            if (stunDuration > 0) {
+                this.applyCondition(enemy, EffectID.Stun, 1, stunDuration);
+            }
+        });
+        
+        EventBus.instance.emit(GameEventNames.Log, new LogEvent(
+            `${item.definition.name} explodes, affecting ${enemies.length} enemies!`,
+            'Combat',
+            '#ff6b6b'
+        ));
+    }
+    
+    /**
+     * Handle interactable use events
+     */
+    private handleInteractableUse(event: InteractableUseEvent): void {
+        const { interactable, user } = event;
+        const def = interactable.interactableDefinition;
+        
+        if (!def.effects) return;
+        
+        def.effects.forEach((effect: any) => {
+            if (effect.type === 'summon_boss') {
+                this.handleSummonBoss(user, interactable);
+            }
+        });
+    }
+
+    /**
+     * Handle boss summoning based on floor depth
+     */
+    private handleSummonBoss(user: GameActor, interactable: any): void {
+        // Access Level via scene
+        const scene = user.scene as any; // GameScene
+        if (!scene || !scene.level) return;
+        
+        const level = scene.level;
+        const depth = level.floorNumber; // Use floorNumber as it's more reliable
+        
+        let bossId: string | null = null;
+        
+        if (depth === 5) {
+            bossId = 'krampus';
+        } else if (depth === 10) {
+            bossId = 'corrupted_santa';
+        }
+        
+        if (bossId) {
+             // Spawn boss
+             import('../factories/ActorFactory').then(({ ActorFactory }) => {
+                 // Find a valid spot near the summoning circle
+                 const pos = interactable.getPosition();
+                 // Simple offset for now
+                 const spawnPos = ex.vec(pos.x + 1, pos.y);
+                 
+                 const boss = ActorFactory.instance.createActor(bossId!, spawnPos);
+                 
+                 if (boss) {
+                     // level.addActor is handled by SpawnSystem usually, 
+                     // but ActorFactory returns the actor. 
+                     // If SpawnSystem adds it to scene, we are good. 
+                     // ActorSpawnSystem uses scene.add(actor) + level.addActor(actor).
+                     // So specific level.addActor check here might be redundant or safe to keep if separate.
+                     // But ActorFactory calls ActorSpawnSystem.spawnActor which handles logic.
+                     // So we just log.
+                     
+                     EventBus.instance.emit(GameEventNames.Log, new LogEvent(
+                         `An ancient evil awakens! ${boss.name} appears!`,
+                         'System',
+                         '#ff0000'
+                     ));
+                     
+                     // Disable the circle?
+                     interactable.forceState('used');
+                 }
+             });
+        } else {
+             EventBus.instance.emit(GameEventNames.Log, new LogEvent(
+                 'The summoning circle hums but nothing happens. You feel the presence is elsewhere.',
+                 'System',
+                 '#888'
+             ));
+        }
     }
     
     /**
@@ -711,9 +954,10 @@ export class EffectExecutor {
      */
     private handleScrollOfNaughtyList(item: any, actor: GameActor): boolean {
         // Find all enemies and curse them
-        const level = actor.scene?.world?.queryManager?.getComponentsByType?.('GameActor');
-        if (level) {
-            const enemies = Array.from(level).filter((entity: any) => {
+        // Find all enemies and curse them
+        const actors = actor.scene?.actors;
+        if (actors) {
+            const enemies = actors.filter((entity: any) => {
                 const gameActor = entity as GameActor;
                 return gameActor !== actor && 
                        !gameActor.isDead && 
@@ -776,9 +1020,9 @@ export class EffectExecutor {
      */
     private handleScrollOfFrost(item: any, actor: GameActor): boolean {
         // Find all nearby enemies and freeze them
-        const level = actor.scene?.world?.queryManager?.getComponentsByType?.('GameActor');
-        if (level) {
-            const enemies = Array.from(level).filter((entity: any) => {
+        const actors = actor.scene?.actors;
+        if (actors) {
+            const enemies = actors.filter((entity: any) => {
                 const gameActor = entity as GameActor;
                 return gameActor !== actor && 
                        !gameActor.isDead && 
@@ -824,9 +1068,10 @@ export class EffectExecutor {
      * Handle scroll of jingle all - stun all enemies
      */
     private handleScrollOfJingleAll(item: any, actor: GameActor): boolean {
-        const level = actor.scene?.world?.queryManager?.getComponentsByType?.('GameActor');
-        if (level) {
-            const enemies = Array.from(level).filter((entity: any) => {
+        // Find all enemies and curse them
+        const actors = actor.scene?.actors;
+        if (actors) {
+            const enemies = actors.filter((entity: any) => {
                 const gameActor = entity as GameActor;
                 return gameActor !== actor && 
                        !gameActor.isDead && 
@@ -869,9 +1114,10 @@ export class EffectExecutor {
      * Handle scroll of snow storm - AoE damage and slow
      */
     private handleScrollOfSnowStorm(item: any, actor: GameActor): boolean {
-        const level = actor.scene?.world?.queryManager?.getComponentsByType?.('GameActor');
-        if (level) {
-            const enemies = Array.from(level).filter((entity: any) => {
+        // Find all enemies and curse them
+        const actors = actor.scene?.actors;
+        if (actors) {
+            const enemies = actors.filter((entity: any) => {
                 const gameActor = entity as GameActor;
                 return gameActor !== actor && 
                        !gameActor.isDead && 
@@ -967,9 +1213,10 @@ export class EffectExecutor {
         }
         
         // Apply AoE damage to all enemies
-        const level = actor.scene?.world?.queryManager?.getComponentsByType?.('GameActor');
-        if (level) {
-            const enemies = Array.from(level).filter((entity: any) => {
+        // Find all enemies and curse them
+        const actors = actor.scene?.actors;
+        if (actors) {
+            const enemies = actors.filter((entity: any) => {
                 const gameActor = entity as GameActor;
                 return gameActor !== actor && 
                        !gameActor.isDead && 
@@ -1095,11 +1342,22 @@ export class EffectExecutor {
      * Handle star cookie - permanent max HP increase
      */
     private handleStarCookie(item: any, actor: GameActor): boolean {
-        const healthComp = actor.getGameComponent('health');
-        if (healthComp) {
-            (healthComp as any).maxHP += 5;
-            (healthComp as any).currentHP += 5;
-        }
+        // Use StatsComponent for permanent stat modification
+        // This ensures events are fired and UI is updated
+        EventBus.instance.emit(GameEventNames.StatModify, new StatModifyEvent(
+            actor,
+            'maxHp',
+            5,
+            'flat'
+        ));
+        
+        // Also heal for the amount increased so current HP stays proportional (or just adds flat)
+        EventBus.instance.emit(GameEventNames.StatModify, new StatModifyEvent(
+            actor,
+            'hp',
+            5,
+            'flat'
+        ));
         
         EventBus.instance.emit(GameEventNames.Log, new LogEvent(
             'Your maximum health permanently increases by 5!',
@@ -1115,7 +1373,13 @@ export class EffectExecutor {
      * Handle liquid courage - permanent strength increase
      */
     private handleLiquidCourage(item: any, actor: GameActor): boolean {
-        this.applyPermanentEffect(actor, 'strength', 1);
+        // Use StatModify for permanent strength increase
+        EventBus.instance.emit(GameEventNames.StatModify, new StatModifyEvent(
+            actor,
+            'strength',
+            1,
+            'flat'
+        ));
         
         EventBus.instance.emit(GameEventNames.Log, new LogEvent(
             'Your strength permanently increases!',
@@ -1134,11 +1398,21 @@ export class EffectExecutor {
         // Major heal
         this.applyHeal(actor, 50);
         
-        // Permanent max HP increase
-        const healthComp = actor.getGameComponent('health');
-        if (healthComp) {
-            (healthComp as any).maxHP += 10;
-        }
+        // Permanent max HP increase via StatModify
+        EventBus.instance.emit(GameEventNames.StatModify, new StatModifyEvent(
+            actor,
+            'maxHp',
+            10,
+            'flat'
+        ));
+        
+        // Also add to current HP
+        EventBus.instance.emit(GameEventNames.StatModify, new StatModifyEvent(
+            actor,
+            'hp',
+            10,
+            'flat'
+        ));
         
         // Christmas spirit boost
         this.applyPermanentEffect(actor, 'christmas_spirit', 100);
@@ -1151,5 +1425,160 @@ export class EffectExecutor {
         
         this.consumeItem(item);
         return true;
+    }
+    /**
+     * Handle item equip - apply stats and passive effects
+     */
+    private handleEquip(event: ItemEquipEvent): void {
+        const { actor, item } = event;
+        
+        // 1. Apply Stats (additively)
+        if (item.definition.stats) {
+            // Stats like damage/defense are often used in calculation, but if they are native stats (strength, defense etc), we should buff them?
+            // "Damage" is calculated from weapon + strength.
+            // "Defense" is calculated from armor + defense.
+            // But if stats have "strength", "speed" etc...
+            // Let's assume stats in definition are BONUSES.
+            
+            Object.entries(item.definition.stats).forEach(([stat, value]) => {
+                if (stat !== 'strengthRequirement') {
+                    // For equipment stats, we treat them as "permanent mods" while equipped.
+                    // Instead of using modifyStat directly (which changes base), 
+                    // we use StatusEffectComponent to track them as 'permanent' effects of this item?
+                    // But our inventory system is simpler. 'modifyStat' is permanent change.
+                    // We need to support removal.
+                    // So we use applyPermanentEffect logic but we might need to track source?
+                    // StatusEffectComponent supports sourceId? Not really implemented well yet.
+                    
+                    // Actually, let's just use StatModify. unequip will reverse it.
+                    EventBus.instance.emit(GameEventNames.StatModify, new StatModifyEvent(
+                        actor,
+                        stat,
+                        value,
+                        'flat'
+                    ));
+                }
+            });
+        }
+        
+        // 2. Apply Special Effects (Passives)
+        if (item.definition.effects) {
+            item.definition.effects.forEach((effect: any) => {
+                // We treat all effects on equipment as needing to be applied
+                // If they are 'on_hit', they shouldn't be here?
+                // But current items (RingOfFrost) have 'frost_damage_bonus'.
+                this.applyPermanentEffect(actor, effect.type, effect.value);
+            });
+        }
+        
+        EventBus.instance.emit(GameEventNames.Log, new LogEvent(
+            `Equipped ${item.getDisplayName()}`,
+            'Inventory',
+            '#ffffff'
+        ));
+    }
+
+    /**
+     * Handle item unequip - remove stats and passive effects
+     */
+    private handleUnequip(event: ItemUnequipEvent): void {
+        const { actor, item } = event;
+        
+        // 1. Remove Stats
+        if (item.definition.stats) {
+            Object.entries(item.definition.stats).forEach(([stat, value]) => {
+                if (stat !== 'strengthRequirement') {
+                     EventBus.instance.emit(GameEventNames.StatModify, new StatModifyEvent(
+                        actor,
+                        stat,
+                        -value, // Reverse
+                        'flat'
+                    ));
+                }
+            });
+        }
+        
+        // 2. Remove Special Effects
+        if (item.definition.effects) {
+            item.definition.effects.forEach((effect: any) => {
+                EventBus.instance.emit(GameEventNames.PermanentEffectRemove, new PermanentEffectRemoveEvent(
+                    actor, 
+                    effect.type,
+                    effect.value
+                ));
+            });
+        }
+        
+        EventBus.instance.emit(GameEventNames.Log, new LogEvent(
+            `Unequipped ${item.getDisplayName()}`,
+            'Inventory',
+            '#ffffff'
+        ));
+    }
+    /**
+     * Cure all negative conditions
+     */
+    private cureAll(target: GameActor): void {
+        const statusComp = target.getGameComponent<StatusEffectComponent>('status_effect');
+        if (statusComp) {
+            statusComp.removeAllConditions();
+            EventBus.instance.emit(GameEventNames.Log, {
+                message: `${target.name} is cured of all ailments!`,
+                category: 'Combat',
+                color: '#00ff00'
+            } as any);
+        }
+    }
+
+    /**
+     * Apply a condition to all enemies in the level
+     */
+    private applyGlobalCondition(source: GameActor, conditionId: string, value: number, duration?: number): void {
+        if (!source.scene) return;
+        const gameScene = source.scene as any;
+        if (!gameScene.level || !gameScene.level.actors) return;
+
+        let count = 0;
+        gameScene.level.actors.forEach((actor: GameActor) => {
+             if (actor !== source && !actor.isPlayer && !actor.isDead) { // Simple enemy check
+                 this.applyCondition(actor, conditionId, value, duration);
+                 count++;
+             }
+        });
+        
+        Logger.info(`[EffectExecutor] Applied ${conditionId} to ${count} enemies via Global Effect`);
+    }
+
+    /**
+     * Handle Create Stairs effect
+     */
+    private handleCreateStairs(item: any, actor: GameActor): boolean {
+         Logger.info('[EffectExecutor] Creating stairs');
+         if (!actor.scene) return false;
+         
+         const scene = actor.scene; // Capture scene reference
+         import('../factories/InteractableFactory').then(({ InteractableFactory }) => {
+             const stairs = InteractableFactory.instance.create('stairs_down', actor.pos.x, actor.pos.y);
+             if (stairs) {
+                 scene.add(stairs);
+                 EventBus.instance.emit(GameEventNames.Log, {
+                    message: "A magical staircase appears!",
+                    category: "World",
+                    color: "#aaffaa"
+                 } as any);
+             }
+         });
+         return true;
+    }
+    
+    // Helper to map EffectID to Stat name
+    private convertEffectIdToStat(id: string): string {
+        switch (id) {
+            case EffectID.StrengthBoost: return 'strength';
+            case EffectID.DefenseBoost: return 'defense';
+            case EffectID.SpeedBoost: return 'speed';
+            case EffectID.DamageBoost: return 'damage_boost';
+            default: return id;
+        }
     }
 }

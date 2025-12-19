@@ -2,6 +2,7 @@ import * as ex from 'excalibur';
 import { GameActor } from './GameActor';
 import { ActorDefinitions } from '../data/actors';
 import { ComponentRegistry } from './ComponentFactory';
+import { StatusEffectComponent } from './StatusEffectComponent';
 import { EventBus } from '../core/EventBus';
 import { GameEventNames, FactoryCreateEvent, ActorSpawnedEvent, InventoryAddStartingItemsEvent } from '../core/GameEvents';
 import { Logger } from '../core/Logger';
@@ -69,6 +70,11 @@ export class ActorSpawnSystem {
                 Logger.error(`[ActorSpawnSystem] Failed to create ${componentDef.type} component for ${defName}:`, error);
             }
         });
+
+        // Always attach StatusEffectComponent
+        const statusEffect = new StatusEffectComponent(actor);
+        actor.addGameComponent('status_effect', statusEffect);
+        Logger.debug(`[ActorSpawnSystem] Added StatusEffectComponent to ${defName}`);
         
         // Handle starting items if defined
         if (def.inventory?.startingItems) {
@@ -82,23 +88,6 @@ export class ActorSpawnSystem {
         return actor;
     }
     
-    // Convenience methods
-    public spawnHero(gridPos: ex.Vector): GameActor {
-        return this.spawnActor('Hero', gridPos);
-    }
-    
-    public spawnSnowman(gridPos: ex.Vector): GameActor {
-        return this.spawnActor('Snowman', gridPos);
-    }
-    
-    public spawnSnowSprite(gridPos: ex.Vector): GameActor {
-        return this.spawnActor('Snow Sprite', gridPos);
-    }
-    
-    public spawnKrampus(gridPos: ex.Vector): GameActor {
-        return this.spawnActor('Krampus', gridPos);
-    }
-
     private giveStartingItems(actor: GameActor, itemIds: string[]): void {
         Logger.debug(`[ActorSpawnSystem] Giving starting items to ${actor.name}:`, itemIds);
         

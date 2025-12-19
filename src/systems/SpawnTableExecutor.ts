@@ -47,13 +47,17 @@ export class SpawnTableExecutor {
     }
 
     // Filter entries based on floor and tags
-    const validEntries = this.filterEntries(table.entries, request);
+    let validEntries = this.filterEntries(table.entries, request);
+    
+    // If no valid entries found and we have a specific spawnType, retry with 'normal'
+    if (validEntries.length === 0 && request.spawnType && request.spawnType !== 'normal') {
+      Logger.debug(`SpawnTableExecutor: No ${request.spawnType} entries for floor ${request.floorNumber}, falling back to normal`);
+      const fallbackRequest = { ...request, spawnType: 'normal' as const };
+      validEntries = this.filterEntries(table.entries, fallbackRequest);
+    }
     
     if (validEntries.length === 0) {
       Logger.warn(`SpawnTableExecutor: No valid entries found for floor ${request.floorNumber} in table '${request.tableId}'`);
-      Logger.warn(`Request details: type=${request.spawnType}, tags=${request.tags}`);
-      Logger.warn(`Table entries: ${table.entries.length}`);
-      table.entries.forEach(e => Logger.warn(`Entry: ${e.actorId}, min=${e.minFloor}, max=${e.maxFloor}, tags=${e.tags}`));
       return null;
     }
 

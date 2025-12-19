@@ -207,8 +207,9 @@ export const BiomeDefinitions: Record<BiomeID, BiomeDefinition> = {
       preferredPrefabs: [PrefabID.SmallShrine, PrefabID.StorageRoom, PrefabID.MerchantShop]
     },
     
+    // Floors 1-5 (Tutorial + Krampus Boss)
     minFloor: 1,
-    maxFloor: 5,
+    maxFloor: 5, 
     rarity: 'common',
     
     featureGenerators: [
@@ -268,13 +269,69 @@ export const BiomeDefinitions: Record<BiomeID, BiomeDefinition> = {
     description: 'Deep underground caverns filled with ancient ice and dangerous creatures.',
     
     visuals: {
+      tileset: Resources.FrozenDepthsTilesPng,
+      
+      materials: {
+          [MaterialType.Ice]: {
+              [TerrainType.Floor]: [
+                  { spriteCoords: [2, 0], weight: 40, tags: ['ancient_ice'] },
+                  { spriteCoords: [3, 0], weight: 40, tags: ['cracked_ice'] },
+                  { spriteCoords: [7, 1], weight: 20, tags: ['ice_brick'] }
+              ],
+              [TerrainType.Wall]: [
+                  { spriteCoords: [1, 2], weight: 100, tags: ['ice_wall'] }
+              ]
+          },
+          [MaterialType.Stone]: {
+              [TerrainType.Floor]: [
+                  { spriteCoords: [0, 0], weight: 50, tags: ['dark_stone'] },
+                  { spriteCoords: [1, 0], weight: 30, tags: ['icy_stone'] },
+                  { spriteCoords: [7, 0], weight: 20, tags: ['rough_stone'] }
+              ],
+              [TerrainType.Wall]: [
+                  { spriteCoords: [0, 2], weight: 60, tags: ['cave_wall'] },
+                  { spriteCoords: [4, 2], weight: 40, tags: ['ancient_wall'] }
+              ]
+          },
+          [MaterialType.Wood]: {
+              [TerrainType.Floor]: [
+                  { spriteCoords: [0, 1], weight: 40, tags: ['dark_planks'] },
+                  { spriteCoords: [1, 1], weight: 40, tags: ['frozen_planks'] },
+                  { spriteCoords: [3, 1], weight: 20, tags: ['rotted_wood'] }
+              ],
+              [TerrainType.Wall]: [
+                  { spriteCoords: [5, 2], weight: 100, tags: ['frozen_wood_wall'] }
+              ]
+          },
+          [MaterialType.Brick]: {
+             [TerrainType.Floor]: [
+                 { spriteCoords: [5, 1], weight: 100, tags: ['stone_brick'] }
+             ],
+             [TerrainType.Wall]: [
+                 { spriteCoords: [3, 2], weight: 100, tags: ['dark_brick_wall'] }
+             ]
+          }
+      },
+      
+      features: {
+          [TerrainType.Chasm]: [
+              { spriteCoords: [4, 0], weight: 100, tags: ['dark_chasm'] }
+          ],
+          [TerrainType.Water]: [
+              { spriteCoords: [5, 0], weight: 100, tags: ['frozen_pool'] }
+          ],
+          [TerrainType.Ice]: [
+              { spriteCoords: [6, 0], weight: 100, tags: ['crystal_floor'] }
+          ]
+      },
+      
       tileGraphics: {
-        [TerrainType.Wall]: { color: ex.Color.fromHex('#4682B4'), fallbackText: '█' },
-        [TerrainType.Floor]: { color: ex.Color.fromHex('#2F4F4F'), fallbackText: '·' },
-        [TerrainType.Water]: { color: ex.Color.fromHex('#00008B'), fallbackText: '≋' },
-        [TerrainType.Chasm]: { color: ex.Color.fromHex('#000000'), fallbackText: '▓' },
-        [TerrainType.Ice]: { color: ex.Color.fromHex('#87CEFA'), fallbackText: '≡' },
-        [TerrainType.DeepSnow]: { color: ex.Color.fromHex('#E0FFFF'), fallbackText: '❄' },
+        [TerrainType.Wall]: { spriteCoords: [0, 2], color: ex.Color.fromHex('#4682B4'), fallbackText: '█' },
+        [TerrainType.Floor]: { spriteCoords: [0, 0], color: ex.Color.fromHex('#2F4F4F'), fallbackText: '·' },
+        [TerrainType.Water]: { spriteCoords: [5, 0], color: ex.Color.fromHex('#00008B'), fallbackText: '≋' },
+        [TerrainType.Chasm]: { spriteCoords: [4, 0], color: ex.Color.fromHex('#000000'), fallbackText: '▓' },
+        [TerrainType.Ice]: { spriteCoords: [2, 0], color: ex.Color.fromHex('#87CEFA'), fallbackText: '≡' },
+        [TerrainType.DeepSnow]: { spriteCoords: [1, 0], color: ex.Color.fromHex('#E0FFFF'), fallbackText: '❄' },
         
         // Heat Sources
         [TerrainType.HotCoals]: { color: ex.Color.fromHex('#FF4500'), fallbackText: '♨' },
@@ -293,8 +350,9 @@ export const BiomeDefinitions: Record<BiomeID, BiomeDefinition> = {
       preferredPrefabs: [PrefabID.TreasureVault, PrefabID.Workshop, PrefabID.BossArena]
     },
     
-    minFloor: 5,
-    maxFloor: 15,
+    // Floors 6-10 (Mid-Game + Corrupted Santa Boss)
+    minFloor: 6,
+    maxFloor: 10, 
     rarity: 'uncommon',
     
     featureGenerators: [
@@ -340,69 +398,71 @@ export const BiomeDefinitions: Record<BiomeID, BiomeDefinition> = {
     ]
   },
 
-  [BiomeID.KrampusLair]: {
-    id: BiomeID.KrampusLair,
-    name: "Krampus's Lair",
-    description: 'A twisted version of Christmas cheer, filled with dark magic and corrupted decorations.',
+  // [BiomeID.KrampusLair]: {
+  //   id: BiomeID.KrampusLair,
+  //   name: "Krampus's Lair",
+  //   description: 'A twisted version of Christmas cheer, filled with dark magic and corrupted decorations.',
     
-    visuals: {
-      tileGraphics: {
-        [TerrainType.Wall]: { color: ex.Color.fromHex('#8B0000'), fallbackText: '█' },
-        [TerrainType.Floor]: { color: ex.Color.fromHex('#2F2F2F'), fallbackText: '·' },
-        [TerrainType.Water]: { color: ex.Color.fromHex('#8B0000'), fallbackText: '≋' },
-        [TerrainType.Chasm]: { color: ex.Color.fromHex('#8B0000'), fallbackText: '▓' },
-        [TerrainType.Ice]: { color: ex.Color.fromHex('#4B0082'), fallbackText: '≡' },
-        [TerrainType.DeepSnow]: { color: ex.Color.fromHex('#696969'), fallbackText: '❄' },
+  //   visuals: {
+  //     tileGraphics: {
+  //       [TerrainType.Wall]: { color: ex.Color.fromHex('#8B0000'), fallbackText: '█' },
+  //       [TerrainType.Floor]: { color: ex.Color.fromHex('#2F2F2F'), fallbackText: '·' },
+  //       [TerrainType.Water]: { color: ex.Color.fromHex('#8B0000'), fallbackText: '≋' },
+  //       [TerrainType.Chasm]: { color: ex.Color.fromHex('#8B0000'), fallbackText: '▓' },
+  //       [TerrainType.Ice]: { color: ex.Color.fromHex('#4B0082'), fallbackText: '≡' },
+  //       [TerrainType.DeepSnow]: { color: ex.Color.fromHex('#696969'), fallbackText: '❄' },
         
-        // Heat Sources
-        [TerrainType.HotCoals]: { color: ex.Color.fromHex('#B22222'), fallbackText: '♨' }, // Darker red for Krampus lair
-        [TerrainType.WarmStone]: { color: ex.Color.fromHex('#4A3728'), fallbackText: '░' }
-      },
-      lighting: 'dim',
-      defaultMaterial: MaterialType.Stone
-    },
+  //       // Heat Sources
+  //       [TerrainType.HotCoals]: { color: ex.Color.fromHex('#B22222'), fallbackText: '♨' }, // Darker red for Krampus lair
+  //       [TerrainType.WarmStone]: { color: ex.Color.fromHex('#4A3728'), fallbackText: '░' }
+  //     },
+  //     lighting: 'dim',
+  //     defaultMaterial: MaterialType.Stone
+  //   },
     
-    gameplay: {
-      preferredSpawnTables: [SpawnTableID.LateFloors, SpawnTableID.BossSpawns, SpawnTableID.CorruptedCreatures],
-      spawnRateMultiplier: 1.5,
-      lootRateMultiplier: 1.5,
-      lootTableOverrides: {
-        [RoomTypeID.Treasure]: LootTableID.CorruptedTreasure,
-        [RoomTypeID.Boss]: LootTableID.KrampusBoss
-      },
+  //   gameplay: {
+  //     preferredSpawnTables: [SpawnTableID.LateFloors, SpawnTableID.BossSpawns, SpawnTableID.CorruptedCreatures],
+  //     spawnRateMultiplier: 1.5,
+  //     lootRateMultiplier: 1.5,
+  //     lootTableOverrides: {
+  //       [RoomTypeID.Treasure]: LootTableID.CorruptedTreasure,
+  //       [RoomTypeID.Boss]: LootTableID.KrampusBoss
+  //     },
       
-      interactableSet: [InteractableID.CORRUPTED_TREE, InteractableID.EVIL_ALTAR, InteractableID.TRAPPED_CHEST, InteractableID.BONE_PILE],
-      preferredPrefabs: [PrefabID.BossArena, PrefabID.TreasureVault]
-    },
+  //     interactableSet: [InteractableID.CORRUPTED_TREE, InteractableID.EVIL_ALTAR, InteractableID.TRAPPED_CHEST, InteractableID.BONE_PILE],
+  //     preferredPrefabs: [PrefabID.BossArena, PrefabID.TreasureVault]
+  //   },
     
-    minFloor: 10,
-    rarity: 'rare',
+  //   // Floor 5 (Krampus Boss)
+  //   minFloor: 5,
+  //   maxFloor: 5,
+  //   rarity: 'rare',
     
-    featureGenerators: [
-      {
-        morphology: FeatureMorphology.Patch,
-        terrainType: TerrainType.Chasm,
-        probability: 0.25,
-        properties: { density: 0.08, fallDamage: 20, levelTransition: true, cursed: true }
-      }
-    ],
-    decor: [
-        // Dark Magic
-        { type: 'large_item', itemId: DecorID.RuneRed, placement: 'center', probability: 0.4, minRoomSize: { width: 6, height: 6 } },
-        { type: 'large_item', itemId: DecorID.RuneRed2, placement: 'random', probability: 0.3, minRoomSize: { width: 6, height: 6 } },
-        { type: 'large_item', itemId: DecorID.MagicCircle, placement: 'center', probability: 0.4, minRoomSize: { width: 8, height: 8 } },
-        { type: 'large_item', itemId: DecorID.VoidHole, placement: 'random', probability: 0.2, minRoomSize: { width: 5, height: 5 } },
+  //   featureGenerators: [
+  //     {
+  //       morphology: FeatureMorphology.Patch,
+  //       terrainType: TerrainType.Chasm,
+  //       probability: 0.25,
+  //       properties: { density: 0.08, fallDamage: 20, levelTransition: true, cursed: true }
+  //     }
+  //   ],
+  //   decor: [
+  //       // Dark Magic
+  //       { type: 'large_item', itemId: DecorID.RuneRed, placement: 'center', probability: 0.4, minRoomSize: { width: 6, height: 6 } },
+  //       { type: 'large_item', itemId: DecorID.RuneRed2, placement: 'random', probability: 0.3, minRoomSize: { width: 6, height: 6 } },
+  //       { type: 'large_item', itemId: DecorID.MagicCircle, placement: 'center', probability: 0.4, minRoomSize: { width: 8, height: 8 } },
+  //       { type: 'large_item', itemId: DecorID.VoidHole, placement: 'random', probability: 0.2, minRoomSize: { width: 5, height: 5 } },
         
-        // Corrupted Decor
-        { type: 'small_item', itemId: DecorID.TreeDeadSmall, placement: 'corner', probability: 0.3 },
-        { type: 'small_item', itemId: DecorID.TreeDeadCommon, placement: 'random', probability: 0.2 },
-        { type: 'small_item', itemId: DecorID.RockCommon, placement: 'random', probability: 0.2 },
+  //       // Corrupted Decor
+  //       { type: 'small_item', itemId: DecorID.TreeDeadSmall, placement: 'corner', probability: 0.3 },
+  //       { type: 'small_item', itemId: DecorID.TreeDeadCommon, placement: 'random', probability: 0.2 },
+  //       { type: 'small_item', itemId: DecorID.RockCommon, placement: 'random', probability: 0.2 },
         
-        // Spooky Clutter
-        { type: 'small_item', itemId: DecorID.CandleStand, placement: 'wall', probability: 0.3 },
-        { type: 'small_item', itemId: DecorID.SackCommon, placement: 'corner', probability: 0.2 }
-    ]
-  }
+  //       // Spooky Clutter
+  //       { type: 'small_item', itemId: DecorID.CandleStand, placement: 'wall', probability: 0.3 },
+  //       { type: 'small_item', itemId: DecorID.SackCommon, placement: 'corner', probability: 0.2 }
+  //   ]
+  // }
 };
 
 // Helper functions for biome selection

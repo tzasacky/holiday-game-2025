@@ -5,6 +5,7 @@ import { Logger } from '../core/Logger';
 import { StatsComponent } from '../components/StatsComponent';
 import { InventoryComponent } from '../components/InventoryComponent';
 import { EquipmentComponent } from '../components/EquipmentComponent';
+import { ItemType } from '../data/items';
 
 interface IdentificationProcess {
     item: ItemEntity;
@@ -41,6 +42,12 @@ export class IdentificationSystem {
             return false;
         }
 
+        // Only allow identification of weapons, armor, and artifacts (rings)
+        if (item.definition.type !== ItemType.WEAPON && item.definition.type !== ItemType.ARMOR && item.definition.type !== ItemType.ARTIFACT) {
+            Logger.info(`${item.getDisplayName()} doesn't require identification.`);
+            return false;
+        }
+
         const itemKey = `${actor.entityId}_${item.id}_${Date.now()}`;
         let identificationTime = IdentificationSystem.BASE_IDENTIFICATION_TIME;
         
@@ -69,6 +76,12 @@ export class IdentificationSystem {
 
     public instantIdentify(actor: GameActor, item: ItemEntity): boolean {
         if (item.identified) {
+            return false;
+        }
+
+        // Only allow identification of weapons, armor, and artifacts (rings)
+        if (item.definition.type !== ItemType.WEAPON && item.definition.type !== ItemType.ARMOR && item.definition.type !== ItemType.ARTIFACT) {
+            Logger.info(`${item.getDisplayName()} doesn't require identification.`);
             return false;
         }
 

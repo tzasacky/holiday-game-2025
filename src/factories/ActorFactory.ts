@@ -33,20 +33,7 @@ export class ActorFactory {
         }
     }
 
-    // Convenience methods that delegate to createActor
     public createHero(pos: ex.Vector): GameActor | null {
         return this.createActor(ActorID.HERO, pos);
-    }
-
-    public createSnowman(pos: ex.Vector): GameActor | null {
-        return this.createActor(ActorID.SNOWMAN, pos);
-    }
-
-    public createSnowSprite(pos: ex.Vector): GameActor | null {
-        return this.createActor(ActorID.SNOW_SPRITE, pos);
-    }
-
-    public createKrampus(pos: ex.Vector): GameActor | null {
-        return this.createActor(ActorID.KRAMPUS, pos);
     }
 }

@@ -1,0 +1,9 @@
+- file: enemies/corrupted_santa.png
+  output: assets/enemies/corrupted_santa.png
+  expectedTotal: 36
+  prompt: "Corrupted Santa"
+  spec:
+    cols: 8
+    rows: 5
+    targetSize: 32
+  type: character

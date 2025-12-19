@@ -33,6 +33,7 @@ export interface AIContext {
     lastKnownPlayerPos: ex.Vector | null;
     turnsSinceLastSeen: number;
     currentState: string;
+    justMoved: boolean;
 }
 
 /**
@@ -90,6 +91,8 @@ export class AIBehaviorLibrary {
         
         canActivate: (actor, context) => {
             if (!context.player) return false;
+            // Cannot attack if just moved (coming through doors, first spotting, etc.)
+            if (context.justMoved) return false;
             // Use Chebyshev distance for 8-way attack range
             const dx = Math.abs(actor.gridPos.x - context.player.gridPos.x);
             const dy = Math.abs(actor.gridPos.y - context.player.gridPos.y);

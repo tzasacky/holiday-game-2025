@@ -67,3 +67,46 @@
     ### **III. Negative Prompts (Strict Exclusions)**
 
     * **Avoid:** Grids, text, labels, labels on tiles, separation lines, borders, anti-aliasing, non-square tiles, complex perspectives, isometric views, single large image, blurry textures, gradients, non-pixel-art elements, characters, items, furniture, environment clutter.
+
+- file: tilesets/frozen_depths_tiles.png
+  output: public/assets/tilesets/frozen_depths_tiles.png
+  generate: true
+  spec:
+    cols: 8
+    rows: 4
+  expectedTotal: 32
+  prompt: |
+    **I. Core Image Parameters & Constraints (CRITICAL)**
+
+    * **Output:** Single **TILESET SPRITESHEET** only.
+    * **Content:** Only **FLOOR AND WALL TILES**.
+    * **Background:** Solid, contrasting color (e.g., pure white or black). **NO GRIDLINES, NO TEXT, NO OTHER OBJECTS.**
+    * **Style:** **PERFECT PIXEL ART.** **Dungeon Crawler** aesthetic. **Top-Down Perspective.**
+    * **Theme:** **Deep Underground Ice Caverns / Frozen Depths.**
+    * **Size/Resolution:** Optimize for clear, distinct tiles suitable for a low-resolution pixel art game (e.g., 32x32 per tile).
+
+    ### **II. Layout Definition (ABSOLUTE CRITICALITY)**
+
+    The spritesheet must be a perfectly arranged **4x8 grid of tiles** (4 rows, 8 columns).
+
+    * **Tile Specification:** Every tile must be a **PERFECTLY SQUARE,** full-filled sprite.
+    * **Seamlessness:** **Floor tiles** must completely fill the 32x32 square area with seamless textures. They must tile perfectly with neighbors. No gaps or borders.
+    * **Arrangement:** The sheet must be arranged exactly as specified below:
+
+    | Row | Col 0 | Col 1 | Col 2 | Col 3 | Col 4 | Col 5 | Col 6 | Col 7 |
+    | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+    | **ROW 1: Cave Floors** | Dark Stone | Icy Stone | Ancient Ice | Cracked Ice | Chasm (Dark) | Frozen Pool | Crystal Floor | Rough Stone |
+    | **ROW 2: Wood & Planks** | Dark Wood Planks | Frozen Planks | Ancient Boards | Rotted Wood | Icy Planks | Stone Brick | Metal Grate | Ice Brick |
+    | **ROW 3: Walls (Front)** | Cave Stone Wall | Ice Wall (Thick) | Crystal Wall | Dark Brick Wall | Ancient Stone Wall | Frozen Wood Wall | Metal Wall | Chasm Wall |
+    | **ROW 4: Walls (Top)** | Cave Stone (Top) | Ice Wall (Top) | Crystal Wall (Top) | Dark Brick (Top) | Ancient Stone (Top) | Frozen Wood (Top) | Metal Wall (Top) | Chasm Wall (Top) |
+
+    ### **III. Color Palette & Visual Style**
+
+    * **Primary Colors:** Deep blues, dark grays, icy whites, crystalline cyan
+    * **Secondary Colors:** Ancient brown wood, dark metals, shadowy blacks
+    * **Atmosphere:** Cold, mysterious, ancient underground cavern
+    * **Lighting:** Dim, with subtle icy reflections and crystal glimmers
+
+    ### **IV. Negative Prompts (Strict Exclusions)**
+
+    * **Avoid:** Grids, text, labels, labels on tiles, separation lines, borders, anti-aliasing, non-square tiles, complex perspectives, isometric views, single large image, blurry textures, gradients, non-pixel-art elements, characters, items, furniture, environment clutter.

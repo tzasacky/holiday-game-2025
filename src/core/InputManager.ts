@@ -78,6 +78,14 @@ export class InputManager {
                 this.toggleInventory();
                 return;
             }
+
+            // Debug Keys
+            if (evt.key === ex.Keys.P) {
+                import('./DungeonNavigator').then(({ DungeonNavigator }) => {
+                    DungeonNavigator.instance.debugTeleport(5);
+                });
+                return;
+            }
             
             // Handle hotbar keys (1-5)
             if (evt.key === ex.Keys.Digit1) { this.useHotbarSlot(1); return; }

@@ -50,6 +50,12 @@ function detectBackgroundColors(image) {
         sortedColors.push({ r: 128, g: 128, b: 128 });
     }
     
+    // FORCE GREEN SCREEN DETECTION
+    // Always add pure green and variations as candidates
+    sortedColors.push({ r: 0, g: 255, b: 0 });
+    sortedColors.push({ r: 35, g: 255, b: 35 }); // Slightly lighter green noise
+    sortedColors.push({ r: 0, g: 177, b: 64 });  // Common generator variation
+    
     return sortedColors;
 }
 

@@ -15,7 +15,7 @@ export const AppConfig = {
 };
 
 // Set log level (change to LogLevel.DEBUG for verbose logging)  
-Logger.setLevel(LogLevel.DEBUG);
+Logger.setLevel(LogLevel.INFO);
 
 Logger.info("AppConfig:", AppConfig);
 Logger.info("Initializing Game Engine...");

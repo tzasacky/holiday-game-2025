@@ -4,6 +4,7 @@ import { ActorID } from '../constants/ActorIDs';
 import { ItemID } from '../constants/ItemIDs';
 import { LootTableID } from '../constants/LootTableIDs';
 import { Tags } from '../constants/Tags';
+import { Difficulty } from './balance';
 
 // Complete unified actor data system
 export interface ActorAnimationConfig {
@@ -104,12 +105,12 @@ export const ActorDefinitions: Record<string, ActorDefinition> = {
     [ActorID.HERO]: {
         graphics: createStandardGraphics(Resources.HeroSpriteSheetPng),
         baseStats: {
-            maxHp: 100,
-            maxWarmth: 100,
-            strength: 100,
-            defense: 0,
-            accuracy: 95,
-            critRate: 5
+            maxHp: Difficulty.playerStartingHP,        // Doubled starting health - matches updated balance
+            maxWarmth: Difficulty.playerStartingWarmth,    // Reduced warmth capacity
+            strength: 3,      // Very low starting damage - MUST find equipment
+            defense: 0,       // No starting defense
+            accuracy: 85,     // Reduced accuracy without equipment
+            critRate: 2       // Lower crit rate
         },
         components: [
             { type: 'stats' },
@@ -121,7 +122,7 @@ export const ActorDefinitions: Record<string, ActorDefinition> = {
         tags: [Tags.Player, ActorID.HERO],
         inventory: { 
             size: 20,
-            startingItems: [ItemID.HotCocoa, ItemID.CandyCaneSpear]
+            startingItems: [ItemID.HotCocoa, ItemID.WeakSword]
         }
     },
     
@@ -152,11 +153,11 @@ export const ActorDefinitions: Record<string, ActorDefinition> = {
     [ActorID.SNOW_SPRITE]: {
         graphics: createStandardGraphics(Resources.SnowSpritePng),
         baseStats: {
-            maxHp: 10,
-            strength: 3,
-            defense: 1,
-            accuracy: 95,
-            critRate: 10
+            maxHp: 6,        // Very fragile tutorial enemy
+            strength: 2,     // Very low damage for tutorial
+            defense: 0,      // No defense - true glass cannon
+            accuracy: 95,    // High accuracy to ensure hits
+            critRate: 15     // High crit for glass cannon feel
         },
         components: [
             { type: 'stats' },
@@ -167,26 +168,26 @@ export const ActorDefinitions: Record<string, ActorDefinition> = {
             type: 'hit_and_run',
             viewDistance: 6,
             aggroRange: 4,
-            fleeThreshold: 50
+            fleeThreshold: 75
         },
-        tags: [Tags.Enemy, 'fast', 'cold_immune', 'elemental'],
+        tags: [Tags.Enemy, 'fast', 'cold_immune', 'elemental', 'glass_cannon'],
         lootTableId: LootTableID.SnowSpriteLoot,
-        dropChance: 0.12
+        dropChance: 0.15
     },
     
     [ActorID.KRAMPUS]: {
         graphics: createStandardGraphics(Resources.KrampusPng),
         baseStats: {
-            maxHp: 200,
-            strength: 20,
-            defense: 8,
+            maxHp: 150,       // Nerfed for Floor 5 Boss
+            strength: 12,     // Manageable for mid-gear
+            defense: 4,       // Vulnerable to basic upgrades
             accuracy: 90,
             critRate: 15
         },
         components: [
             { type: 'stats' },
             { type: 'combat' },
-            { type: 'ai', config: { composition: 'Aggressive', viewDistance: 12 } }
+            { type: 'ai', config: { behaviorComposition: 'Aggressive', viewDistance: 12 } }
         ],
         ai: {
             type: 'aggressive_boss',
@@ -195,7 +196,11 @@ export const ActorDefinitions: Record<string, ActorDefinition> = {
         },
         tags: [Tags.Enemy, 'boss', 'evil', Tags.Unique],
         lootTableId: LootTableID.KrampusLoot,
-        dropChance: 0.85
+        dropChance: 0.85,
+        inventory: {
+            size: 10,
+            startingItems: [ItemID.GoldKey]
+        }
     },
     
     // Missing mob definitions
@@ -211,7 +216,7 @@ export const ActorDefinitions: Record<string, ActorDefinition> = {
         components: [
             { type: 'stats' },
             { type: 'combat' },
-            { type: 'ai', config: { composition: 'Default', viewDistance: 6 } }
+            { type: 'ai', config: { behaviorComposition: 'Default', viewDistance: 6 } }
         ],
         ai: {
             type: 'wander_attack',
@@ -226,98 +231,98 @@ export const ActorDefinitions: Record<string, ActorDefinition> = {
     [ActorID.FROST_GIANT]: {
         graphics: createStandardGraphics(Resources.FrostGiantPng),
         baseStats: {
-            maxHp: 120,
-            strength: 15,
-            defense: 6,
-            accuracy: 80,
-            critRate: 5
+            maxHp: 95,       // Tank archetype - very high HP
+            strength: 8,     // Low damage for tank role
+            defense: 8,      // Very high defense
+            accuracy: 70,    // Low accuracy - slow and clunky
+            critRate: 5      // Low crit rate
         },
         components: [
             { type: 'stats' },
             { type: 'combat' },
-            { type: 'ai', config: { composition: 'Territorial', viewDistance: 8 } }
+            { type: 'ai', config: { behaviorComposition: 'Territorial', viewDistance: 8 } }
         ],
         ai: {
             type: 'wander_attack',
             viewDistance: 8,
             aggroRange: 7
         },
-        tags: [Tags.Enemy, 'giant', 'cold_immune', 'miniboss'],
+        tags: [Tags.Enemy, 'giant', 'cold_immune', 'miniboss', 'tank'],
         lootTableId: LootTableID.FrostGiantLoot,
-        dropChance: 0.35
+        dropChance: 0.40
     },
     
     [ActorID.EVIL_ELF]: {
         graphics: createStandardGraphics(Resources.EvilElfPng),
         baseStats: {
-            maxHp: 15,
-            strength: 4,
-            defense: 1,
-            accuracy: 95,
-            critRate: 15
+            maxHp: 8,        // Glass cannon - very low HP
+            strength: 7,     // High damage to compensate for fragility
+            defense: 0,      // No defense - true glass cannon
+            accuracy: 100,   // Perfect accuracy for hit-and-run
+            critRate: 25     // Very high crit rate
         },
         components: [
             { type: 'stats' },
             { type: 'combat' },
-            { type: 'ai', config: { composition: 'Aggressive', viewDistance: 7 } }
+            { type: 'ai', config: { behaviorComposition: 'Aggressive', viewDistance: 7 } }
         ],
         ai: {
             type: 'hit_and_run',
             viewDistance: 7,
             aggroRange: 5,
-            fleeThreshold: 40
+            fleeThreshold: 60
         },
-        tags: [Tags.Enemy, 'fast', 'humanoid'],
+        tags: [Tags.Enemy, 'fast', 'humanoid', 'glass_cannon'],
         lootTableId: LootTableID.EvilElfLoot,
-        dropChance: 0.12
+        dropChance: 0.18
     },
     
     [ActorID.GINGERBREAD_GOLEM]: {
         graphics: createStandardGraphics(Resources.GingerbreadGolemPng),
         baseStats: {
-            maxHp: 40,
-            strength: 7,
-            defense: 3,
-            accuracy: 85,
-            critRate: 0
+            maxHp: 45,       // High HP tank archetype
+            strength: 4,     // Low damage - tank role
+            defense: 6,      // Very high defense for early floors
+            accuracy: 75,    // Low accuracy - slow and clunky
+            critRate: 0      // No crits - reliable tank
         },
         components: [
             { type: 'stats' },
             { type: 'combat' },
-            { type: 'ai', config: { composition: 'Territorial', viewDistance: 6 } }
+            { type: 'ai', config: { behaviorComposition: 'Territorial', viewDistance: 6 } }
         ],
         ai: {
             type: 'wander_attack',
             viewDistance: 6,
             aggroRange: 4
         },
-        tags: [Tags.Enemy, 'construct', 'holiday', 'guardian'],
+        tags: [Tags.Enemy, 'construct', 'holiday', 'guardian', 'tank'],
         lootTableId: LootTableID.GingerbreadGolemLoot,
-        dropChance: 0.20
+        dropChance: 0.22
     },
     
     [ActorID.NUTCRACKER_SOLDIER]: {
         graphics: createStandardGraphics(Resources.NutcrackerSoldierPng),
         baseStats: {
-            maxHp: 35,
-            strength: 9,
-            defense: 4,
-            accuracy: 90,
-            critRate: 8
+            maxHp: 28,       // Balanced archetype - moderate HP
+            strength: 8,     // Higher damage than tank, lower than glass cannon
+            defense: 4,      // Moderate defense
+            accuracy: 90,    // Good accuracy
+            critRate: 12     // Moderate crit rate
         },
         components: [
             { type: 'stats' },
             { type: 'combat' },
-            { type: 'ai', config: { composition: 'Territorial', viewDistance: 8 } }
+            { type: 'ai', config: { behaviorComposition: 'Territorial', viewDistance: 8 } }
         ],
         ai: {
             type: 'wander_attack',
             viewDistance: 8,
             aggroRange: 6
         },
-        tags: [Tags.Enemy, 'construct', 'armored', 'holiday', 'miniboss'],
+        tags: [Tags.Enemy, 'construct', 'armored', 'holiday', 'miniboss', 'balanced'],
         lootTableId: LootTableID.NutcrackerSoldierLoot,
-        dropChance: 0.25
+        dropChance: 0.28
     },
     
     [ActorID.CANDY_CANE_SPIDER]: {
@@ -332,7 +337,7 @@ export const ActorDefinitions: Record<string, ActorDefinition> = {
         components: [
             { type: 'stats' },
             { type: 'combat' },
-            { type: 'ai', config: { composition: 'Aggressive', viewDistance: 6 } }
+            { type: 'ai', config: { behaviorComposition: 'Aggressive', viewDistance: 6 } }
         ],
         ai: {
             type: 'hit_and_run',
@@ -357,7 +362,7 @@ export const ActorDefinitions: Record<string, ActorDefinition> = {
         components: [
             { type: 'stats' },
             { type: 'combat' },
-            { type: 'ai', config: { composition: 'Default', viewDistance: 8 } }
+            { type: 'ai', config: { behaviorComposition: 'Default', viewDistance: 8 } }
         ],
         ai: {
             type: 'hit_and_run',
@@ -382,7 +387,7 @@ export const ActorDefinitions: Record<string, ActorDefinition> = {
         components: [
             { type: 'stats' },
             { type: 'combat' },
-            { type: 'ai', config: { composition: 'Default', viewDistance: 10 } }
+            { type: 'ai', config: { behaviorComposition: 'Default', viewDistance: 10 } }
         ],
         ai: {
             type: 'wander_attack',
@@ -397,49 +402,49 @@ export const ActorDefinitions: Record<string, ActorDefinition> = {
     [ActorID.ICE_SPIDER]: {
         graphics: createStandardGraphics(Resources.IceSpiderPng),
         baseStats: {
-            maxHp: 25,
-            strength: 7,
-            defense: 1,
-            accuracy: 95,
-            critRate: 18
+            maxHp: 15,       // Glass cannon archetype - very fragile
+            strength: 12,    // High damage for mid-tier
+            defense: 0,      // No defense - speed-based survival
+            accuracy: 98,    // High accuracy
+            critRate: 30     // Very high crit - deadly but fragile
         },
         components: [
             { type: 'stats' },
             { type: 'combat' },
-            { type: 'ai', config: { composition: 'Aggressive', viewDistance: 7 } }
+            { type: 'ai', config: { behaviorComposition: 'Aggressive', viewDistance: 7 } }
         ],
         ai: {
             type: 'wander_attack',
             viewDistance: 7,
             aggroRange: 5
         },
-        tags: [Tags.Enemy, 'venomous', 'ice', 'pack'],
+        tags: [Tags.Enemy, 'venomous', 'ice', 'pack', 'glass_cannon'],
         lootTableId: LootTableID.IceSpiderLoot,
-        dropChance: 0.18
+        dropChance: 0.20
     },
     
     [ActorID.ICE_WRAITH]: {
         graphics: createStandardGraphics(Resources.IceWraithPng),
         baseStats: {
-            maxHp: 45,
-            strength: 10,
-            defense: 2,
-            accuracy: 85,
-            critRate: 25
+            maxHp: 35,       // Balanced archetype - moderate survivability
+            strength: 10,    // Good damage
+            defense: 3,      // Moderate defense due to incorporeal nature
+            accuracy: 85,    // Moderate accuracy
+            critRate: 18     // Decent crit rate
         },
         components: [
             { type: 'stats' },
             { type: 'combat' },
-            { type: 'ai', config: { composition: 'Territorial', viewDistance: 9 } }
+            { type: 'ai', config: { behaviorComposition: 'Territorial', viewDistance: 9 } }
         ],
         ai: {
             type: 'wander_attack',
             viewDistance: 9,
             aggroRange: 7
         },
-        tags: [Tags.Enemy, 'incorporeal', 'ice', 'undead', 'miniboss'],
+        tags: [Tags.Enemy, 'incorporeal', 'ice', 'undead', 'miniboss', 'balanced'],
         lootTableId: LootTableID.IceWraithLoot,
-        dropChance: 0.30
+        dropChance: 0.32
     },
     
     [ActorID.BLIZZARD_ELEMENTAL]: {
@@ -454,7 +459,7 @@ export const ActorDefinitions: Record<string, ActorDefinition> = {
         components: [
             { type: 'stats' },
             { type: 'combat' },
-            { type: 'ai', config: { composition: 'Territorial', viewDistance: 8 } }
+            { type: 'ai', config: { behaviorComposition: 'Territorial', viewDistance: 8 } }
         ],
         ai: {
             type: 'aggressive_boss',
@@ -469,16 +474,16 @@ export const ActorDefinitions: Record<string, ActorDefinition> = {
     [ActorID.CORRUPTED_SANTA]: {
         graphics: createStandardGraphics(Resources.CorruptedSantaPng),
         baseStats: {
-            maxHp: 300,
-            strength: 25,
-            defense: 10,
+            maxHp: 250,       // Set for Floor 10 Boss
+            strength: 18,     // Heavy hitter but survivable
+            defense: 7,       // Requires armor penetration/high dmg
             accuracy: 85,
             critRate: 20
         },
         components: [
             { type: 'stats' },
             { type: 'combat' },
-            { type: 'ai', config: { composition: 'Aggressive', viewDistance: 12 } }
+            { type: 'ai', config: { behaviorComposition: 'Aggressive', viewDistance: 12 } }
         ],
         ai: {
             type: 'aggressive_boss',
@@ -487,11 +492,15 @@ export const ActorDefinitions: Record<string, ActorDefinition> = {
         },
         tags: [Tags.Enemy, 'boss', 'corrupted', 'final_boss', Tags.Legendary],
         lootTableId: LootTableID.CorruptedSantaLoot,
-        dropChance: 1.0
+        dropChance: 1.0,
+        inventory: {
+            size: 10,
+            startingItems: [ItemID.GoldKey]
+        }
     },
     
     [ActorID.ICE_DRAGON]: {
-        graphics: createStandardGraphics(Resources.IceDragonPng),
+        graphics: createStandardGraphics(Resources.BlizzardElementalPng),
         baseStats: {
             maxHp: 250,
             strength: 22,
@@ -502,7 +511,7 @@ export const ActorDefinitions: Record<string, ActorDefinition> = {
         components: [
             { type: 'stats' },
             { type: 'combat' },
-            { type: 'ai', config: { composition: 'Aggressive', viewDistance: 14 } }
+            { type: 'ai', config: { behaviorComposition: 'Aggressive', viewDistance: 14 } }
         ],
         ai: {
             type: 'aggressive_boss',

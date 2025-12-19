@@ -1,7 +1,7 @@
 import { GameActor } from '../components/GameActor';
 import { ItemEntity } from '../factories/ItemFactory';
 import { EventBus } from '../core/EventBus';
-import { GameEventNames } from '../core/GameEvents';
+import { GameEventNames, StartTargetingEvent } from '../core/GameEvents';
 import { Logger } from '../core/Logger';
 import { InventoryComponent } from '../components/InventoryComponent';
 
@@ -143,7 +143,13 @@ export class HotbarUI {
         const item = inventory.getItemByIndex(index);
         
         if (item) {
-            item.use(this.hero);
+            // Check if item requires targeting (e.g. throwable)
+            if (item.definition.tags && item.definition.tags.includes('throwable')) {
+                Logger.info(`[HotbarUI] Initiating targeting for ${item.definition.name}`);
+                EventBus.instance.emit(GameEventNames.StartTargeting, new StartTargetingEvent(item, this.hero));
+            } else {
+                item.use(this.hero);
+            }
         }
     }
 

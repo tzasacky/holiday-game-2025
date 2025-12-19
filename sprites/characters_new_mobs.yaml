@@ -8,11 +8,11 @@
     rows: 5
   expectedTotal: 36
   prompt: |
-    CHARACTER SPRITESHEET, SOLID COLOR BACKGROUND WITH NO GRIDLINES OR TEXT
+    CHARACTER SPRITESHEET, SOLID BRIGHT GREEN BACKGROUND WITH NO GRIDLINES OR TEXT
 
-    STYLE: Pixel art. Dungeon crawler style. Imposing but friendly. 32x32
+    STYLE: RETRO PIXEL ART. SNES STYLE. HIGH CONTRAST. SOLID OUTLINES. Dungeon crawler style. Imposing but friendly. 32x32
 
-    SUBJECT: A large snow golem with stone buttons, stick arms, and coal eyes. Bigger and more imposing than a snowman.
+    SUBJECT: A large snow golem with stone buttons, stick arms, and coal eyes. Thick dark outline. Bigger and more imposing than a snowman.
 
     LAYOUT: 8 frames across (columns) x 5 rows. Total of 40 frames arranged as follows:
 
@@ -65,11 +65,11 @@
     rows: 5
   expectedTotal: 36
   prompt: |
-    CHARACTER SPRITESHEET, SOLID COLOR BACKGROUND WITH NO GRIDLINES OR TEXT
+    CHARACTER SPRITESHEET, SOLID BRIGHT GREEN BACKGROUND WITH NO GRIDLINES OR TEXT
 
-    STYLE: Pixel art. Dungeon crawler style. Small and sneaky. 32x32
+    STYLE: RETRO PIXEL ART. SNES STYLE. HIGH CONTRAST. SOLID OUTLINES. Dungeon crawler style. Small and sneaky. 32x32
 
-    SUBJECT: A corrupted elf with torn green clothes, pointed ears, and a mischievous grin. Carries a small dagger.
+    SUBJECT: A corrupted elf with torn green clothes, pointed ears, and a mischievous grin. Thick dark outline. Carries a small dagger.
 
 - file: enemies/gingerbread_golem.png
   output: public/assets/enemies/gingerbread_golem.png
@@ -79,11 +79,11 @@
     rows: 5
   expectedTotal: 36
   prompt: |
-    CHARACTER SPRITESHEET, SOLID COLOR BACKGROUND WITH NO GRIDLINES OR TEXT
+    CHARACTER SPRITESHEET, SOLID BRIGHT GREEN BACKGROUND WITH NO GRIDLINES OR TEXT
 
-    STYLE: Pixel art. Dungeon crawler style. Festive but defensive. 32x32
+    STYLE: RETRO PIXEL ART. SNES STYLE. HIGH CONTRAST. SOLID OUTLINES. Dungeon crawler style. Festive but defensive. 32x32
 
-    SUBJECT: A gingerbread golem with icing decorations, gumdrop buttons, and candy cane arms. Holiday guardian.
+    SUBJECT: A gingerbread golem with icing decorations, gumdrop buttons, and candy cane arms. Thick dark outline. Holiday guardian.
 
 - file: enemies/nutcracker_soldier.png
   output: public/assets/enemies/nutcracker_soldier.png
@@ -93,11 +93,11 @@
     rows: 5
   expectedTotal: 36
   prompt: |
-    CHARACTER SPRITESHEET, SOLID COLOR BACKGROUND WITH NO GRIDLINES OR TEXT
+    CHARACTER SPRITESHEET, SOLID BRIGHT GREEN BACKGROUND WITH NO GRIDLINES OR TEXT
 
-    STYLE: Pixel art. Dungeon crawler style. Military and disciplined. 32x32
+    STYLE: RETRO PIXEL ART. SNES STYLE. HIGH CONTRAST. SOLID OUTLINES. Dungeon crawler style. Military and disciplined. 32x32
 
-    SUBJECT: A nutcracker soldier with a tall hat, uniform, and wooden sword. Territorial workshop guardian.
+    SUBJECT: A nutcracker soldier with a tall hat, uniform, and wooden sword. Thick dark outline. Territorial workshop guardian.
 
 - file: enemies/candy_cane_spider.png
   output: public/assets/enemies/candy_cane_spider.png
@@ -107,11 +107,11 @@
     rows: 5
   expectedTotal: 36
   prompt: |
-    CHARACTER SPRITESHEET, SOLID COLOR BACKGROUND WITH NO GRIDLINES OR TEXT
+    CHARACTER SPRITESHEET, SOLID BRIGHT GREEN BACKGROUND WITH NO GRIDLINES OR TEXT
 
-    STYLE: Pixel art. Dungeon crawler style. Fast and festive. 32x32
+    STYLE: RETRO PIXEL ART. SNES STYLE. HIGH CONTRAST. SOLID OUTLINES. Dungeon crawler style. Fast and festive. 32x32
 
-    SUBJECT: A spider with red and white candy cane striped legs and body. Small but aggressive pack hunter.
+    SUBJECT: A spider with red and white candy cane striped legs and body. Thick dark outline. Small but aggressive pack hunter.
 
 - file: enemies/frost_wisp.png
   output: public/assets/enemies/frost_wisp.png
@@ -121,11 +121,11 @@
     rows: 5
   expectedTotal: 36
   prompt: |
-    CHARACTER SPRITESHEET, SOLID COLOR BACKGROUND WITH NO GRIDLINES OR TEXT
+    CHARACTER SPRITESHEET, SOLID BRIGHT GREEN BACKGROUND WITH NO GRIDLINES OR TEXT
 
-    STYLE: Pixel art. Dungeon crawler style. Ethereal and magical. 32x32
+    STYLE: RETRO PIXEL ART. SNES STYLE. HIGH CONTRAST. SOLID OUTLINES. Dungeon crawler style. Ethereal and magical. 32x32
 
-    SUBJECT: A floating wisp of frost and ice magic with a blue-white glow. Incorporeal elemental creature.
+    SUBJECT: A floating wisp of frost and ice magic with a blue-white glow. Thick dark outline. Incorporeal elemental creature.
 
 - file: enemies/winter_wolf.png
   output: public/assets/enemies/winter_wolf.png
@@ -135,11 +135,11 @@
     rows: 5
   expectedTotal: 36
   prompt: |
-    CHARACTER SPRITESHEET, SOLID COLOR BACKGROUND WITH NO GRIDLINES OR TEXT
+    CHARACTER SPRITESHEET, SOLID BRIGHT GREEN BACKGROUND WITH NO GRIDLINES OR TEXT
 
-    STYLE: Pixel art. Dungeon crawler style. Fierce and wild. 32x32
+    STYLE: RETRO PIXEL ART. SNES STYLE. HIGH CONTRAST. SOLID OUTLINES. Dungeon crawler style. Fierce and wild. 32x32
 
-    SUBJECT: A white wolf with blue eyes and frost on its fur. Pack hunter with sharp teeth and claws.
+    SUBJECT: A white wolf with blue eyes and frost on its fur. Thick dark outline. Pack hunter with sharp teeth and claws.
 
 - file: enemies/ice_spider.png
   output: public/assets/enemies/ice_spider.png
@@ -149,11 +149,11 @@
     rows: 5
   expectedTotal: 36
   prompt: |
-    CHARACTER SPRITESHEET, SOLID COLOR BACKGROUND WITH NO GRIDLINES OR TEXT
+    CHARACTER SPRITESHEET, SOLID BRIGHT GREEN BACKGROUND WITH NO GRIDLINES OR TEXT
 
-    STYLE: Pixel art. Dungeon crawler style. Crystalline and dangerous. 32x32
+    STYLE: RETRO PIXEL ART. SNES STYLE. HIGH CONTRAST. SOLID OUTLINES. Dungeon crawler style. Crystalline and dangerous. 32x32
 
-    SUBJECT: A spider made of ice crystals with sharp, translucent legs. Venomous pack hunter.
+    SUBJECT: A spider made of ice crystals with sharp, translucent legs. Thick dark outline. Venomous pack hunter.
 
 - file: enemies/ice_wraith.png
   output: public/assets/enemies/ice_wraith.png
@@ -163,11 +163,11 @@
     rows: 5
   expectedTotal: 36
   prompt: |
-    CHARACTER SPRITESHEET, SOLID COLOR BACKGROUND WITH NO GRIDLINES OR TEXT
+    CHARACTER SPRITESHEET, SOLID BRIGHT GREEN BACKGROUND WITH NO GRIDLINES OR TEXT
 
-    STYLE: Pixel art. Dungeon crawler style. Ghostly and menacing. 32x32
+    STYLE: RETRO PIXEL ART. SNES STYLE. HIGH CONTRAST. SOLID OUTLINES. Dungeon crawler style. Ghostly and menacing. 32x32
 
-    SUBJECT: A spectral wraith made of ice and shadow with glowing eyes. Incorporeal miniboss that guards ice chambers.
+    SUBJECT: A spectral wraith made of ice and shadow with glowing eyes. Thick dark outline. Incorporeal miniboss that guards ice chambers.
 
 - file: enemies/blizzard_elemental.png
   output: public/assets/enemies/blizzard_elemental.png
@@ -177,11 +177,11 @@
     rows: 5
   expectedTotal: 36
   prompt: |
-    CHARACTER SPRITESHEET, SOLID COLOR BACKGROUND WITH NO GRIDLINES OR TEXT
+    CHARACTER SPRITESHEET, SOLID BRIGHT GREEN BACKGROUND WITH NO GRIDLINES OR TEXT
 
-    STYLE: Pixel art. Dungeon crawler style. Powerful and swirling. 32x32
+    STYLE: RETRO PIXEL ART. SNES STYLE. HIGH CONTRAST. SOLID OUTLINES. Dungeon crawler style. Powerful and swirling. 32x32
 
-    SUBJECT: A large elemental made of swirling snow and wind with glowing core. Territorial summoning chamber guardian.
+    SUBJECT: A large elemental made of swirling snow and wind with glowing core. Thick dark outline. Territorial summoning chamber guardian.
 
 - file: enemies/corrupted_santa.png
   output: public/assets/enemies/corrupted_santa.png
@@ -191,11 +191,38 @@
     rows: 5
   expectedTotal: 36
   prompt: |
-    CHARACTER SPRITESHEET, SOLID COLOR BACKGROUND WITH NO GRIDLINES OR TEXT
+    CHARACTER SPRITESHEET, SOLID BRIGHT GREEN BACKGROUND WITH NO GRIDLINES OR TEXT
 
-    STYLE: Pixel art. Dungeon crawler style. Large and corrupted. 32x32
+    STYLE: RETRO PIXEL ART. SNES STYLE. HIGH CONTRAST. SOLID OUTLINES. Dungeon crawler style. Large and corrupted. 32x32
 
-    SUBJECT: A dark, corrupted version of Santa with tattered red suit, evil grin, and shadow magic. Final boss.
+    SUBJECT: A dark, corrupted version of Santa with tattered red suit, evil grin, and shadow magic. Thick dark outline. Final boss.
+
+    ROW 1 - IDLE ANIMATIONS (2 frames per direction):
+    - Frames 1-2: Character facing DOWN, idle breathing animation
+    - Frames 3-4: Character facing LEFT, idle breathing animation
+    - Frames 5-6: Character facing RIGHT, idle breathing animation
+    - Frames 7-8: Character facing UP, idle breathing animation
+
+    ROW 2 - WALK ANIMATIONS (2 frames per direction):
+    - Frames 9-10: Character walking DOWN, walk cycle
+    - Frames 11-12: Character walking LEFT, walk cycle
+    - Frames 13-14: Character walking RIGHT, walk cycle
+    - Frames 15-16: Character walking UP, walk cycle
+
+    ROW 3 - MELEE ATTACK ANIMATIONS (2 frames per direction):
+    - Frames 17-18: Character attacking DOWN, attack motion
+    - Frames 19-20: Character attacking LEFT, attack motion
+    - Frames 21-22: Character attacking RIGHT, attack motion
+    - Frames 23-24: Character attacking UP, attack motion
+
+    ROW 4 - HURT ANIMATIONS (2 frames per direction):
+    - Frames 25-26: Character hurt/recoiling while facing DOWN
+    - Frames 27-28: Character hurt/recoiling while facing LEFT
+    - Frames 29-30: Character hurt/recoiling while facing RIGHT
+    - Frames 31-32: Character hurt/recoiling while facing UP
+
+    ROW 5 - DEATH ANIMATION (direction-neutral):
+    - Frames 33-36: Character death sequence (4 frames total), animation collapse from upright to grave
 
 - file: enemies/ice_dragon.png
   output: public/assets/enemies/ice_dragon.png
@@ -205,8 +232,8 @@
     rows: 5
   expectedTotal: 36
   prompt: |
-    CHARACTER SPRITESHEET, SOLID COLOR BACKGROUND WITH NO GRIDLINES OR TEXT
+    CHARACTER SPRITESHEET, SOLID BRIGHT GREEN BACKGROUND WITH NO GRIDLINES OR TEXT
 
-    STYLE: Pixel art. Dungeon crawler style. Majestic and fierce. 32x32
+    STYLE: RETRO PIXEL ART. SNES STYLE. HIGH CONTRAST. SOLID OUTLINES. Dungeon crawler style. Majestic and fierce. 32x32
 
-    SUBJECT: A crystalline ice dragon with blue scales, sharp claws, and frost breath. Mid-tier boss creature.
+    SUBJECT: A crystalline ice dragon with blue scales, sharp claws, and frost breath. Thick dark outline. Mid-tier boss creature.

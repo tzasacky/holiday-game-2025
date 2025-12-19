@@ -2,13 +2,12 @@ import * as ex from 'excalibur';
 import { InteractableDefinition, InteractableType } from '../data/interactables';
 import { Logger } from '../core/Logger';
 import { EventBus } from '../core/EventBus';
-import { GameEventNames, LevelTransitionRequestEvent, LootRequestEvent } from '../core/GameEvents';
+import { GameEventNames, LevelTransitionRequestEvent, LootRequestEvent, InteractableUseEvent, MovementEvent } from '../core/GameEvents';
 import { InteractableStatePersistence } from '../core/InteractableStatePersistence';
 import { Resources } from '../config/resources';
 import { GameActor } from './GameActor';
 import { GameEntity } from '../core/GameEntity';
 import { InventoryComponent } from './InventoryComponent';
-import { MovementEvent } from '../core/GameEvents';
 import { GraphicType } from '../constants/GraphicType';
 import { GraphicsManager } from '../data/graphics';
 import { InteractableState } from '../constants/InteractableState';
@@ -556,11 +555,15 @@ export class InteractableComponent {
     private generateInitialLoot(): void {
         if (!this.inventory) return;
 
-        // Use LootSystem if lootTableId is available
-        if (this.definition.lootTableId) {
+        // Use LootSystem if lootTableId or containerLootConfig is available
+        if (this.definition.lootTableId || this.definition.containerLootConfig) {
             import('../systems/LootSystem').then(({ LootSystem }) => {
                 import('../factories/ItemFactory').then(({ ItemFactory }) => {
-                    const generatedLoot = LootSystem.instance.generateLoot(this.definition.lootTableId!, 1, 3);
+                    // Use floor from config (passed by InteractableFactory)
+                    const floor = this.config.floor || 1;
+                    
+                    const generatedLoot = LootSystem.instance.generateContainerLoot(this.definition.id, floor);
+                    
                     for (const lootData of generatedLoot) {
                         const item = ItemFactory.instance.create(lootData.itemId, lootData.quantity);
                         if (item) {
@@ -696,6 +699,9 @@ const InteractionHandlers: Record<InteractableType, InteractionHandler> = {
             
             // Apply effects
             if (def.effects) {
+                // Emit use event for EffectExecutor to handle complex effects (like summoning)
+                EventBus.instance.emit(GameEventNames.InteractableUse, new InteractableUseEvent(component, entity as GameActor));
+                
                 def.effects.forEach(effect => {
                     // Apply effect to actor
                     Logger.info(`Applied effect: ${effect.type} to ${entity.name}`);
@@ -747,52 +753,19 @@ const InteractionHandlers: Record<InteractableType, InteractionHandler> = {
     [InteractableType.Portal]: {
         handle(entity: InteractingEntity, component: InteractableComponent): InteractionResult {
             const def = component.interactableDefinition;
-            const stairPos = component.getPosition();
             const actor = entity as GameActor;
             
-            // Check if player is already on the stairs
-            let needsMovement = true;
-            if (actor.gridPos) {
-                const currentPos = { x: Math.floor(actor.gridPos.x), y: Math.floor(actor.gridPos.y) };
-                needsMovement = !(currentPos.x === stairPos.x && currentPos.y === stairPos.y);
-            }
+            // Trigger level transition immediately when interacted with
+            Logger.info(`[InteractableComponent] *** STAIRS ACTIVATED *** Portal ${def.id} by ${entity.name}`);
+            const direction = def.id.includes('down') ? 'down' : 'up';
+            Logger.info(`[InteractableComponent] Emitting LevelTransitionRequest - Direction: ${direction}`);
             
-            // Move player to stairs position if not already there
-            if (needsMovement && actor.gridPos && actor.animateMovement) {
-                const oldPos = actor.gridPos.clone();
-                actor.gridPos = ex.vec(stairPos.x, stairPos.y);
-                actor.animateMovement(ex.vec(stairPos.x, stairPos.y));
-                
-                // Emit movement event for systems
-                EventBus.instance.emit(GameEventNames.Movement, {
-                    actorId: actor.entityId,
-                    actor: actor,
-                    from: oldPos,
-                    to: ex.vec(stairPos.x, stairPos.y)
-                });
-            }
-            
-            // Trigger level transition (with small delay if movement was needed)
-            const triggerTransition = () => {
-                Logger.info(`[InteractableComponent] *** STAIRS ACTIVATED *** Portal ${def.id} by ${entity.name}`);
-                const direction = def.id.includes('down') ? 'down' : 'up';
-                Logger.info(`[InteractableComponent] Emitting LevelTransitionRequest - Direction: ${direction}`);
-                
-                EventBus.instance.emit(GameEventNames.LevelTransitionRequest, new LevelTransitionRequestEvent(
-                    (entity as GameActor).entityId || entity.name,
-                    direction,
-                    'stairs',
-                    { portal: component }
-                ));
-            };
-            
-            if (needsMovement) {
-                // Give a brief moment for movement to complete
-                setTimeout(triggerTransition, 100);
-            } else {
-                // Trigger immediately if already on stairs
-                triggerTransition();
-            }
+            EventBus.instance.emit(GameEventNames.LevelTransitionRequest, new LevelTransitionRequestEvent(
+                (entity as GameActor).entityId || entity.name,
+                direction,
+                'stairs',
+                { portal: component }
+            ));
             
             return {
                 success: true,

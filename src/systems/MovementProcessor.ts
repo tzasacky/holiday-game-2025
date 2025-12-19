@@ -177,6 +177,20 @@ export class MovementProcessor {
                 });
                 break;
 
+            case 'level_transition_down':
+                // Check if actor is player
+                if (actor.isPlayer) {
+                    const scene = actor.scene as unknown as GameScene;
+                    const currentDepth = scene?.level?.depth || 1;
+                    EventBus.instance.emit(GameEventNames.LevelTransition, {
+                        toLevel: currentDepth + (effect.value || 1),
+                        direction: 'down'
+                    });
+                    
+                    Logger.info(`[MovementProcessor] Player fell down chasm! Transitioning to level ${currentDepth + (effect.value || 1)}`);
+                }
+                break;
+
             default:
                 Logger.debug(`[MovementProcessor] Unknown terrain effect type: ${effect.type}`);
         }

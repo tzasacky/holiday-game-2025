@@ -22,110 +22,69 @@ export interface SpawnTableDefinition {
 }
 
 export const BaseSpawnTables: Record<SpawnTableID, SpawnTableDefinition> = {
-  // Floors 1-5: Snowy Village Biome - Basic tutorial enemies
+  // Floors 0-3: Tutorial and Early Enemies (Snowy Village Outskirts)
   [SpawnTableID.EarlyFloors]: {
     id: SpawnTableID.EarlyFloors,
     name: 'Early Floor Spawns',
     entries: [
-      { actorId: ActorID.SNOW_SPRITE, weight: 50, minFloor: 1, maxFloor: 5, tags: ['common', 'basic'] },
-      { actorId: ActorID.SNOWMAN, weight: 35, minFloor: 1, maxFloor: 4, tags: ['common', 'basic'] },
-      { actorId: ActorID.EVIL_ELF, weight: 15, minFloor: 2, maxFloor: 6, tags: ['uncommon', 'fast'] }
+      // Floor 0-1: Tutorial enemy
+      { actorId: ActorID.SNOW_SPRITE, weight: 60, minFloor: 0, maxFloor: 3, tags: ['common', 'tutorial'] },
+      
+      // Floor 2+: Introduce variety
+      { actorId: ActorID.EVIL_ELF, weight: 40, minFloor: 1, maxFloor: 4, tags: ['common', 'fast'] },
+      { actorId: ActorID.GINGERBREAD_GOLEM, weight: 25, minFloor: 3, maxFloor: 5, tags: ['uncommon', 'construct'] },
+      
+      // Floor 4: Mini-boss introduction
+      { actorId: ActorID.NUTCRACKER_SOLDIER, weight: 15, minFloor: 3, maxFloor: 6, tags: ['uncommon', 'armored', 'miniboss'] }
     ],
     floorScaling: {
-      strengthBonus: 0.1,
-      hpBonus: 0.15
-    }
-  },
-
-  // Floors 5-10: Mid-game progression
-  [SpawnTableID.MidFloors]: {
-    id: SpawnTableID.MidFloors, 
-    name: 'Mid Floor Spawns',
-    entries: [
-      { actorId: ActorID.SNOW_GOLEM, weight: 40, minFloor: 5, maxFloor: 12, tags: ['uncommon', 'construct'] },
-      { actorId: ActorID.FROST_GIANT, weight: 25, minFloor: 8, maxFloor: 15, tags: ['rare', 'giant'] },
-      { actorId: ActorID.WINTER_WOLF, weight: 30, minFloor: 6, maxFloor: 12, tags: ['uncommon', 'pack'] }
-    ],
-    floorScaling: {
-      strengthBonus: 0.12,
-      hpBonus: 0.18
-    }
-  },
-
-  // Floors 10-15: Late game enemies
-  [SpawnTableID.LateFloors]: {
-    id: SpawnTableID.LateFloors,
-    name: 'Late Floor Spawns', 
-    entries: [
-      { actorId: ActorID.ICE_WRAITH, weight: 30, minFloor: 10, tags: ['rare', 'incorporeal'] },
-      { actorId: ActorID.CORRUPTED_SANTA, weight: 25, minFloor: 12, tags: ['rare', 'boss_minion'] },
-      { actorId: ActorID.BLIZZARD_ELEMENTAL, weight: 25, minFloor: 11, tags: ['rare', 'elemental'] },
-      { actorId: ActorID.ICE_DRAGON, weight: 20, minFloor: 13, tags: ['legendary', 'dragon'] }
-    ],
-    floorScaling: {
-      strengthBonus: 0.15,
-      hpBonus: 0.2
-    }
-  },
-  
-  // Holiday-themed creatures (floors 1-8)
-  [SpawnTableID.HolidayCreatures]: {
-    id: SpawnTableID.HolidayCreatures,
-    name: 'Holiday Themed Creatures',
-    entries: [
-      { actorId: ActorID.GINGERBREAD_GOLEM, weight: 40, minFloor: 2, maxFloor: 8, tags: ['themed', 'construct'] },
-      { actorId: ActorID.NUTCRACKER_SOLDIER, weight: 35, minFloor: 3, maxFloor: 10, tags: ['themed', 'armored'] },
-      { actorId: ActorID.CANDY_CANE_SPIDER, weight: 25, minFloor: 4, maxFloor: 12, tags: ['themed', 'fast'] }
-    ],
-    floorScaling: {
-      strengthBonus: 0.1,
+      strengthBonus: 0.08,
       hpBonus: 0.12
     }
   },
 
-  // Ice creatures (floors 5-12)
-  [SpawnTableID.IceCreatures]: {
-    id: SpawnTableID.IceCreatures,
-    name: 'Ice Creatures',
+  // Floors 6-7: Early Frozen Depths
+  [SpawnTableID.MidFloors]: {
+    id: SpawnTableID.MidFloors, 
+    name: 'Mid Floor Spawns',
     entries: [
-      { actorId: ActorID.FROST_WISP, weight: 45, minFloor: 5, maxFloor: 12, tags: ['common', 'elemental'] },
-      { actorId: ActorID.ICE_SPIDER, weight: 35, minFloor: 6, maxFloor: 14, tags: ['uncommon', 'venomous'] },
-      { actorId: ActorID.WINTER_WOLF, weight: 20, minFloor: 7, maxFloor: 15, tags: ['uncommon', 'pack'] }
+      // Floor 6-7: Light glass cannons and balanced enemies
+      { actorId: ActorID.ICE_SPIDER, weight: 50, minFloor: 5, maxFloor: 7, tags: ['common', 'glass_cannon', 'pack'] },
+      { actorId: ActorID.NUTCRACKER_SOLDIER, weight: 35, minFloor: 5, maxFloor: 8, tags: ['common', 'balanced'] },
+      { actorId: ActorID.ICE_WRAITH, weight: 15, minFloor: 6, maxFloor: 9, tags: ['uncommon', 'balanced'] }
     ],
     floorScaling: {
-      strengthBonus: 0.13,
-      hpBonus: 0.16
+      strengthBonus: 0.12,
+      hpBonus: 0.15
     }
   },
 
-  // Corrupted creatures (floors 8-15)
-  [SpawnTableID.CorruptedCreatures]: {
-    id: SpawnTableID.CorruptedCreatures,
-    name: 'Corrupted Creatures',
+  // Floors 8-9: Deep Frozen Depths  
+  [SpawnTableID.LateFloors]: {
+    id: SpawnTableID.LateFloors,
+    name: 'Late Floor Spawns', 
     entries: [
-      { actorId: ActorID.ICE_WRAITH, weight: 40, minFloor: 8, tags: ['rare', 'incorporeal'] },
-      { actorId: ActorID.CORRUPTED_SANTA, weight: 30, minFloor: 10, tags: ['rare', 'boss_minion'] },
-      { actorId: ActorID.BLIZZARD_ELEMENTAL, weight: 30, minFloor: 9, tags: ['rare', 'elemental'] }
+      // Floor 8-9: Tanks and stronger enemies
+      { actorId: ActorID.ICE_WRAITH, weight: 40, minFloor: 7, maxFloor: 9, tags: ['common', 'balanced'] },
+      { actorId: ActorID.FROST_GIANT, weight: 35, minFloor: 7, maxFloor: 8, tags: ['common', 'tank'] },
+      { actorId: ActorID.ICE_SPIDER, weight: 25, minFloor: 7, maxFloor: 8, tags: ['uncommon', 'glass_cannon', 'pack'] }
     ],
-    floorScaling: {
-      strengthBonus: 0.16,
-      hpBonus: 0.19
+    floorScaling: { 
+      strengthBonus: 0.18, 
+      hpBonus: 0.22 
     }
   },
 
-  // Boss spawns (floors 5, 10, 15) - Environment-appropriate bosses
+  // Boss Spawns (Floors 5 & 10)
   [SpawnTableID.BossSpawns]: { 
     id: SpawnTableID.BossSpawns, 
     name: 'Boss Spawns', 
     entries: [
-      // Floor 5: Snowy Village - Krampus (Holiday-themed boss)
+      // Floor 5: Krampus
       { actorId: ActorID.KRAMPUS, weight: 100, minFloor: 5, maxFloor: 5, tags: ['boss', 'holiday'] },
       
-      // Floor 10: Frozen Depths - Ice Dragon (Ice-themed boss) 
-      { actorId: ActorID.ICE_DRAGON, weight: 100, minFloor: 10, maxFloor: 10, tags: ['boss', 'ice', 'dragon'] },
-      
-      // Floor 15: Krampus Lair - Corrupted Santa (Final corrupted boss)
-      { actorId: ActorID.CORRUPTED_SANTA, weight: 100, minFloor: 15, maxFloor: 15, tags: ['boss', 'corrupted', 'final'] }
+      // Floor 10: Corrupted Santa
+      { actorId: ActorID.CORRUPTED_SANTA, weight: 100, minFloor: 10, maxFloor: 10, tags: ['boss', 'corrupted', 'final'] }
     ],
     floorScaling: {
       strengthBonus: 0.2,
@@ -133,19 +92,30 @@ export const BaseSpawnTables: Record<SpawnTableID, SpawnTableDefinition> = {
     }
   },
 
-  // Elite spawns (floors 8+)
+  // Unused tables kept for compatibility but empty or irrelevant for main loop
+  [SpawnTableID.HolidayCreatures]: {
+    id: SpawnTableID.HolidayCreatures,
+    name: 'Holiday Themed Creatures',
+    entries: [],
+    floorScaling: { strengthBonus: 0.1, hpBonus: 0.1 }
+  },
+  [SpawnTableID.IceCreatures]: {
+    id: SpawnTableID.IceCreatures,
+    name: 'Ice Creatures',
+    entries: [],
+    floorScaling: { strengthBonus: 0.1, hpBonus: 0.1 }
+  },
+  [SpawnTableID.CorruptedCreatures]: {
+    id: SpawnTableID.CorruptedCreatures,
+    name: 'Corrupted Creatures',
+    entries: [],
+    floorScaling: { strengthBonus: 0.1, hpBonus: 0.1 }
+  },
   [SpawnTableID.EliteSpawns]: { 
     id: SpawnTableID.EliteSpawns, 
     name: 'Elite Spawns', 
-    entries: [
-      { actorId: ActorID.FROST_GIANT, weight: 40, minFloor: 8, tags: ['elite', 'giant'] },
-      { actorId: ActorID.SNOW_GOLEM, weight: 35, minFloor: 6, tags: ['elite', 'construct'] },
-      { actorId: ActorID.ICE_DRAGON, weight: 25, minFloor: 12, tags: ['elite', 'dragon'] }
-    ],
-    floorScaling: {
-      strengthBonus: 0.18,
-      hpBonus: 0.22
-    }
+    entries: [],
+    floorScaling: { strengthBonus: 0.1, hpBonus: 0.1 }
   }
 };
 
@@ -155,9 +125,8 @@ export const SpecialSpawnTables: Record<string, SpawnTableDefinition> = {
     id: 'treasure_room_guards' as SpawnTableID,
     name: 'Treasure Room Guards',
     entries: [
-      { actorId: ActorID.GINGERBREAD_GOLEM, weight: 40, minFloor: 2, tags: ['guardian', 'territorial'] },
-      { actorId: ActorID.NUTCRACKER_SOLDIER, weight: 35, minFloor: 3, tags: ['guardian', 'territorial'] },
-      { actorId: ActorID.FROST_GIANT, weight: 25, minFloor: 8, tags: ['guardian', 'territorial', 'miniboss'] }
+      { actorId: ActorID.GINGERBREAD_GOLEM, weight: 50, minFloor: 2, tags: ['guardian', 'territorial'] },
+      { actorId: ActorID.FROST_GIANT, weight: 50, minFloor: 6, tags: ['guardian', 'territorial', 'miniboss'] }
     ],
     floorScaling: {
       strengthBonus: 0.15,
@@ -169,9 +138,8 @@ export const SpecialSpawnTables: Record<string, SpawnTableDefinition> = {
     id: 'ambush' as SpawnTableID,
     name: 'Ambush Spawns',
     entries: [
-      { actorId: ActorID.CANDY_CANE_SPIDER, weight: 40, minFloor: 4, packSize: { min: 3, max: 5 }, tags: ['ambush', 'pack'] },
-      { actorId: ActorID.EVIL_ELF, weight: 35, minFloor: 2, packSize: { min: 2, max: 4 }, tags: ['ambush', 'pack'] },
-      { actorId: ActorID.ICE_SPIDER, weight: 25, minFloor: 6, packSize: { min: 2, max: 3 }, tags: ['ambush', 'pack'] }
+      { actorId: ActorID.EVIL_ELF, weight: 60, minFloor: 2, packSize: { min: 2, max: 4 }, tags: ['ambush', 'pack'] },
+      { actorId: ActorID.ICE_SPIDER, weight: 40, minFloor: 6, packSize: { min: 2, max: 3 }, tags: ['ambush', 'pack'] }
     ],
     floorScaling: {
       strengthBonus: 0.1,
@@ -183,9 +151,8 @@ export const SpecialSpawnTables: Record<string, SpawnTableDefinition> = {
     id: 'workshop_guardians' as SpawnTableID,
     name: 'Workshop Guardian Spawns',
     entries: [
-      { actorId: ActorID.NUTCRACKER_SOLDIER, weight: 50, minFloor: 3, maxFloor: 8, tags: ['guardian', 'territorial', 'miniboss'] },
-      { actorId: ActorID.GINGERBREAD_GOLEM, weight: 30, minFloor: 2, maxFloor: 8, tags: ['guardian', 'territorial'] },
-      { actorId: ActorID.EVIL_ELF, weight: 20, minFloor: 2, maxFloor: 6, tags: ['guardian'] }
+      { actorId: ActorID.NUTCRACKER_SOLDIER, weight: 60, minFloor: 3, tags: ['guardian', 'territorial', 'miniboss'] },
+      { actorId: ActorID.GINGERBREAD_GOLEM, weight: 40, minFloor: 2, tags: ['guardian', 'territorial'] }
     ],
     floorScaling: {
       strengthBonus: 0.12,
@@ -197,9 +164,8 @@ export const SpecialSpawnTables: Record<string, SpawnTableDefinition> = {
     id: 'ice_chamber_spawns' as SpawnTableID,
     name: 'Ice Chamber Spawns',
     entries: [
-      { actorId: ActorID.FROST_WISP, weight: 45, minFloor: 5, tags: ['ice_adapted', 'elemental'] },
-      { actorId: ActorID.ICE_WRAITH, weight: 35, minFloor: 8, tags: ['ice_adapted', 'incorporeal', 'miniboss'] },
-      { actorId: ActorID.WINTER_WOLF, weight: 20, minFloor: 7, packSize: { min: 2, max: 3 }, tags: ['ice_adapted', 'pack'] }
+      { actorId: ActorID.ICE_WRAITH, weight: 60, minFloor: 6, tags: ['ice_adapted', 'incorporeal'] },
+      { actorId: ActorID.FROST_WISP, weight: 40, minFloor: 6, tags: ['ice_adapted', 'elemental'] }
     ],
     floorScaling: {
       strengthBonus: 0.14,
@@ -211,9 +177,7 @@ export const SpecialSpawnTables: Record<string, SpawnTableDefinition> = {
     id: 'summoning_room_spawns' as SpawnTableID,
     name: 'Summoning Room Spawns',
     entries: [
-      { actorId: ActorID.BLIZZARD_ELEMENTAL, weight: 50, minFloor: 9, tags: ['summoned', 'elemental', 'miniboss'] },
-      { actorId: ActorID.ICE_WRAITH, weight: 35, minFloor: 8, tags: ['summoned', 'incorporeal'] },
-      { actorId: ActorID.CORRUPTED_SANTA, weight: 15, minFloor: 12, tags: ['summoned', 'boss_minion', 'miniboss'] }
+      { actorId: ActorID.ICE_WRAITH, weight: 100, minFloor: 8, tags: ['summoned', 'incorporeal'] }
     ],
     floorScaling: {
       strengthBonus: 0.16,
@@ -227,10 +191,8 @@ export const SpecialSpawnTables: Record<string, SpawnTableDefinition> = {
     entries: [
       // Floor 5: Krampus
       { actorId: ActorID.KRAMPUS, weight: 100, minFloor: 5, maxFloor: 5, tags: ['boss', 'holiday'] },
-      // Floor 10: Ice Dragon
-      { actorId: ActorID.ICE_DRAGON, weight: 100, minFloor: 10, maxFloor: 10, tags: ['boss', 'ice', 'dragon'] },
-      // Floor 15: Corrupted Santa (spawned via summoning circle)
-      { actorId: ActorID.CORRUPTED_SANTA, weight: 100, minFloor: 15, maxFloor: 15, tags: ['boss', 'corrupted', 'final'] }
+      // Floor 10: Corrupted Santa
+      { actorId: ActorID.CORRUPTED_SANTA, weight: 100, minFloor: 10, maxFloor: 10, tags: ['boss', 'corrupted', 'final'] }
     ],
     floorScaling: {
       strengthBonus: 0.25,
@@ -239,28 +201,37 @@ export const SpecialSpawnTables: Record<string, SpawnTableDefinition> = {
   }
 };
 
-// 15-Floor Progression System with Biome-Based Spawning
+// 10-Floor Progression System (0-10)
 export const FloorSpawnTableMapping: Record<number, SpawnTableID[]> = {
-  // Floors 1-5: Snowy Village (tutorial progression)
-  1: [SpawnTableID.EarlyFloors, SpawnTableID.HolidayCreatures],
-  2: [SpawnTableID.EarlyFloors, SpawnTableID.HolidayCreatures], 
-  3: [SpawnTableID.EarlyFloors, SpawnTableID.HolidayCreatures],
-  4: [SpawnTableID.EarlyFloors, SpawnTableID.HolidayCreatures],
-  5: [SpawnTableID.EarlyFloors, SpawnTableID.BossSpawns], // First boss floor
+  // Floor 0: Tutorial floor
+  0: [SpawnTableID.EarlyFloors],
   
-  // Floors 6-10: Frozen Depths (mid-game progression)  
-  6: [SpawnTableID.MidFloors, SpawnTableID.IceCreatures],
-  7: [SpawnTableID.MidFloors, SpawnTableID.IceCreatures],
-  8: [SpawnTableID.MidFloors, SpawnTableID.IceCreatures, SpawnTableID.EliteSpawns],
-  9: [SpawnTableID.MidFloors, SpawnTableID.IceCreatures, SpawnTableID.EliteSpawns],
-  10: [SpawnTableID.MidFloors, SpawnTableID.BossSpawns], // Second boss floor
+  // Floors 1-4: Snowy Village (Early game)
+  1: [SpawnTableID.EarlyFloors],
+  2: [SpawnTableID.EarlyFloors], 
+  3: [SpawnTableID.EarlyFloors],
+  4: [SpawnTableID.EarlyFloors],
   
-  // Floors 11-15: Krampus Lair (late game + final boss)
-  11: [SpawnTableID.LateFloors, SpawnTableID.CorruptedCreatures, SpawnTableID.EliteSpawns],
-  12: [SpawnTableID.LateFloors, SpawnTableID.CorruptedCreatures, SpawnTableID.EliteSpawns],
-  13: [SpawnTableID.LateFloors, SpawnTableID.CorruptedCreatures, SpawnTableID.EliteSpawns],
-  14: [SpawnTableID.LateFloors, SpawnTableID.CorruptedCreatures, SpawnTableID.EliteSpawns],
-  15: [SpawnTableID.BossSpawns] // Final Krampus boss floor
+  // Floor 5: Krampus (Mid-game boss)
+  5: [SpawnTableID.BossSpawns], 
+  
+  // Floors 6-7: Early Frozen Depths
+  6: [SpawnTableID.MidFloors],
+  7: [SpawnTableID.MidFloors],
+  
+  // Floors 8-9: Deep Frozen Depths (Pre-endgame)
+  8: [SpawnTableID.LateFloors],
+  9: [SpawnTableID.LateFloors],
+  
+  // Floor 10: Corrupted Santa (Final boss)
+  10: [SpawnTableID.BossSpawns],
+  
+  // Safety fallback for any extra floors
+  11: [SpawnTableID.LateFloors],
+  12: [SpawnTableID.LateFloors],
+  13: [SpawnTableID.LateFloors],
+  14: [SpawnTableID.LateFloors],
+  15: [SpawnTableID.BossSpawns]
 };
 
 // Combine all spawn tables for easy lookup

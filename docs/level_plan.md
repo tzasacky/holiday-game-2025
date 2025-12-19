@@ -4,23 +4,20 @@
 
 Create a festive, winter-themed roguelike dungeon with deep interactivity, distinct biomes, and a massive amount of concrete content (50+ features).
 
-## Biomes & Architecture (The "Bones")
+## Biomes & Floor Progression
 
-1.  **Snowy Village (Biome 1)**: Starting area. [IMPLEMENTED]
-    - _Style_: Cabins, fences, snow piles.
-    - _Hazards_: Yellow Snow (Poison).
-2.  **Winter Enchanted Forest (Biome 2)**: Nature reclaiming civilization.
-    - _Style_: Frozen trees, brambles, clearing.
-    - _Hazards_: Tangled Roots, Falling Branches.
-3.  **Ice Fortress (Biome 3)**: Rigid, military structure.
-    - _Style_: Blue brick, banners, grand halls.
-    - _Hazards_: Spikes, Arrow Traps, Slippery Floors.
-4.  **Frozen Caves (Biome 4)**: Organic, dark, dangerous.
-    - _Style_: Natural rock, crystals, deep pits.
-    - _Hazards_: Falling Icicles, Unstable Ground.
-5.  **Santa's Workshop (Biome 5)**: The final challenge.
-    - _Style_: Industrial, conveyor belts, machinery.
-    - _Hazards_: Crushers, Steam Vents, Pits.
+The game has a **10-floor structure** with **2 biomes**:
+
+1.  **Snowy Village** (Floors 1-5) [IMPLEMENTED]
+
+    - _Style_: Cabins, fences, snow piles, holiday decorations
+    - _Hazards_: Ice patches (slippery), deep snow, frozen water
+    - _Boss_: **Krampus** on Floor 5
+
+2.  **Frozen Depths** (Floors 6-10) [IMPLEMENTED]
+    - _Style_: Ice caverns, ancient stone, crystal formations
+    - _Hazards_: Chasms, slippery ice corridors, dim lighting
+    - _Boss_: **Corrupted Santa** on Floor 10
 
 ## Interactive Elements (The "Toys")
 
